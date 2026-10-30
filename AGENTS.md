@@ -1745,7 +1745,7 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   row on the Settings root, the signed-in count beside it, pushing
   `ModelProvidersController`: signed in first with who as and a `…` menu,
   then the rest under Sign In with an Account and API Keys, searchable)
-  signs in to every login kwwk offers, plus DeepSeek. API-key fields use native inset
+  signs in to every login kwwk offers, plus DeepSeek and OpenCode Go. API-key fields use native inset
   grouped sections, with Fetch Models in the navigation bar. Setup stores
   the key and gets the endpoint's model list before model selection; no
   arbitrary default model is probed. The selection page allows custom IDs
@@ -1791,6 +1791,10 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   extras — what KWWKCli's internal `apiKeyCredentials` writes, so it is
   rewritten in `AccountDesk`). DeepSeek adds an API-key form and its own
   `deepseek-api-key` credential item, separate from `openai-compatible`.
+  OpenCode Go adds a key-only form (`oc_sk_…`) under `opencode-go`, the Go
+  subscription's gateway; it is not the pay-as-you-go Console, and a general
+  OpenAI-compatible entry cannot reach it (Go answers 400 `MissingSessionID`
+  without `x-opencode-session`, before it looks at the key).
   Display order is Apelin's `AgentProvider.signInOrder`, independent of
   kwwk's registration order;
   `AccountDeskTests` fails when kwwk gains a subscription or a stored
@@ -1808,7 +1812,19 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   other is `.stored(storeID:, model:)`. `ProviderRegistration` is shared
   by account verification and conversations: it uses kwwk's registration
   and transports, adds DeepSeek, and applies DeepSeek's catalog capabilities
-  to its official Chat Completions endpoint. Unknown models keep their
+  to its official Chat Completions endpoint. It also adds OpenCode Go
+  (`Session/OpenCodeGoProvider.swift`): kwwk's catalog (`opencode-go`) names
+  each model's wire, and Apelin registers that model on Go's documented
+  family base — Chat Completions and Responses at `/openai/v1`, Anthropic at
+  `/anthropic`, Gemini at `/google` — wrapped to send `x-opencode-session`
+  from the conversation's session id (a process id for verification and
+  other requests with no conversation), following Copilot's header adapter
+  and forwarding session cleanup and native compaction. The family base is
+  not the catalog's `baseUrl`: kwwk's transports append their own version
+  and path, and the pinned Google entry would append `/v1beta` twice.
+  Unknown ids fall back to Chat Completions, which Console translates, with
+  a conservative text-only, non-reasoning model; a kwwk that registers
+  `opencode-go` itself can replace this adapter. Unknown models keep their
   existing capabilities; model names alone never identify a provider. The
   app cannot write the keychain group, so every flow runs in apelin-agent's
   `credential-import` instance (`AccountDesk`), which stores the result

@@ -4,7 +4,8 @@ import UIKit
 /// How Settings shows each provider: its name, its mark and the one line
 /// that says what signing in to it means. Marks live in `Provider*.imageset`;
 /// DeepSeek's is the unmodified official whale SVG:
-/// https://api-docs.deepseek.com/img/favicon.svg
+/// https://api-docs.deepseek.com/img/favicon.svg and OpenCode Go's is the
+/// unmodified official favicon SVG: https://opencode.ai/favicon.svg
 /// Which providers there are, and in
 /// what order, is apelin-agent's answer, not this file's.
 extension AgentProvider {
@@ -30,6 +31,7 @@ extension AgentProvider {
         case .openAI: String(localized: "OpenAI API")
         case .google: String(localized: "Google AI Studio")
         case .deepSeek: String(localized: "DeepSeek")
+        case .openCodeGo: String(localized: "OpenCode Go")
         }
     }
 
@@ -55,6 +57,7 @@ extension AgentProvider {
         case .openAI: UIImage(named: "ProviderOpenAIAPI")
         case .google: UIImage(named: "ProviderGoogleAI")
         case .deepSeek: UIImage(named: "ProviderDeepSeek")
+        case .openCodeGo: UIImage(named: "ProviderOpenCodeGo")
         }
     }
 
@@ -101,6 +104,8 @@ extension AgentProvider {
             String(localized: "Use a Gemini API key from Google AI Studio.")
         case .deepSeek:
             String(localized: "Use an API key from the DeepSeek platform.")
+        case .openCodeGo:
+            String(localized: "Use an API key from the OpenCode Console with a Go subscription.")
         }
     }
 }

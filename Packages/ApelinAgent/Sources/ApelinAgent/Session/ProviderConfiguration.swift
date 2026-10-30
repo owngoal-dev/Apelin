@@ -18,8 +18,8 @@ public enum ProviderConfiguration: Sendable, Hashable, Codable {
     case githubCopilot(model: String)
     /// Any other login kwwk stores, by its store id (`openai-codex`,
     /// `kimi-coding`, `google-api-key`, …), registered by kwwk's own
-    /// `registerStored`, or Apelin's DeepSeek registration. A nil model is
-    /// the provider's own default.
+    /// `registerStored`, or Apelin's DeepSeek and OpenCode Go registrations.
+    /// A nil model is the provider's own default.
     case stored(storeID: String, model: String?)
     /// A model already registered on kwwk's `APIRegistry` (tests and
     /// in-process fakes). Needs no credential.

@@ -15,7 +15,7 @@ Apelin is an IDE for iPhone and iPad running custom firmware on iOS and iPadOS 1
 - Downloads and checks the iPhoneOS SDKs, or imports one from a file
 - Templates for tweaks, apps, command-line tools and preference bundles, or an empty workspace that keeps your project's own build script
 - Builds, signs, packages and installs through Irisin, then resprings and checks that your tweak loaded
-- An agent that edits your project, builds and installs it, and reads logs and crash reports. Sign in with GitHub Copilot, Claude, ChatGPT, OpenRouter and many other providers, or use an API key
+- An agent that edits your project, builds and installs it, and reads logs and crash reports. Sign in with GitHub Copilot, Claude, ChatGPT, OpenRouter, OpenCode Go and many other providers, or use an API key
 - Choose how much the agent may do on its own: Strict asks before anything beyond a project edit, and every command as root asks unless you turn on Full
 - A code editor, a terminal and git, with Sign In with GitHub
 - Publish your packages to your own package repository on GitHub Pages, and share it as a card anyone can scan to add it in Irisin

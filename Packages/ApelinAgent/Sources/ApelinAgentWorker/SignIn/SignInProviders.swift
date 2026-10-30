@@ -6,8 +6,9 @@ import KWWKAI
 /// How each provider is signed in to, and the store id its credential
 /// is kept under — the one `ProviderConfiguration` reads it back by.
 ///
-/// The list covers every kwwk login plus Apelin's DeepSeek API account.
-/// Display order is a product choice, independent of registration priority.
+/// The list covers every kwwk login plus Apelin's DeepSeek and OpenCode Go
+/// API accounts. Display order is a product choice, independent of
+/// registration priority.
 public extension AgentProvider {
     /// Settings groups signed-in accounts, account sign-ins and API keys,
     /// preserving this order within each group.
@@ -16,7 +17,7 @@ public extension AgentProvider {
             .openAICodex, .anthropicOAuth, .githubCopilot, .cursor,
             .workBuddyAI, .workBuddy, .kimiCoding, .xai, .openRouter,
             .zai, .zaiCodingCN, .qoder, .qoderCN, .kiro, .devin,
-            .openAI, .deepSeek, .google, .anthropic, .openAICompatible,
+            .openAI, .deepSeek, .openCodeGo, .google, .anthropic, .openAICompatible,
         ]
         // New providers remain reachable until their position is chosen.
         return order + allCases.filter { !order.contains($0) }
@@ -44,6 +45,7 @@ public extension AgentProvider {
         case .openAI: "openai-api-key"
         case .google: "google-api-key"
         case .deepSeek: CredentialProviderID.deepSeek
+        case .openCodeGo: CredentialProviderID.openCodeGo
         }
     }
 
@@ -57,7 +59,7 @@ public extension AgentProvider {
         case .anthropicOAuth, .openAICodex, .cursor, .devin, .kiro, .qoder, .qoderCN, .workBuddy, .workBuddyAI,
              .zai, .zaiCodingCN, .openRouter:
             .browser
-        case .anthropic, .openAICompatible, .openAI, .google, .deepSeek:
+        case .anthropic, .openAICompatible, .openAI, .google, .deepSeek, .openCodeGo:
             .apiKey
         }
     }
@@ -95,8 +97,9 @@ struct KeyField: Sendable, Equatable {
 /// KWWKCli's API-key login forms (`loginProviders`, the `.apiKey` entries),
 /// field for field: what each asks for, what it may leave out, and its
 /// defaults. KWWKCli is an executable target, not a library, so this is the
-/// one copy, with Apelin's DeepSeek form added. `extrasKeys` there is every
-/// field but the key, which `AccountDesk.apiKeyCredentials` keeps as extras.
+/// one copy, with Apelin's DeepSeek and OpenCode Go forms added.
+/// `extrasKeys` there is every field but the key, which
+/// `AccountDesk.apiKeyCredentials` keeps as extras.
 enum SignInKeyForms {
     struct Form: Sendable {
         var provider: AgentProvider
@@ -119,6 +122,9 @@ enum SignInKeyForms {
         Form(provider: .deepSeek, fields: [
             KeyField(field: .apiKey, required: true, placeholder: "sk-…"),
             KeyField(field: .baseURL, required: false, defaultValue: DeepSeekProvider.baseURL),
+        ]),
+        Form(provider: .openCodeGo, fields: [
+            KeyField(field: .apiKey, required: true, placeholder: "oc_sk_…"),
         ]),
         Form(provider: .openRouter, fields: [
             KeyField(field: .apiKey, required: true, placeholder: "sk-or-v1-…"),
