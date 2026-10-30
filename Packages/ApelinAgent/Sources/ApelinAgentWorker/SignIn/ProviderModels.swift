@@ -22,7 +22,10 @@ enum ProviderModels {
 
     /// The kwwk model catalog the account's models come from.
     private static func catalogKey(_ provider: AgentProvider, credentials: OAuthCredentials) -> String? {
-        provider == .deepSeek || isDeepSeek(credentials) ? "deepseek" : providerDescriptor(forStoreId: provider.storeID)?.catalogKey
+        // kwwk's providerDirectory has no OpenCode Go entry yet, but its
+        // catalog carries the models.
+        if provider == .openCodeGo { return OpenCodeGoProvider.catalogKey }
+        return provider == .deepSeek || isDeepSeek(credentials) ? "deepseek" : providerDescriptor(forStoreId: provider.storeID)?.catalogKey
     }
 
     static func list(_ provider: AgentProvider, credentials: OAuthCredentials) -> [String] {
@@ -86,6 +89,7 @@ enum ProviderModels {
         }
         let defaultURL = provider.keyFields.first { $0.field == .baseURL }?.defaultValue
             ?? (provider == .openRouter ? "https://openrouter.ai/api/v1" : nil)
+            ?? (provider == .openCodeGo ? OpenCodeGoProvider.modelListBaseURL : nil)
         guard let base = configured ?? defaultURL, var url = URLComponents(string: base) else { return nil }
         if url.host?.lowercased() == "api.deepseek.com" {
             url.path = "/models"
@@ -93,7 +97,8 @@ enum ProviderModels {
             let path = url.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
             url.path = "/" + path + (path.hasSuffix("v1") ? "/models" : "/v1/models")
             url.path = url.path.replacingOccurrences(of: "//", with: "/")
-        } else if provider == .openAI || provider == .openAICompatible || provider == .openRouter || provider == .deepSeek {
+        } else if provider == .openAI || provider == .openAICompatible || provider == .openRouter || provider == .deepSeek
+            || provider == .openCodeGo {
             let path = url.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
             url.path = "/" + (path.isEmpty ? "v1" : path) + "/models"
         } else if provider == .google {

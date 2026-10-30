@@ -7,7 +7,7 @@ import Testing
 
 @Suite(.timeLimit(.minutes(1)))
 struct ProviderKeyVerificationTests {
-    @Test(arguments: [AgentProvider.openAICompatible, .deepSeek])
+    @Test(arguments: [AgentProvider.openAICompatible, .deepSeek, .openCodeGo])
     func `verification sends an authenticated model request and rejects HTTP errors and empty answers`(provider: AgentProvider) async throws {
         let answer = "data: {\"id\":\"test\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"OK\"},\"finish_reason\":\"stop\"}]}\n\ndata: [DONE]\n\n"
         let empty = "data: {\"id\":\"test\",\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"stop\"}]}\n\ndata: [DONE]\n\n"

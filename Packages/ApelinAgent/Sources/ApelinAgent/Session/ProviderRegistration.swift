@@ -21,6 +21,9 @@ public enum ProviderRegistration {
                 ResolvedProviderAuth(token: credentials.access, scheme: .bearer)
             })
         }
+        if storeID == CredentialProviderID.openCodeGo {
+            return await OpenCodeGoProvider.resolve(credentials: credentials, modelOverride: modelOverride)
+        }
         guard let resolved = try await registerStored(storeId: storeID, manager: manager, modelOverride: modelOverride) else {
             return nil
         }

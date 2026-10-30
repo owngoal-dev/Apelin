@@ -1,6 +1,93 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "OpenCode Go" : {
+      "extractionState" : "manual",
+      "shouldTranslate" : false
+    },
+    "Use an API key from the OpenCode Console with a Go subscription." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "استخدم مفتاح API من وحدة تحكم OpenCode مع اشتراك Go."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verwende einen API-Schlüssel aus der OpenCode Console mit einem Go-Abo."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use an API key from the OpenCode Console with a Go subscription."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa una clave de API de la consola de OpenCode con una suscripción Go."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utilisez une clé API de la console OpenCode avec un abonnement Go."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa una chiave API dalla console di OpenCode con un abbonamento Go."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenCode コンソールの API キーを Go サブスクリプションで使用します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Go 구독으로 OpenCode 콘솔의 API 키를 사용하세요."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use uma chave de API do console do OpenCode com uma assinatura Go."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Используйте ключ API из консоли OpenCode с подпиской Go."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sử dụng khóa API từ bảng điều khiển OpenCode với gói đăng ký Go."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用 OpenCode 控制台中 Go 订阅的 API 密钥。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用 OpenCode 控制台中 Go 訂閱的 API 金鑰。"
+          }
+        }
+      }
+    },
     "%lld Messages Not Sent" : {
       "extractionState" : "manual",
       "localizations" : {

@@ -556,6 +556,35 @@ struct AccountDeskTests {
         #expect(try await store.credentials(for: CredentialProviderID.openAICompatible) == other)
     }
 
+    @Test
+    func `OpenCode Go signs in with a key alone and lists its catalog models`() async throws {
+        let other = OAuthCredentials(access: "other-SECRET", refresh: "", expires: .max)
+        let store = DeliveredCredentialSource([CredentialProviderID.openAICompatible: other])
+        let desk = AccountDesk(store: store, login: Self.neverCalled, listener: Self.silent, verifyKey: { provider, key, _ in
+            #expect(provider == .openCodeGo)
+            #expect(key.access == "opencode-go-SECRET")
+        })
+        let recorder = SignInRecorder()
+        let task = TaskID("opencode-go-sign-in")
+        try await desk.start(AgentSignInRequest(provider: .openCodeGo), taskID: task, reporter: recorder.reporter)
+        try await recorder.waitFor { !$0.events.isEmpty }
+        #expect(recorder.events.first?.kind == "input")
+        #expect(AgentProvider.openCodeGo.keyFields.count == 1)
+        #expect(AgentProvider.openCodeGo.keyFields.first?.field == .apiKey)
+        try await desk.respond(AgentSignInRespondRequest(taskID: task, fields: [.apiKey: "opencode-go-SECRET"]))
+        try await recorder.waitFor { $0.state != nil }
+        #expect(recorder.state == .succeeded)
+        let account = try #require(await desk.list().accounts.first { $0.provider == .openCodeGo })
+        #expect(account.signedIn)
+        #expect(account.models?.contains("glm-5.2") == true)
+        #expect(account.models?.contains("claude-haiku-5-5") == true)
+        #expect(account.reasoningEfforts?["glm-5.2"]?.contains(.high) == true)
+        #expect(!recorder.transcript.contains("SECRET"))
+        try await desk.signOut(.openCodeGo)
+        #expect(try await store.credentials(for: CredentialProviderID.openCodeGo) == nil)
+        #expect(try await store.credentials(for: CredentialProviderID.openAICompatible) == other)
+    }
+
     /// The test that fails when kwwk gains a login: every subscription
     /// `OAuthSubscriptions.login` runs has a provider here that signs in by
     /// a flow (not a typed key). Display order is Apelin's own.
@@ -568,18 +597,18 @@ struct AccountDeskTests {
         }
         #expect(Array(AgentProvider.signInOrder.prefix(4)) == [.openAICodex, .anthropicOAuth, .githubCopilot, .cursor])
         #expect(AgentProvider.signInOrder.filter { $0.signInMethod == .apiKey }
-            == [.openAI, .deepSeek, .google, .anthropic, .openAICompatible])
+            == [.openAI, .deepSeek, .openCodeGo, .google, .anthropic, .openAICompatible])
     }
 
     /// Every login kwwk can store and register for a session
     /// (`providerDirectory`, the list `registerStored` serves) has a
-    /// provider here; Apelin's own registration adds DeepSeek.
+    /// provider here; Apelin's own registration adds DeepSeek and OpenCode Go.
     @Test
     func `every stored provider is registered by kwwk or Apelin`() {
         let kwwk = Set(providerDirectory.map(\.storeId))
         let apelin = Set(AgentProvider.allCases.map(\.storeID))
         #expect(kwwk.subtracting(apelin).isEmpty, "kwwk stores \(kwwk.subtracting(apelin).sorted()) with no provider")
-        #expect(apelin.subtracting(kwwk) == [CredentialProviderID.deepSeek])
+        #expect(apelin.subtracting(kwwk) == [CredentialProviderID.deepSeek, CredentialProviderID.openCodeGo])
         // A store id kwwk keeps as a typed key and does not sign in to is
         // a key form here.
         let subscriptions = Set(OAuthSubscriptions.providers.map(\.id))
@@ -593,7 +622,7 @@ struct AccountDeskTests {
     /// form only the fields `agentSignInRespond` knows.
     @Test
     func `each key form asks for a key first, as KWWKCli's does`() {
-        #expect(SignInKeyForms.all.map(\.provider) == [.anthropic, .openAI, .google, .deepSeek, .openRouter, .openAICompatible])
+        #expect(SignInKeyForms.all.map(\.provider) == [.anthropic, .openAI, .google, .deepSeek, .openCodeGo, .openRouter, .openAICompatible])
         for form in SignInKeyForms.all {
             #expect(form.fields.first == KeyField(field: .apiKey, required: true, placeholder: form.fields.first?.placeholder))
             #expect(form.fields.filter(\.secure).count == 1)

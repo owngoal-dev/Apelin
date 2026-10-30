@@ -6,6 +6,22 @@ import Testing
 
 struct ProviderModelsTests {
     @Test
+    func `OpenCode Go offers kwwk's catalog and its own discovery endpoint`() throws {
+        let key = OAuthCredentials(access: "key", refresh: "", expires: .max)
+        let models = ProviderModels.list(.openCodeGo, credentials: key)
+        #expect(models.contains("glm-5.2"))
+        #expect(models.contains("claude-haiku-5-5"))
+        #expect(models.contains("deepseek-v4.1-flash"))
+        #expect(ProviderModels.reasoningEfforts(.openCodeGo, credentials: key)["glm-5.2"]?.contains(.high) == true)
+        let request = try #require(ProviderModels.modelRequest(.openCodeGo, credentials: key))
+        #expect(request.url?.absoluteString == "https://opencode.ai/inference/go/v1/models")
+        #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer key")
+        #expect(request.url?.query == nil)
+        #expect(try AgentWorker.provider(.init(provider: .openCodeGo))
+            == .stored(storeID: CredentialProviderID.openCodeGo, model: nil))
+    }
+
+    @Test
     func `DeepSeek offers its own models and discovery with only an API key`() throws {
         let key = OAuthCredentials(access: "key", refresh: "", expires: .max)
         #expect(ProviderModels.list(.deepSeek, credentials: key) == ["deepseek-flash", "deepseek-v4-pro"])

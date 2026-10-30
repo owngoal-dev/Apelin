@@ -169,6 +169,9 @@ public enum AgentProvider: String, Codable, Sendable {
     case google
     /// DeepSeek's API with its own API key (`deepseek-api-key`).
     case deepSeek
+    /// OpenCode Go, opencode.ai's coding subscription, by an API key from
+    /// its Console (`opencode-go`).
+    case openCodeGo
 }
 
 extension AgentProvider: CaseIterable {}
