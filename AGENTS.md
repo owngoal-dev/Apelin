@@ -1193,8 +1193,8 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   message's `<system-state>` (below); a new conversation and one an agent
   opened are told nothing (`Tests/SessionHost/AgentHostRunChecks.swift`,
   `HostRestartNoteTests`). The tier last chosen is kwwk's
-  `AgentState.serviceTier` (kwwk 0.1.100), which its loop sends with every
-  turn. The agent wraps kwwk's own stream in `NetworkRecovery` (2026-10-29);
+  `AgentState.serviceTier` (kwwk 0.1.100 and later), which its loop sends
+  with every turn. The agent wraps kwwk's own stream in `NetworkRecovery` (2026-10-29);
   native compaction stays on, since the session names it itself
   (`NativeCompactionFallback.configuration`). An attempt the network failed
   before kwwk had any of the reply is handed to kwwk only once
@@ -1336,7 +1336,8 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   session's log, so a reopened session's replay carries it, and an event
   recorded before it has none. A failure kwwk
   kept as an NSError's whole `description` (`Error Domain=… Code=…
-  "…" UserInfo={…}`, a lost connection) is cut to its localized
+  "…" UserInfo={…}`, a lost connection: every one before kwwk 0.1.106,
+  since then only one with no text of its own) is cut to its localized
   description, the quoted sentence, in `error` and in a failed
   compaction's `message`, and again when the app shows an `error` an
   earlier worker recorded (`ErrorDescription`). An app that is not attached leaves an approval waiting; nothing
@@ -2028,17 +2029,30 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   every subscription `OAuthSubscriptions.providers` names, through
   `OAuthSubscriptions.login` (public KWWKAuth API; for Copilot kwwk's
   model policy activation after selection) — a device code for
-  GitHub Copilot, Kimi For Coding and Grok; Safari with kwwk's loopback
+  GitHub Copilot, Kimi For Coding (kimi.com and, from kwwk 0.1.108, Kimi
+  For Coding Global on kimi.ai, each with its own device id) and Grok;
+  Safari with kwwk's loopback
   listener for Claude Pro or Max, ChatGPT Codex, Devin and OpenRouter; a
   page kwwk polls for Cursor, Qoder, Qoder CN, WorkBuddy, WorkBuddy AI, Z.ai
   and BigModel; Kiro's own listener — and every API-key entry of KWWKCli's
   `loginProviders` (Anthropic, OpenAI, Google AI Studio, OpenRouter,
-  OpenAI-compatible), its fields mirrored once in `SignInKeyForms` (KWWKCli
+  OpenCode Go and OpenCode Zen, OpenAI-compatible), its fields mirrored
+  once in `SignInKeyForms` (KWWKCli
   is an executable target), stored in kwwk's API-key shape (the key as
   `access`, no refresh, never expiring, `baseUrl` and `defaultModel` as
   extras — what KWWKCli's internal `apiKeyCredentials` writes, so it is
   rewritten in `AccountDesk`). DeepSeek adds an API-key form and its own
   `deepseek-api-key` credential item, separate from `openai-compatible`.
+  OpenCode's two plans (owner, 2026-10-31; issue #23, after the OpenCode
+  Go provider Burç contributed in PR #25) are kwwk's from 0.1.109
+  (`OpenCodePlan`, `registerOpenCode`): an OpenCode Console key
+  (`oc_sk_…`) for Go, the subscription, under `opencode-go`, or Zen,
+  pay-as-you-go, under `opencode`, each wire at its own path under the
+  plan's root and every request naming its conversation in
+  `x-opencode-session`, which Go refuses a request without. Apelin adds
+  only the cases, the key forms and model discovery at the plan's
+  `<root>/v1/models`, which, like kwwk's routes, never reads a `baseUrl`
+  an imported credential carries.
   Display order is Apelin's `AgentProvider.signInOrder`, independent of
   kwwk's registration order;
   `AccountDeskTests` fails when kwwk gains a subscription or a stored

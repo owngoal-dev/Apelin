@@ -5,6 +5,22 @@ import KWWKAI
 import Testing
 
 struct ProviderModelsTests {
+    @Test(arguments: [(AgentProvider.openCodeGo, OpenCodePlan.go), (AgentProvider.openCodeZen, OpenCodePlan.zen)])
+    func `OpenCode lists its plan's catalog and discovers at the plan's root`(provider: AgentProvider, plan: OpenCodePlan) throws {
+        let key = OAuthCredentials(access: "key", refresh: "", expires: .max)
+        #expect(ProviderModels.list(provider, credentials: key).contains(plan.defaultModel))
+        let request = try #require(ProviderModels.modelRequest(provider, credentials: key))
+        #expect(request.url?.absoluteString == plan.rootURL + "/v1/models")
+        #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer key")
+        // the key goes to opencode.ai alone, whatever an imported credential names
+        let imported = OAuthCredentials(access: "key", refresh: "", expires: .max, extras: [
+            "baseUrl": .string("https://example.com/v1"),
+        ])
+        #expect(ProviderModels.modelRequest(provider, credentials: imported)?.url?.absoluteString
+            == plan.rootURL + "/v1/models")
+        #expect(try AgentWorker.provider(.init(provider: provider)) == .stored(storeID: plan.id, model: nil))
+    }
+
     @Test
     func `DeepSeek offers its own models and discovery with only an API key`() throws {
         let key = OAuthCredentials(access: "key", refresh: "", expires: .max)

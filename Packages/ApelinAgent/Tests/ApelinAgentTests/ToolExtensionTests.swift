@@ -356,7 +356,8 @@ struct ToolExtensionTests {
 
         await runner.closeToolExtensions()
         #expect(await backend.toolSessionsClosed == ["tool-session-3", "tool-session-2"], "every session it holds, by extension id")
-        await #expect(throws: ToolDeniedError.self) {
+        // a call after the close was stopped with its conversation, not refused
+        await #expect(throws: ConversationClosingError.self) {
             try await symbols.execute("call-5", ["reason": "Late", "binary": "/usr/lib/dyld"], nil, nil)
         }
         #expect(await backend.toolSessionsOpened.count == 3, "nothing opens once the session closed")

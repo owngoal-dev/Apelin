@@ -14,9 +14,9 @@ public extension AgentProvider {
     static let signInOrder: [AgentProvider] = {
         let order: [AgentProvider] = [
             .openAICodex, .anthropicOAuth, .githubCopilot, .cursor,
-            .workBuddyAI, .workBuddy, .kimiCoding, .xai, .openRouter,
+            .workBuddyAI, .workBuddy, .kimiCoding, .kimiCodingGlobal, .xai, .openRouter,
             .zai, .zaiCodingCN, .qoder, .qoderCN, .kiro, .devin,
-            .openAI, .deepSeek, .google, .anthropic, .openAICompatible,
+            .openAI, .deepSeek, .openCodeGo, .openCodeZen, .google, .anthropic, .openAICompatible,
         ]
         // New providers remain reachable until their position is chosen.
         return order + allCases.filter { !order.contains($0) }
@@ -36,7 +36,8 @@ public extension AgentProvider {
         case .qoderCN: QoderSite.cn.id
         case .workBuddy: WorkBuddySite.china.id
         case .workBuddyAI: WorkBuddySite.international.id
-        case .kimiCoding: "kimi-coding"
+        case .kimiCoding: KimiSite.china.id
+        case .kimiCodingGlobal: KimiSite.global.id
         case .xai: "xai"
         case .zai: ZaiSite.global.id
         case .zaiCodingCN: ZaiSite.china.id
@@ -44,6 +45,8 @@ public extension AgentProvider {
         case .openAI: "openai-api-key"
         case .google: "google-api-key"
         case .deepSeek: CredentialProviderID.deepSeek
+        case .openCodeGo: OpenCodePlan.go.id
+        case .openCodeZen: OpenCodePlan.zen.id
         }
     }
 
@@ -52,12 +55,12 @@ public extension AgentProvider {
     /// 8628), otherwise its page in the browser.
     var signInMethod: AgentSignInMethod {
         switch self {
-        case .githubCopilot, .kimiCoding, .xai:
+        case .githubCopilot, .kimiCoding, .kimiCodingGlobal, .xai:
             .deviceCode
         case .anthropicOAuth, .openAICodex, .cursor, .devin, .kiro, .qoder, .qoderCN, .workBuddy, .workBuddyAI,
              .zai, .zaiCodingCN, .openRouter:
             .browser
-        case .anthropic, .openAICompatible, .openAI, .google, .deepSeek:
+        case .anthropic, .openAICompatible, .openAI, .google, .deepSeek, .openCodeGo, .openCodeZen:
             .apiKey
         }
     }
@@ -119,6 +122,14 @@ enum SignInKeyForms {
         Form(provider: .deepSeek, fields: [
             KeyField(field: .apiKey, required: true, placeholder: "sk-…"),
             KeyField(field: .baseURL, required: false, defaultValue: DeepSeekProvider.baseURL),
+        ]),
+        Form(provider: .openCodeGo, fields: [
+            KeyField(field: .apiKey, required: true, placeholder: "oc_sk_…"),
+            KeyField(field: .defaultModel, required: false, placeholder: "glm-5.2"),
+        ]),
+        Form(provider: .openCodeZen, fields: [
+            KeyField(field: .apiKey, required: true, placeholder: "oc_sk_…"),
+            KeyField(field: .defaultModel, required: false, placeholder: "claude-sonnet-5"),
         ]),
         Form(provider: .openRouter, fields: [
             KeyField(field: .apiKey, required: true, placeholder: "sk-or-v1-…"),

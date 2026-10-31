@@ -556,6 +556,36 @@ struct AccountDeskTests {
         #expect(try await store.credentials(for: CredentialProviderID.openAICompatible) == other)
     }
 
+    /// OpenCode's plans are kwwk's typed-key logins: the key, a default
+    /// model left out, and the plan's catalog listed.
+    @Test(arguments: [(AgentProvider.openCodeGo, OpenCodePlan.go), (AgentProvider.openCodeZen, OpenCodePlan.zen)])
+    func `OpenCode signs in with a key and lists its plan's catalog`(provider: AgentProvider, plan: OpenCodePlan) async throws {
+        let other = OAuthCredentials(access: "other-SECRET", refresh: "", expires: .max)
+        let store = DeliveredCredentialSource([CredentialProviderID.openAICompatible: other])
+        let desk = AccountDesk(store: store, login: Self.neverCalled, listener: Self.silent, verifyKey: { verified, key, _ in
+            #expect(verified == provider)
+            #expect(key.access == "oc_sk_SECRET")
+            #expect(key.extras.isEmpty)
+        })
+        let recorder = SignInRecorder()
+        let task = TaskID("\(plan.id)-sign-in")
+        try await desk.start(AgentSignInRequest(provider: provider), taskID: task, reporter: recorder.reporter)
+        try await recorder.waitFor { !$0.events.isEmpty }
+        #expect(recorder.events.first?.kind == "input")
+        #expect(provider.keyFields.map(\.field) == [.apiKey, .defaultModel])
+        #expect(provider.signInMethods == [.apiKey])
+        try await desk.respond(AgentSignInRespondRequest(taskID: task, fields: [.apiKey: "oc_sk_SECRET"]))
+        try await recorder.waitFor { $0.state != nil }
+        #expect(recorder.state == .succeeded)
+        let account = try #require(await desk.list().accounts.first { $0.provider == provider })
+        #expect(account.signedIn)
+        #expect(account.models?.contains(plan.defaultModel) == true)
+        #expect(!recorder.transcript.contains("SECRET"))
+        try await desk.signOut(provider)
+        #expect(try await store.credentials(for: plan.id) == nil)
+        #expect(try await store.credentials(for: CredentialProviderID.openAICompatible) == other)
+    }
+
     /// The test that fails when kwwk gains a login: every subscription
     /// `OAuthSubscriptions.login` runs has a provider here that signs in by
     /// a flow (not a typed key). Display order is Apelin's own.
@@ -568,7 +598,7 @@ struct AccountDeskTests {
         }
         #expect(Array(AgentProvider.signInOrder.prefix(4)) == [.openAICodex, .anthropicOAuth, .githubCopilot, .cursor])
         #expect(AgentProvider.signInOrder.filter { $0.signInMethod == .apiKey }
-            == [.openAI, .deepSeek, .google, .anthropic, .openAICompatible])
+            == [.openAI, .deepSeek, .openCodeGo, .openCodeZen, .google, .anthropic, .openAICompatible])
     }
 
     /// Every login kwwk can store and register for a session
@@ -593,7 +623,9 @@ struct AccountDeskTests {
     /// form only the fields `agentSignInRespond` knows.
     @Test
     func `each key form asks for a key first, as KWWKCli's does`() {
-        #expect(SignInKeyForms.all.map(\.provider) == [.anthropic, .openAI, .google, .deepSeek, .openRouter, .openAICompatible])
+        #expect(SignInKeyForms.all.map(\.provider) == [
+            .anthropic, .openAI, .google, .deepSeek, .openCodeGo, .openCodeZen, .openRouter, .openAICompatible,
+        ])
         for form in SignInKeyForms.all {
             #expect(form.fields.first == KeyField(field: .apiKey, required: true, placeholder: form.fields.first?.placeholder))
             #expect(form.fields.filter(\.secure).count == 1)
@@ -605,13 +637,14 @@ struct AccountDeskTests {
     }
 
     /// A device flow whose page arrives with the code (Kimi, xAI): the code
-    /// is shown to check, not to type; Kimi's login is handed the device id
-    /// the last Kimi sign-in recorded, never kwwk's file.
-    @Test
-    func `Kimi's device flow keeps the device the stored sign-in recorded`() async throws {
+    /// is shown to check, not to type; Kimi's login, on either site, is
+    /// handed the device id that site's last sign-in recorded, never kwwk's
+    /// file.
+    @Test(arguments: [AgentProvider.kimiCoding, .kimiCodingGlobal])
+    func `Kimi's device flow keeps the device the stored sign-in recorded`(site: AgentProvider) async throws {
         let seen = SignInRecorder()
         let login: SignInLogin = { provider, callbacks, options in
-            #expect(provider == .kimiCoding)
+            #expect(provider == site)
             let identity = try #require(options.kimiIdentity)
             seen.reporter.emit(TaskID("seen"), identity.deviceId, nil)
             let code = OAuthLogin.DeviceCode(
@@ -629,16 +662,16 @@ struct AccountDeskTests {
         let previous = OAuthCredentials(access: "old-SECRET", refresh: "old-refresh-SECRET", expires: 1, extras: [
             KimiIdentity.deviceIDExtra: .string("0123456789abcdef0123456789abcdef"),
         ])
-        let store = DeliveredCredentialSource(["kimi-coding": previous])
+        let store = DeliveredCredentialSource([site.storeID: previous])
         let desk = AccountDesk(store: store, login: login, listener: Self.silent, verifyKey: { _, _, _ in })
         let recorder = SignInRecorder()
-        try await desk.start(AgentSignInRequest(provider: .kimiCoding), taskID: TaskID("k1"), reporter: recorder.reporter)
+        try await desk.start(AgentSignInRequest(provider: site), taskID: TaskID("k1"), reporter: recorder.reporter)
         try await recorder.waitFor { $0.state != nil }
         #expect(recorder.state == .succeeded)
         #expect(recorder.events.map(\.kind) == ["deviceCode"])
         #expect(recorder.events[0].payload?["pageHoldsCode"] == .bool(true))
         #expect(seen.events.map(\.kind) == ["0123456789abcdef0123456789abcdef"])
-        let stored = try #require(try await store.credentials(for: "kimi-coding"))
+        let stored = try #require(try await store.credentials(for: site.storeID))
         #expect(stored.extras[KimiIdentity.deviceIDExtra] == .string("0123456789abcdef0123456789abcdef"))
         #expect(!recorder.transcript.contains("SECRET"))
 

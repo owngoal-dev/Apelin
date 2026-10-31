@@ -8,9 +8,9 @@
     {"op": "expect", "request": {"step": "empty-models", "errorCode": "badRequest"}},
     {"op": "expect", "request": {"step": "before", "path": "response.accounts.0.provider", "equals": "openAICodex"}},
     {"op": "expect", "request": {"step": "before", "path": "response.accounts.2.provider", "equals": "githubCopilot"}},
-    {"op": "expect", "request": {"step": "before", "path": "response.accounts.14.provider", "equals": "openRouter"}},
-    {"op": "expect", "request": {"step": "before", "path": "response.accounts.14.alternativeMethods.0", "equals": "apiKey"}},
-    {"op": "expect", "request": {"step": "before", "path": "response.accounts.18.provider", "equals": "openAICompatible"}},
+    {"op": "expect", "request": {"step": "before", "path": "response.accounts.9.provider", "equals": "openRouter"}},
+    {"op": "expect", "request": {"step": "before", "path": "response.accounts.9.alternativeMethods.0", "equals": "apiKey"}},
+    {"op": "expect", "request": {"step": "before", "path": "response.accounts.22.provider", "equals": "openAICompatible"}},
 
     {"op": "agentSignIn", "label": "copilot", "follow": false, "request": {"provider": "githubCopilot"}},
     {"op": "expect", "request": {"step": "copilot", "path": "response.kind", "equals": "signIn"}},

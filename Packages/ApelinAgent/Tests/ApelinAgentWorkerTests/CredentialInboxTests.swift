@@ -215,6 +215,7 @@ struct EventRelayMappingTests {
         // Every other login is kwwk's stored provider of its id, with kwwk's
         // default model unless one is named.
         #expect(try AgentWorker.provider(.init(provider: .kimiCoding)) == .stored(storeID: "kimi-coding", model: nil))
+        #expect(try AgentWorker.provider(.init(provider: .kimiCodingGlobal)) == .stored(storeID: "kimi-coding-ai", model: nil))
         #expect(try AgentWorker.provider(.init(provider: .openAICodex, model: "gpt-5")) == .stored(storeID: "openai-codex", model: "gpt-5"))
         #expect(try AgentWorker.provider(.init(provider: .google, model: "")) == .stored(storeID: "google-api-key", model: nil))
     }

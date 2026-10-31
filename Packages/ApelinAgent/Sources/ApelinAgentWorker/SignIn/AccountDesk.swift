@@ -377,11 +377,11 @@ public actor AccountDesk {
         return credentials
     }
 
-    /// What kwwk's login gets beside its callbacks: for Kimi, the device id
-    /// the stored sign-in recorded, so signing in again keeps the device
-    /// Kimi knows (`KimiIdentity`).
+    /// What kwwk's login gets beside its callbacks: for Kimi, either site,
+    /// the device id that site's stored sign-in recorded, so signing in
+    /// again keeps the device Kimi knows (`KimiIdentity`).
     private func options(for provider: AgentProvider) async -> SignInOptions {
-        guard provider == .kimiCoding else { return SignInOptions() }
+        guard provider == .kimiCoding || provider == .kimiCodingGlobal else { return SignInOptions() }
         let previous = try? await store.credentials(for: provider.storeID)
         return SignInOptions(kimiIdentity: KimiIdentity.identity(recordedIn: previous))
     }

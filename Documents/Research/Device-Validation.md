@@ -990,7 +990,9 @@ console now goes on after a restart only past a successful respring.
       failed: Anthropic compaction returned no summary" —: a chat past 55k
       tokens compacts, from the menu and on its own at 75 % of the window,
       with no such error, kwwk's own summary where Anthropic's came back
-      empty.
+      empty. And with ChatGPT Codex (kwwk 0.1.109, issue #26, which failed
+      both ways with `{"detail":"Unsupported parameter: metadata"}`): a long
+      chat on a Codex model compacts from the menu and on its own.
 - [ ] A program the agent builds and runs itself (2026-10-29, AGENTS.md ▸
       the system prompt, `apelin-device-executables`; none has run on a
       device, the skill quotes a field conversation). On the iOS 26.4 and
@@ -1044,6 +1046,17 @@ console now goes on after a restart only past a successful respring.
       then `icli app launch <bundle id>`, through shell_run as mobile
       (Strict asks for each), and `icli app running` shows a new pid
       running the new build.
+- [ ] OpenCode Go and Zen, and Kimi For Coding Global (2026-10-31, kwwk
+      0.1.109, AGENTS.md ▸ Agent sign-in; none has run on a device, and no
+      key has reached OpenCode). With an `oc_sk_…` key for each plan:
+      Settings ▸ Model Providers ▸ OpenCode Go (or Zen) takes the key,
+      Fetch Models lists the plan's live models, and Save verifies the ones
+      picked. A chat on one model of each wire the plan serves (Go:
+      `glm-5.2`, `grok-4.7`, `claude-haiku-5-5`, `gemini-4-argon`) reads a
+      file with file_read and answers, and Compact… compacts it. A wrong
+      key fails verification without the key in what the app shows. Kimi
+      For Coding Global signs in with its code on kimi.ai, a chat answers,
+      and a sign-in again keeps the device id the first one recorded.
 
 ## SDK and toolchain matrix (2026-10-19)
 

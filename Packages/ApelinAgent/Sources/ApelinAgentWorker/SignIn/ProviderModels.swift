@@ -79,6 +79,15 @@ enum ProviderModels {
     }
 
     static func modelRequest(_ provider: AgentProvider, credentials: OAuthCredentials) -> URLRequest? {
+        // OpenCode lists a plan's models at `<root>/v1/models`. Its key goes
+        // to opencode.ai alone, as kwwk's routes send it, whatever address an
+        // imported credential names.
+        if let plan = OpenCodePlan.plan(id: provider.storeID) {
+            guard let url = URL(string: plan.rootURL + "/v1/models") else { return nil }
+            var request = URLRequest(url: url, timeoutInterval: 15)
+            request.setValue("Bearer \(credentials.access)", forHTTPHeaderField: "Authorization")
+            return request
+        }
         let configured: String? = if case let .string(value)? = credentials.extras[AgentSignInField.baseURL.rawValue] {
             value
         } else {

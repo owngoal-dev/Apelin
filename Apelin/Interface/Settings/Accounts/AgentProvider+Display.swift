@@ -4,7 +4,9 @@ import UIKit
 /// How Settings shows each provider: its name, its mark and the one line
 /// that says what signing in to it means. Marks live in `Provider*.imageset`;
 /// DeepSeek's is the unmodified official whale SVG:
-/// https://api-docs.deepseek.com/img/favicon.svg
+/// https://api-docs.deepseek.com/img/favicon.svg and OpenCode's (Go's and
+/// Zen's alike) the unmodified official favicon SVG:
+/// https://opencode.ai/favicon.svg
 /// Which providers there are, and in
 /// what order, is apelin-agent's answer, not this file's.
 extension AgentProvider {
@@ -23,6 +25,7 @@ extension AgentProvider {
         case .workBuddy: String(localized: "WorkBuddy")
         case .workBuddyAI: String(localized: "WorkBuddy AI")
         case .kimiCoding: String(localized: "Kimi For Coding")
+        case .kimiCodingGlobal: String(localized: "Kimi For Coding Global")
         case .xai: String(localized: "Grok")
         case .zai: String(localized: "Z.ai Coding Plan")
         case .zaiCodingCN: String(localized: "BigModel Coding Plan")
@@ -30,6 +33,8 @@ extension AgentProvider {
         case .openAI: String(localized: "OpenAI API")
         case .google: String(localized: "Google AI Studio")
         case .deepSeek: String(localized: "DeepSeek")
+        case .openCodeGo: String(localized: "OpenCode Go")
+        case .openCodeZen: String(localized: "OpenCode Zen")
         }
     }
 
@@ -47,7 +52,7 @@ extension AgentProvider {
         case .qoderCN: UIImage(named: "ProviderQoderCN")
         case .workBuddy: UIImage(named: "ProviderWorkBuddy")
         case .workBuddyAI: UIImage(named: "ProviderWorkBuddyAI")
-        case .kimiCoding: UIImage(named: "ProviderKimi")
+        case .kimiCoding, .kimiCodingGlobal: UIImage(named: "ProviderKimi")
         case .xai: UIImage(named: "ProviderGrok")
         case .zai: UIImage(named: "ProviderZai")
         case .zaiCodingCN: UIImage(named: "ProviderBigModel")
@@ -55,6 +60,7 @@ extension AgentProvider {
         case .openAI: UIImage(named: "ProviderOpenAIAPI")
         case .google: UIImage(named: "ProviderGoogleAI")
         case .deepSeek: UIImage(named: "ProviderDeepSeek")
+        case .openCodeGo, .openCodeZen: UIImage(named: "ProviderOpenCode")
         }
     }
 
@@ -87,6 +93,8 @@ extension AgentProvider {
             String(localized: "Sign in to WorkBuddy AI with your CodeBuddy international plan.")
         case .kimiCoding:
             String(localized: "Sign in with your Kimi coding plan.")
+        case .kimiCodingGlobal:
+            String(localized: "Sign in with your kimi.ai coding plan.")
         case .xai:
             String(localized: "Sign in with your SuperGrok or X Premium subscription.")
         case .zai:
@@ -101,6 +109,10 @@ extension AgentProvider {
             String(localized: "Use a Gemini API key from Google AI Studio.")
         case .deepSeek:
             String(localized: "Use an API key from the DeepSeek platform.")
+        case .openCodeGo:
+            String(localized: "Use an API key from the OpenCode Console with a Go subscription.")
+        case .openCodeZen:
+            String(localized: "Use an API key from the OpenCode Console with pay-as-you-go billing.")
         }
     }
 }

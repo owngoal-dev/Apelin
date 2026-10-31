@@ -1,5 +1,5 @@
 {
-  "originHash" : "e546008886501e2d05cabafa0cd403ab4f99aea50df7bf84259b69912c9a8489",
+  "originHash" : "2837713d477448787c7aabd5e39431b534a9db87ebf803a7c0d1ed93013530a2",
   "pins" : [
     {
       "identity" : "cstb",
@@ -15,7 +15,7 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/EYHN/kwwk.git",
       "state" : {
-        "revision" : "fb74cf5d855a6dbc60da38187e10d012e30a240a"
+        "revision" : "997d9b3dde24cd26d7abc3d9e15abeb7146b3017"
       }
     },
     {

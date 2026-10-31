@@ -2,11 +2,13 @@ import Foundation
 
 /// An NSError's localized description, taken back out of its `description`.
 ///
-/// kwwk keeps a transport failure as the error's whole `description` —
+/// kwwk kept a transport failure as the error's whole `description` —
 /// `Error Domain=NSURLErrorDomain Code=-1009 "The Internet connection
 /// appears to be offline." UserInfo={…}`, the underlying errors and the
-/// failing task with it —, and that is the text an agent session's `error`
-/// event carries. A reader wants only the sentence in quotes.
+/// failing task with it — before 0.1.106, and still does for an error with
+/// no text of its own (its sentence `(null)`); that is the text an agent
+/// session's `error` event carries, and a session's log keeps the older
+/// ones. A reader wants only the sentence in quotes.
 public enum ErrorDescription {
     /// The quoted sentence of an NSError's `description`, or, where it
     /// was `(null)`, what `localizedDescription` says for its domain and

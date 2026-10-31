@@ -151,6 +151,8 @@ public enum AgentProvider: String, Codable, Sendable {
     case workBuddyAI
     /// Kimi For Coding, Moonshot's coding plan (`kimi-coding`).
     case kimiCoding
+    /// Kimi For Coding Global, the kimi.ai coding plan (`kimi-coding-ai`).
+    case kimiCodingGlobal
     /// xAI Grok, SuperGrok or X Premium (`xai`).
     case xai
     /// Z.ai's GLM Coding Plan (`zai`).
@@ -169,6 +171,12 @@ public enum AgentProvider: String, Codable, Sendable {
     case google
     /// DeepSeek's API with its own API key (`deepseek-api-key`).
     case deepSeek
+    /// OpenCode Go, opencode.ai's coding subscription, with an OpenCode
+    /// Console key (`opencode-go`).
+    case openCodeGo
+    /// OpenCode Zen, opencode.ai's pay-as-you-go gateway, with an OpenCode
+    /// Console key (`opencode`).
+    case openCodeZen
 }
 
 extension AgentProvider: CaseIterable {}
