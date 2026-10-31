@@ -196,7 +196,7 @@ public extension GitRepository {
 
     /// The commit `oid` with the first line of its message, at most 200
     /// characters of it.
-    private func summary(of oid: inout git_oid) throws -> GitLogEntry {
+    internal func summary(of oid: inout git_oid) throws -> GitLogEntry {
         var commit: OpaquePointer?
         try GitError.check(git_commit_lookup(&commit, pointer, &oid), "read a commit")
         defer { git_commit_free(commit) }

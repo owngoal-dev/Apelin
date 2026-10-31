@@ -239,6 +239,14 @@ console now goes on after a restart only past a successful respring.
       commit pushed to the scratch repository from elsewhere between the
       card and Approve ends with nothing pushed and the agent asking again;
       a protected `main` answers in GitHub's words.
+- [ ] A squash (2026-10-31; the Mac only so far: `GitSquashTests`,
+      `GitSquashServiceTests`, the session host's checks, `SquashToolTests`,
+      `SquashBackendTests`, `SquashCardCheck`). On a device:
+      `i2-git-commit`'s two squash refusals; a chat asked to squash its
+      project's last three commits shows the Squash commits card in Strict
+      with each commit and the new message, and squashes on Approve with
+      the files unchanged; in Relaxed it squashes without a card; after a
+      push, the card says publishing it needs a forced push.
 - [ ] A preference bundle's Settings row with its icon (2026-10-30, issue
       #19, `wiki.qaq.apelin.dev.preferences` 0.1.3), on a device where
       PreferenceLoader shows panes (the owner's iOS 17.3.1 iPhone): a new

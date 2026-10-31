@@ -587,6 +587,19 @@ public struct ChannelHostBackend: AgentHostBackend {
         }
     }
 
+    public func gitSquash(_ request: GitSquashToolRequest) async throws -> GitSquashResponse {
+        try await git("git squash") {
+            try await service.gitSquash(GitSquashRequest(
+                projectID: project.id,
+                base: request.base,
+                count: request.count,
+                message: request.message,
+                expectedHead: request.expectedHead,
+                preview: request.preview ? true : nil,
+            ))
+        }
+    }
+
     public func gitClone(_ request: GitCloneToolRequest) async throws -> GitTaskToolResponse {
         let host = URLComponents(string: request.url)?.host
         return try await gitTask("git clone", host: host) {

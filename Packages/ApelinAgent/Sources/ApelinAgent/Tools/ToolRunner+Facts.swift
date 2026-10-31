@@ -103,6 +103,8 @@ extension ToolRunner {
                 }
             }
             facts.push = target
+        case .gitSquash:
+            facts.squash = try await squashPlan(arguments)
         case .gitSetAuthor:
             facts.gitSettings = "the commit author"
         case .gitSaveCredential:

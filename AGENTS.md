@@ -232,7 +232,7 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   `gitStatus`, `gitDiff`, `gitStage`, `gitUnstage`, `gitCommit`, `gitInit`,
   `gitClone`, `gitCloneInto`, `gitFetch`, `gitPull`, `gitPush`, `gitSettings`,
   `gitAuthorSet`, `gitCredentialSet`, `gitCredentialRemove`,
-  `gitRepositoryCreate`, `gitIssueCreate`;
+  `gitRepositoryCreate`, `gitIssueCreate`, `gitSquash`;
   `distributionRepositoryList`, `distributionRepositoryCreate`,
   `distributionRepositoryLink`, `distributionRepositoryUnlink`,
   `distributionPublish`, `feedbackSend`, `feedbackRead`, `feedbackEdit`,
@@ -512,6 +512,12 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
     lease must be the card's, the branch and the local commit named, so
     what reaches apelin-environment is the lease the user saw; never for
     the session. A push without a lease asks the host nothing.
+    An agent's squash (owner, 2026-10-31; `AgentSquashRules`) under Confirm
+    spends one approval naming exactly it (`detail.squash` {projectID,
+    branch, base, expectedHead, message, commits, count, upstream?,
+    published}), the request's base, expected head and message the card's;
+    never for the session. Relaxed and Full squash as they commit, and a
+    preview passes in every mode.
     `environmentAttach` reads only the tasks the session started
     (`startedTasks`, recorded by `startTask`).
   - *Files* (`Session/Files/`). `fileRead` scopes: a project ID or
@@ -707,7 +713,23 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   local transport writes the branch without that check, so
   `GitLeaseTests` proves it through `git daemon`. A `lease` event
   {branch, expectedCommit, localCommit?, found?, held} records what the
-  remote said, and the result `forced`; `gitCloneInto` imports a
+  remote said, and the result `forced`. A squash (owner, 2026-10-31;
+  `GitSquashRequest`, `ApelinGit/GitSquash.swift`) is `gitSquash {base,
+  message, expectedHead}`, one request, not a task: the commits after
+  `base` on the checked-out branch become one commit on `base` with HEAD's
+  tree, the message and the author `gitCommit` would take; the branch
+  moves from `expectedHead` alone (`git_reference_create_matching`), the
+  work tree, the index and every remote are left as they are, nothing is
+  pushed, and the branch's reflog keeps `previousHead`. Refused with
+  nothing changed: HEAD not at `expectedHead` (`conflict`, reason
+  `headChanged`), a base that is no ancestor of HEAD, fewer than two
+  commits after it, a tracked change in the work tree or the index
+  (`conflict`; untracked files are left alone), HEAD not on a branch.
+  `preview: true` changes nothing and answers what it would combine — by
+  `base` (seven digits or more) or `count` back along first parents —:
+  the commits, newest first, the first fifty, and how many of them the
+  branch's upstream has as last fetched (`published`), when publishing it
+  would take a forced push; `gitCloneInto` imports a
   repository into an existing workspace project — the repository
   initialised in the folder, `origin`
   fetched in full, the branch checked out without overwriting a file
@@ -1341,7 +1363,20 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   Confirm like a project edit except git_push, which asks every time for
   the remote and branch it names (the checked-out branch read first when
   none is given, then sent explicitly) and the `url` it adds the remote
-  at, never with a session grant. Nothing squashes: a project with no
+  at, never with a session grant. git_squash {count | base, message}
+  (owner, 2026-10-31; `Tools/ToolRunner+History.swift`) → `gitSquash`:
+  before asking it previews the squash, which refuses there what the
+  squash would; under Strict the card (`detail.squash`,
+  `ApprovalPolicy.squashReason`; the app shows the bound detail,
+  `ApprovalCardText`) names the branch, each commit combined by short sha
+  and subject, the new message and, when the upstream has some of them,
+  that publishing it needs a forced push, which asks on its own card;
+  every time, never with a session grant; Relaxed and Full run it. The
+  squash carries the preview's full base and head. Its description, a
+  line of the prompt's `# Working` and the `apelin-git-workflow` skill
+  keep it to a squash the user asked for or explicitly agreed to, never
+  on the agent's own initiative (`SquashToolTests` pins them); nothing
+  else rewrites commits. A project with no
   remote is pushed with the `url` of an
   empty repository, one apelin_git_create_repository made on GitHub
   (below) or one the user made elsewhere. A forced push (owner,
@@ -1806,7 +1841,7 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   a generic verb on the
   session's own project is `<domain>_<verb>`: `file_read`, `file_write`,
   `file_create`, `file_edit`, `file_list`, `file_grep`, `file_find`,
-  `file_show`, `shell_run`, and the repository's nine `git_*`. MCP tools
+  `file_show`, `shell_run`, and the repository's eleven `git_*`. MCP tools
   keep kwwk's `mcp__<server>__<tool>`. Lowercase, `[a-z0-9_]`, a letter
   first, no `__`, at most 64 characters, which every provider takes
   (`AgentToolNameTests`). An agent tool extension's tools keep their
@@ -2860,7 +2895,8 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   (owner, 2026-10-29), and so does publishing packages to the user's
   package repository (owner, 2026-10-29), and so does editing a feedback
   issue or opening an issue on a repository the user chose (owner,
-  2026-10-30); none is ever granted for the
+  2026-10-30), and so does squashing the project's own commits (owner,
+  2026-10-31); none is ever granted for the
   session, and the host spends the one approval (owner, 2026-10-22). An
   MCP tool and an agent tool extension's tool ask at every call too,
   whatever the extension declares its risk to be; those two may be
@@ -3587,8 +3623,10 @@ project's history for the user: commit on your own once a change builds
 unless the user drives git, `git_commit` with `all`, messages, `.gitignore`,
 `git_init` for a project without a repository, push only when asked (a
 first one with `url`, to an empty repository apelin_git_create_repository
-made as the user asked, or one the user made; no squash), and github.com
-through Sign In with GitHub. `apelin-package-repository` is the package
+made as the user asked, or one the user made), a squash or a forced push
+only when the user explicitly asks for it (git_squash, git_push with
+force_with_lease, owner, 2026-10-31), and github.com through Sign In
+with GitHub. `apelin-package-repository` is the package
 repository (Distribution repository, below): its layout after
 owngoal-packages, the control fields a package needs, how Publish adds a
 release, and keeping old versions in check. `apelin-icli` (owner,

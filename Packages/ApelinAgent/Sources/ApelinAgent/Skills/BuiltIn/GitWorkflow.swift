@@ -1,7 +1,7 @@
 extension BuiltInSkills {
     static let gitWorkflow = SkillDocument(
         name: "apelin-git-workflow",
-        description: "Keeping a project's history in git for the user: when to commit on your own, how (git_commit with all, messages, .gitignore), git_init for a project without a repository, importing a repository into a workspace, pushing only when asked, and a forced push only when the user explicitly asks for one.",
+        description: "Keeping a project's history in git for the user: when to commit on your own, how (git_commit with all, messages, .gitignore), git_init for a project without a repository, importing a repository into a workspace, pushing only when asked, and a squash or a forced push only when the user explicitly asks for one.",
         body: """
         # Keeping the project in git
 
@@ -78,8 +78,16 @@ extension BuiltInSkills {
           ask the user to make an empty one (no README, licence or
           `.gitignore`) and give you its HTTPS address. Then `git_push` with
           that `url`, which adds it as the remote first.
-        - Nothing squashes or rewrites local commits: say so, and never work
-          around it.
+        - `git_squash` combines the branch's last commits into one (`count`
+          of them, or every commit after `base`) with a message you write:
+          only when the user asks for it, or agrees when you ask, never to
+          tidy up on your own. It works on the checked-out branch with
+          nothing uncommitted, pushes nothing, and keeps the old commits in
+          the reflog; in Strict mode the user sees each commit it combines.
+          When the upstream already has some of them, publishing the squash
+          is a forced push, which the user is asked about on its own.
+        - Nothing else rewrites commits (no rebase, no amend): say so, and
+          never work around it.
         - github.com signs in through Settings ▸ Git ▸ Sign In with GitHub:
           when a remote there needs authentication, ask the user to sign in
           there; never ask for a token or a password. A token the user gives

@@ -344,12 +344,14 @@ actor ToolRunner {
     /// one, nor for a project's deletion, which cannot be undone, nor for
     /// packages published to the user's package repository, nor for a use
     /// of the screen while Ask Before Using the Screen is on, nor for a
-    /// forced push, which takes commits off the remote's branch.
+    /// forced push, which takes commits off the remote's branch, nor for a
+    /// squash, which replaces the project's own.
     static func allowsSessionScope(_ tool: InvocationFacts.Tool, detail: ApprovalDetail) -> Bool {
         switch tool {
         case .local(.packageRemove), .local(.gitPush), .local(.toolchainSetup), .local(.sdkImport),
              .local(.skillSave), .local(.skillRemove), .local(.feedbackSend), .local(.gitCreateRepository),
-             .local(.projectDelete), .local(.packagePublish), .local(.feedbackEdit), .local(.gitCreateIssue):
+             .local(.projectDelete), .local(.packagePublish), .local(.feedbackEdit), .local(.gitCreateIssue),
+             .local(.gitSquash):
             return false
         default:
             break
@@ -357,7 +359,7 @@ actor ToolRunner {
         switch detail {
         case .gitSettings, .descriptionChanged, .toolchainSetup, .sdkImport, .otherProject, .externalBuild, .skillChange,
              .projectRename, .rootCommand, .feedback, .feedbackEdit, .repositoryCreate, .issueCreate, .projectDelete,
-             .packagePublish, .screenControl, .forcePush:
+             .packagePublish, .screenControl, .forcePush, .squash:
             return false
         case .none, .command, .packageRemoval, .gitPush:
             return true
@@ -725,6 +727,9 @@ actor ToolRunner {
             ))
             pushed.note = facts.push?.unforced ?? force.map(Self.forcedPushNote)
             return json(pushed)
+
+        case .gitSquash:
+            return try await json(squash(facts.squash, context: context))
 
         case .gitClone:
             return try await json(backend.gitClone(GitCloneToolRequest(

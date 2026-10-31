@@ -629,6 +629,10 @@ actor EventRelay {
         // (AgentForcePushRules).
         case let .forcePush(force):
             payload["detail"] = .object(["forcePush": (try? ApelinCore.JSONValue(encoding: force)) ?? .null])
+        // The squash the host matches an agent's gitSquash to
+        // (AgentSquashRules).
+        case let .squash(squash):
+            payload["detail"] = .object(["squash": (try? ApelinCore.JSONValue(encoding: squash)) ?? .null])
         case let .gitSettings(summary):
             payload["detail"] = .object(["gitSettings": .object(["summary": .string(summary)])])
         // What the host matches an agent's setup, import or call into another

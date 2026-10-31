@@ -645,7 +645,7 @@ public struct GitService: Sendable {
         return marker
     }
 
-    private func open(_ projectID: String) throws -> (project: ProjectLocator.Project, repository: GitRepository) {
+    func open(_ projectID: String) throws -> (project: ProjectLocator.Project, repository: GitRepository) {
         let project = try projects.locate(projectID)
         let repository: GitRepository
         do {
@@ -723,6 +723,7 @@ public struct GitService: Sendable {
         case .rejected: return ApelinError(.conflict, error.message, reason: .rejected)
         case .remoteChanged: return ApelinError(.conflict, error.message, reason: .remoteChanged)
         case .localChanged: return ApelinError(.conflict, error.message, reason: .localChanged)
+        case .headChanged: return ApelinError(.conflict, error.message, reason: .headChanged)
         case .authenticationFailed: return ApelinError(.denied, error.message, reason: .authenticationRequired)
         case .failed: return ApelinError(.internal, error.message)
         }

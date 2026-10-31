@@ -580,6 +580,7 @@ struct ChatTranscript {
         case .gitPull: return String(localized: "Pull from the remote")
         case .gitPush: return String(localized: "Push to the remote")
         case .gitClone: return String(localized: "Import the repository")
+        case .gitSquash: return String(localized: "Squash commits")
         case .gitReadSettings: return String(localized: "Read the Git settings")
         case .gitSetAuthor: return String(localized: "Set the commit author")
         case .gitSaveCredential: return String(localized: "Save a Git credential")

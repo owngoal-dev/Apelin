@@ -1,9 +1,11 @@
 // What changes a branch's history rather than adding to it (owner,
-// 2026-10-31, issue #29): a forced push, which overwrites a remote's branch
-// with the local one, protected by a lease. Never forced without one, and
+// 2026-10-31): a forced push (issue #29), which overwrites a remote's branch
+// with the local one, protected by a lease, never forced without one, and
 // an agent's lease only on the user's approval of exactly it, in every mode
-// (AgentForcePushRules). Served by apelin-environment with the rest of the
-// git service (Git.swift).
+// (AgentForcePushRules); and a squash, which combines the local branch's
+// last commits into one, an agent's under Strict only on the user's
+// approval of exactly it (AgentSquashRules). Served by apelin-environment
+// with the rest of the git service (Git.swift).
 
 /// A forced push's lease, as `git push --force-with-lease=<branch>:<commit>`
 /// takes it: the remote's branch is overwritten only while it is at
@@ -91,6 +93,89 @@ public struct GitBranchComparison: Codable, Sendable, Hashable {
     }
 }
 
+/// Combines the commits after `base` on the checked-out branch into one,
+/// whose tree is HEAD's and whose parent is `base`, with `message` and the
+/// author `gitCommit` would take (Settings/git.json, else the repository's
+/// own). Only the branch moves, from `expectedHead` alone: the work tree,
+/// the index and every remote are left as they are, nothing is pushed, and
+/// the branch's reflog keeps `previousHead`, so it can be undone. Refused
+/// with nothing changed: HEAD not on a branch (`badRequest`), HEAD not at
+/// `expectedHead` (`conflict`, reason `headChanged`), a base that is not an
+/// ancestor of HEAD, fewer than two commits after it, or a tracked change
+/// in the work tree or the index (`conflict`); untracked files are left
+/// alone. With `preview`, nothing changes and the answer is what it would
+/// combine: `base` may then be a commit ID of at least seven digits, or
+/// `count` the commits back from HEAD along first parents, and neither
+/// `message` nor `expectedHead` is read. Not a task: one request.
+public struct GitSquashRequest: OperationRequest {
+    public typealias Response = GitSquashResponse
+    public static let operation = AppOperation.gitSquash
+    public var projectID: String
+    /// The commit kept as the squashed commit's parent: a full ID, except
+    /// in a preview.
+    public var base: String?
+    /// A preview's other way to name the base: this many commits back.
+    public var count: Int?
+    public var message: String?
+    /// The full commit HEAD must be at: what the preview answered.
+    public var expectedHead: String?
+    public var preview: Bool?
+
+    public init(
+        projectID: String,
+        base: String? = nil,
+        count: Int? = nil,
+        message: String? = nil,
+        expectedHead: String? = nil,
+        preview: Bool? = nil,
+    ) {
+        self.projectID = projectID
+        self.base = base
+        self.count = count
+        self.message = message
+        self.expectedHead = expectedHead
+        self.preview = preview
+    }
+}
+
+public struct GitSquashResponse: Codable, Sendable, Hashable {
+    public var branch: String
+    /// Where the branch was: HEAD before the squash.
+    public var previousHead: String
+    /// The full commit kept as the parent.
+    public var base: String
+    /// The commits combined, newest first, the first fifty.
+    public var commits: [GitCommitSummary]
+    public var count: Int
+    /// `<remote>/<branch>` the branch tracks, when it has one fetched.
+    public var upstream: String?
+    /// How many of the commits the upstream has, as last fetched: when any,
+    /// publishing the squash takes a forced push.
+    public var published: Int
+    /// The commit in their place; absent from a preview.
+    public var commit: String?
+
+    public init(
+        branch: String,
+        previousHead: String,
+        base: String,
+        commits: [GitCommitSummary],
+        count: Int,
+        upstream: String? = nil,
+        published: Int = 0,
+        commit: String? = nil,
+    ) {
+        self.branch = branch
+        self.previousHead = previousHead
+        self.base = base
+        self.commits = commits
+        self.count = count
+        self.upstream = upstream
+        self.published = published
+        self.commit = commit
+    }
+}
+
 public extension ApelinError.Reason {
     /// `conflict`: a forced push's lease did not hold — the remote's branch
     /// is not at the commit it was to replace, or is gone. Nothing was
@@ -99,4 +184,13 @@ public extension ApelinError.Reason {
     /// `conflict`: a forced push's local branch is not at the commit it was
     /// to send. Nothing was pushed.
     static let localChanged = Self(rawValue: "localChanged")
+    /// `conflict`: a squash's branch is not at the commit it was to replace.
+    /// Nothing was squashed.
+    static let headChanged = Self(rawValue: "headChanged")
+}
+
+public extension ApelinService {
+    func gitSquash(_ request: GitSquashRequest) async throws -> GitSquashResponse {
+        try await send(request)
+    }
 }

@@ -29,6 +29,9 @@ public struct GitError: Error, CustomStringConvertible, Sendable, Equatable {
         /// A forced push's local branch is not at the commit it was to send.
         /// Nothing was pushed.
         case localChanged
+        /// A squash's branch is not at the commit it was to replace, or moved
+        /// while it was squashed. Nothing was squashed.
+        case headChanged
         /// The remote asked for a sign-in and had none, or refused the one
         /// it was given.
         case authenticationFailed

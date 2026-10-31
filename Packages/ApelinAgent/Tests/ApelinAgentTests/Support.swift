@@ -1,7 +1,9 @@
 @testable import ApelinAgent
 import struct ApelinProtocol.ApelinError
 import struct ApelinProtocol.GitBranchComparison
+import struct ApelinProtocol.GitCommitSummary
 import struct ApelinProtocol.GitPushLease
+import struct ApelinProtocol.GitSquashResponse
 import Foundation
 
 /// A throwaway home with `Documents/wiki.qaq.apelin/Projects/<name>/`.
@@ -130,6 +132,9 @@ actor MockBackend: AgentHostBackend {
         case gitFetchComparing(remote: String?, branch: String)
         /// A push with a lease: forced.
         case gitForcePush(remote: String?, branch: String?, url: String?, lease: GitPushLease, evidence: ApprovalEvidence)
+        /// A squash's preview: what it would combine, by base or count.
+        case gitSquashPreview(base: String?, count: Int?)
+        case gitSquash(base: String?, expectedHead: String?, message: String?, evidence: ApprovalEvidence)
         case other(String)
     }
 
@@ -139,6 +144,42 @@ actor MockBackend: AgentHostBackend {
 
     func setComparison(_ comparison: GitBranchComparison?) {
         self.comparison = comparison
+    }
+
+    /// What a squash's preview answers: three commits after a base, none of
+    /// them on the upstream unless a test says so.
+    static let defaultSquashPreview = GitSquashResponse(
+        branch: "main",
+        previousHead: String(repeating: "d", count: 40),
+        base: String(repeating: "a", count: 40),
+        commits: [
+            GitCommitSummary(commit: String(repeating: "d", count: 40), subject: "Fix the hand"),
+            GitCommitSummary(commit: String(repeating: "c", count: 40), subject: "Draw the face"),
+            GitCommitSummary(commit: String(repeating: "b", count: 40), subject: "Hook the clock"),
+        ],
+        count: 3,
+    )
+
+    var squashPreview = MockBackend.defaultSquashPreview
+
+    func setSquashPreview(_ preview: GitSquashResponse) {
+        squashPreview = preview
+    }
+
+    func gitSquash(_ request: GitSquashToolRequest) -> GitSquashResponse {
+        guard !request.preview else {
+            calls.append(.gitSquashPreview(base: request.base, count: request.count))
+            return squashPreview
+        }
+        calls.append(.gitSquash(
+            base: request.base,
+            expectedHead: request.expectedHead,
+            message: request.message,
+            evidence: request.context.approval,
+        ))
+        var done = squashPreview
+        done.commit = String(repeating: "e", count: 40)
+        return done
     }
 
     /// What apelin_package_publish reads before it asks: a linked

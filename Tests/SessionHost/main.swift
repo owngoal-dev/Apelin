@@ -3353,6 +3353,76 @@ do {
     check(noSession?.code == .denied, "a worker with no session forces nothing")
 }
 
+// MARK: - A squash goes under Strict only on the user's approval of exactly it
+
+do {
+    check(CallerPolicy.allows(.worker(.agent, instance: "s"), .gitSquash), "the agent may squash its project's commits")
+    check(!CallerPolicy.allows(.worker(.build, instance: nil), .gitSquash), "the build worker may not")
+    let registry = TaskRegistry(directory: scratch.appendingPathComponent("agent-squash-tasks"))
+    await registry.load()
+    let sessions = AgentSessionTable.shared
+    func session(_ id: String, mode: ApprovalMode) async -> AgentSessionTable.Entry {
+        let entry = await AgentSessionTable.Entry(
+            sessionID: id,
+            task: registry.create(kind: .agent, owner: .agent, ownerKey: id),
+            project: ResolvedProject(id: "p-squash", name: "Squash", path: scratchPath),
+            mode: mode,
+            createdAt: Date(),
+        )
+        await sessions.add(entry)
+        return entry
+    }
+    let base = String(repeating: "a", count: 40)
+    let head = String(repeating: "b", count: 40)
+    let squash = GitSquashRequest(projectID: "p-squash", base: base, message: "Add the clock", expectedHead: head)
+    let strict = await session("squash-strict", mode: .confirm)
+    // What apelin-agent writes into git_squash's approvalRequested
+    // (ApelinAgentWorker's tests hold that shape).
+    func ask(
+        _ approvalID: String,
+        tool: String = "git_squash",
+        project: String = "p-squash",
+        base asked: String? = nil,
+        head shown: String? = nil,
+        message: String = "Add the clock",
+    ) async {
+        await registry.append(strict.task.taskID, kind: "approvalRequested", payload: .object([
+            "approvalID": .string(approvalID), "tool": .string(tool), "allowsSessionScope": .bool(false),
+            "detail": .object([AgentSquashRules.detailKey: .object([
+                "projectID": .string(project), "branch": .string("main"), "base": .string(asked ?? base),
+                "expectedHead": .string(shown ?? head), "message": .string(message), "count": .number(3),
+                "commits": .array([]), "published": .number(0),
+            ])]),
+        ]))
+        await sessions.record(strict.sessionID, approvalID: approvalID, decision: .approve)
+    }
+    func authorized(_ entry: AgentSessionTable.Entry?, _ request: GitSquashRequest = squash) async -> ApelinError? {
+        await AgentSquashRules.authorize(request, session: entry?.sessionID, registry: registry)
+    }
+    let unasked = await authorized(strict)
+    check(unasked?.code == .denied, "Strict squashes only as the user approved it")
+    let preview = await authorized(strict, GitSquashRequest(projectID: "p-squash", count: 3, preview: true))
+    check(preview == nil, "a preview changes nothing and asks nothing")
+    await ask("squash-other-base", base: String(repeating: "c", count: 40))
+    await ask("squash-other-head", head: String(repeating: "c", count: 40))
+    await ask("squash-other-message", message: "Something else")
+    await ask("squash-other-project", project: "p-elsewhere")
+    await ask("squash-other-tool", tool: "git_commit")
+    let near = await authorized(strict)
+    let unspent = await sessions.approvedIDs(strict.sessionID)
+    check(near != nil && unspent.count == 5, "an approval covers the base, head, message and project it named only (\(unspent))")
+    await ask("squash-exact")
+    let approved = await authorized(strict)
+    check(approved == nil, "the approved squash goes")
+    let again = await authorized(strict)
+    check(again != nil, "once, never for the session: the next one asks again")
+    let relaxed = await authorized(session("squash-relaxed", mode: .relaxed))
+    let full = await authorized(session("squash-full", mode: .full))
+    check(relaxed == nil && full == nil, "Relaxed and Full squash as they commit")
+    let noSession = await authorized(nil)
+    check(noSession?.code == .denied, "a worker with no session squashes nothing")
+}
+
 // MARK: - Packages are published under Strict only as the user approved exactly them
 
 do {

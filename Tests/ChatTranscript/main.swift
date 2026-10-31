@@ -1098,3 +1098,5 @@ checkChatDeletion()
 try checkChatUnread()
 
 checkForcePushCard()
+
+checkSquashCard()

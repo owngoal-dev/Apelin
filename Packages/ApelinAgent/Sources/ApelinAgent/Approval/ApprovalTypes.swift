@@ -86,6 +86,10 @@ public enum ApprovalDetail: Sendable, Hashable, Codable {
     /// branch. Asked in every mode, never granted for the session; the host
     /// lets through only the push it names, with that lease, once.
     case forcePush(ForcePushApproval)
+    /// A squash of the project's own commits: the branch, each commit it
+    /// combines and the new message. Never granted for the session; the
+    /// host lets through only the squash it names, once.
+    case squash(SquashApproval)
     /// A change to the device's git settings: the author, or the credential
     /// saved for a host (never its token).
     case gitSettings(summary: String)

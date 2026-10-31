@@ -13,6 +13,10 @@
     {"op": "expect", "request": {"step": "commit", "path": "response.commitID", "exists": true}},
     {"op": "gitStatus", "request": {"projectID": "I2GitCheck"}, "label": "clean"},
     {"op": "expect", "request": {"step": "clean", "path": "response.entries", "equals": []}},
-    {"op": "expect", "request": {"step": "clean", "path": "response.head", "equals": "${commit.response.commitID}"}}
+    {"op": "expect", "request": {"step": "clean", "path": "response.head", "equals": "${commit.response.commitID}"}},
+    {"op": "gitSquash", "request": {"projectID": "I2GitCheck", "count": 1, "preview": true}, "label": "squash-one", "allowError": true},
+    {"op": "expect", "request": {"step": "squash-one", "errorCode": "conflict"}},
+    {"op": "gitSquash", "request": {"projectID": "I2GitCheck", "count": 2, "base": "0000000", "preview": true}, "label": "squash-both", "allowError": true},
+    {"op": "expect", "request": {"step": "squash-both", "errorCode": "badRequest"}}
   ]
 }

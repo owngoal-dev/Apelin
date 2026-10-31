@@ -76,6 +76,8 @@ public struct InvocationFacts: Sendable, Hashable {
     /// off the remote's branch: what it overwrites, as the fetch before it
     /// found the remote. Nil for an ordinary push, which loses nothing.
     public var forcePush: ForcePushApproval?
+    /// For git_squash: what it combines, as the preview before it found it.
+    public var squash: SquashApproval?
     /// For the git settings tools: what they change, in words, without a
     /// token ("the commit author", "the credential for github.com").
     public var gitSettings: String?
@@ -457,6 +459,15 @@ public struct ApprovalPolicy: Sendable, Hashable {
                 reason: "Pushing \(branch) to \(place) publishes its commits.\(unforced) Each push needs your approval.",
                 detail: .gitPush(remote: target.remote, branch: target.branch),
             )
+
+        // The project's own commits replaced by one, which the user may
+        // have read or published: every squash asks, the card naming each
+        // commit and the new message, and none is granted for the session.
+        case .gitSquash:
+            guard let squash = facts.squash else {
+                return .ask(reason: "What this squash combines could not be read.", detail: .none)
+            }
+            return .ask(reason: Self.squashReason(squash), detail: .squash(squash))
 
         // A public issue under the user's GitHub account, as a push
         // publishes: every one asks, the card showing the whole text.

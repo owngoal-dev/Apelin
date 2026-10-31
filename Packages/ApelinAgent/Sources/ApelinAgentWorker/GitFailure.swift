@@ -62,6 +62,9 @@ enum GitFailure {
             guard operation == "git push" else { return nil }
             return "The project has no such remote yet: ask the user whether to create a GitHub repository for it with apelin_git_create_repository, and with which owner, name and visibility, or for the HTTPS address of an empty repository they made (no README, licence or .gitignore); then git_push with url."
         }
+        if reason == ApelinError.Reason.headChanged.rawValue {
+            return "The branch moved after the user saw what would be squashed, so nothing was squashed. Tell the user; to squash it still, call git_squash again, which reads the commits again and asks again."
+        }
         if reason == ApelinError.Reason.remoteURLDiffers.rawValue {
             // The message says where the remote points and what to do instead.
             return nil

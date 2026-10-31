@@ -23,6 +23,8 @@ enum GitHandler: DomainHandler {
             return await host.startTask(request, kind: .environment, role: .environment, resumable: true)
         case .gitPush:
             return await push(request, host: host)
+        case .gitSquash:
+            return await squash(request, host: host)
         case .gitCloneInto, .gitFetch, .gitPull:
             // Not resumed: a push or pull cut off is answered by running it
             // again, which the caller decides.
@@ -72,6 +74,23 @@ enum GitHandler: DomainHandler {
             }
         }
         return await host.startTask(request, kind: .environment, role: .environment, resumable: false)
+    }
+
+    /// An agent's squash goes under Confirm only on the user's approval of
+    /// exactly it (AgentSquashRules); a preview goes as it is.
+    private static func squash(_ request: HostRequest, host: SessionHost) async -> HostReply {
+        if case let .worker(.agent, instance) = request.caller {
+            let squash: GitSquashRequest
+            do {
+                squash = try request.decode(GitSquashRequest.self)
+            } catch {
+                return request.fail(error)
+            }
+            if let refusal = await AgentSquashRules.authorize(squash, session: instance, registry: host.registry) {
+                return request.fail(refusal)
+            }
+        }
+        return await host.forward(request, to: .environment)
     }
 
     /// An agent's is checked here before it is forwarded.

@@ -44,7 +44,62 @@ public struct ForcePushApproval: Sendable, Hashable, Codable {
     }
 }
 
+/// What a git_squash card names, and the host matches its request to
+/// (AgentSquashRules): the project and its branch, the base kept and the
+/// head replaced, the commits combined and the new message, read by the
+/// preview the tool made before asking, with how many of them the branch's
+/// upstream has.
+public struct SquashApproval: Sendable, Hashable, Codable {
+    public var projectID: String
+    public var branch: String
+    public var base: String
+    public var expectedHead: String
+    public var message: String
+    /// Newest first, the first fifty.
+    public var commits: [GitCommitSummary]
+    public var count: Int
+    public var upstream: String?
+    public var published: Int
+
+    public init(
+        projectID: String,
+        branch: String,
+        base: String,
+        expectedHead: String,
+        message: String,
+        commits: [GitCommitSummary],
+        count: Int,
+        upstream: String?,
+        published: Int,
+    ) {
+        self.projectID = projectID
+        self.branch = branch
+        self.base = base
+        self.expectedHead = expectedHead
+        self.message = message
+        self.commits = commits
+        self.count = count
+        self.upstream = upstream
+        self.published = published
+    }
+}
+
 extension ApprovalPolicy {
+    /// What it combines, onto what, and that the old commits stay in the
+    /// reflog; a forced push when the upstream has some of them.
+    static func squashReason(_ squash: SquashApproval) -> String {
+        let named = squash.commits.prefix(10).map { "\(shortCommit($0.commit)) “\($0.subject)”" }
+        let more = squash.count > named.count ? ", and \(squash.count - named.count) more" : ""
+        let published: String
+        if let upstream = squash.upstream, squash.published > 0 {
+            let some = squash.published == squash.count ? "all of them" : "\(squash.published) of them"
+            published = " \(upstream) already has \(some): publishing the squash will need a forced push, which asks on its own."
+        } else {
+            published = ""
+        }
+        return "Squashes \(squash.count) commits on \(squash.branch) into one with the message below, on \(shortCommit(squash.base)): \(named.joined(separator: ", "))\(more). The files stay as they are and nothing is pushed; the old commits stay in the branch's reflog.\(published) Each squash needs your approval."
+    }
+
     /// Where it goes, what replaces what, what leaves the branch, and that
     /// it is for good.
     static func forcePushReason(_ force: ForcePushApproval) -> String {

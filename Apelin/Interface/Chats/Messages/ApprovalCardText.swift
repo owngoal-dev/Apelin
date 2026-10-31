@@ -86,6 +86,9 @@ enum ApprovalCardText {
         if let forced = forcedPush(payload) {
             return ToolCallDetail(detail: forced, title: title)
         }
+        if let squashed = squashedCommits(payload) {
+            return ToolCallDetail(detail: squashed, title: title)
+        }
         guard AgentToolName.canonical(payload?["tool"]?.stringValue ?? "") == .shellRun,
               case var .object(values)? = try? JSONCoding.decode(JSONValue.self, from: Data(json.utf8))
         else { return ToolCallDetail(detail: json, title: title) }
@@ -176,6 +179,31 @@ enum ApprovalCardText {
             "overwritten_count": .string(String(Int(count))),
         ]
         shown["url"] = detail["url"]?.stringValue.map { .string($0) }
+        return (try? JSONCoding.encode(JSONValue.object(shown))).map { String(decoding: $0, as: UTF8.self) }
+    }
+
+    /// A git_squash card's arguments: not the call's, which may name a count,
+    /// but what the approval is bound to, its `detail.squash` — the branch,
+    /// the base kept, the head replaced, the message and each commit
+    /// combined, newest first. Nil for any other request.
+    private static func squashedCommits(_ payload: JSONValue?) -> String? {
+        guard let detail = payload?["detail"]?["squash"],
+              let branch = detail["branch"]?.stringValue, let base = detail["base"]?.stringValue,
+              let head = detail["expectedHead"]?.stringValue, let message = detail["message"]?.stringValue,
+              case let .array(commits)? = detail["commits"], let count = detail["count"]?.doubleValue
+        else { return nil }
+        let lines: [String] = commits.compactMap { entry in
+            guard let commit = entry["commit"]?.stringValue else { return nil }
+            return "\(commit.prefix(7)) \(entry["subject"]?.stringValue ?? "")"
+        }
+        let shown: [String: JSONValue] = [
+            "branch": .string(branch),
+            "base": .string(base),
+            "head": .string(head),
+            "message": .string(message),
+            "commits": .string(lines.joined(separator: "\n")),
+            "count": .string(String(Int(count))),
+        ]
         return (try? JSONCoding.encode(JSONValue.object(shown))).map { String(decoding: $0, as: UTF8.self) }
     }
 
