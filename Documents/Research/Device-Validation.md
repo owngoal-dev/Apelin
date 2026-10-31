@@ -2718,3 +2718,30 @@ deepseek-v4-pro) and the iOS 26.4 iPad vphone:
 - `apelin_package_publish` given a release build of that project, whose
   record says `Release`, passed the configuration check and stopped at "no
   package repository is linked"; nothing reached GitHub.
+
+## Unread replies, chat logs, imports and resets (2026-10-31, 0.3.3)
+
+CI's packages of `2b34ada`, roothide, over 0.3.2 on the iOS 26.4 and 27.0.1
+iPhone vphones and the iOS 26.4 iPad vphone:
+
+- The smoke suite with `tool-host` and `i2-git-remote` passed on both
+  iPhones; on the iPad `files` and `tool-host` were skipped, as it has no
+  tweak extension or disassembler installed, and the other seven passed.
+- On the iOS 26.4 iPhone (Strict, deepseek-v4-pro), `apelin://import?url=`
+  `https://github.com/octocat/Hello-World` opened Import Repository with the
+  address, the default branch and `Hello-World`; Import made the project and
+  opened its chat. Asked to commit a `NOTES.md` and then match
+  `origin/master`, the agent asked for the git author on a card, committed,
+  and showed the reset card: the remote's address and commit, the branch's
+  old commit, the one local commit leaving it, the `apelin-backup/` branch,
+  and that a reset asks in every mode. Denied, nothing changed, and the
+  agent said so.
+- A reply that came while another chat was open put a yellow dot in place
+  of the row's spinner, and the project menu read `Hello-World - 1`, with
+  four more recent projects and More Projects under it.
+- Settings ▸ About ▸ Logs listed the chat under Chats; its log had each call
+  started and ended, the approval resolved as denied after 579 s, and each
+  run with its model and host. `git_status`'s 40-digit HEAD was written as
+  `<device id>`: the redaction takes a SHA-1 for an old-style UDID.
+- The vphone's leftover test tweaks (`ApelinHello`, `I3ChainTweak`,
+  `DemoTweak`) put their alerts over Apelin at launch; they are not Apelin's.
