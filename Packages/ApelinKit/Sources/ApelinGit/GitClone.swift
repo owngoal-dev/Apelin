@@ -20,6 +20,9 @@ public struct GitCloneResult: Sendable, Equatable {
 public struct GitCloneIntoResult: Sendable, Equatable {
     public var branch: String
     public var commit: String
+    /// The `replacing` paths whose file is now the repository's (or what
+    /// its `settle` made of it).
+    public var replaced: [String] = []
 }
 
 /// A shallow clone of one branch: depth 1, a remote whose only refspec is
@@ -99,9 +102,11 @@ public enum GitClone {
     /// a local branch tracking `origin/<branch>` and checked out.
     ///
     /// The checkout overwrites nothing: a file the repository has that is
-    /// already in the folder throws `conflict`. `excluding` goes into
+    /// already in the folder throws `conflict` — but for a `replacing` one,
+    /// which gives way to the repository's own copy. `excluding` goes into
     /// `.git/info/exclude` first, for the files the caller keeps in the
-    /// folder that are not the repository's. A `.git` already there is
+    /// folder that are not the repository's; a pattern naming a replaced
+    /// file, which is the repository's now, is left out. A `.git` already there is
     /// taken only when it is untouched (`GitRepository.isUntouched`), the
     /// empty one a new project starts with, and replaced. Any failure, a
     /// stop by `progress` included, removes the `.git` this made and every
@@ -112,6 +117,7 @@ public enum GitClone {
         url: String,
         branch: String? = nil,
         excluding patterns: [String] = [],
+        replacing replacements: [Replacement] = [],
         credentials: GitCredentialLookup? = nil,
         progress: @escaping (GitCloneProgress) -> Bool = { _ in true },
     ) throws -> GitCloneIntoResult {
@@ -143,23 +149,43 @@ public enum GitClone {
 
         let folders = existingFolders(in: directory)
         let checkout = CheckoutRecord()
+        let replaced = ReplacementRecord()
         do {
             return try fill(
                 GitRepository(at: directory),
                 url: url,
                 branch: branch,
                 excluding: patterns,
+                replacing: replacements,
                 checkout: checkout,
+                replaced: replaced,
                 credentials: credentials,
                 progress: progress,
             )
         } catch {
             undo(checkout.written, keeping: folders, in: directory)
+            replaced.restore()
             try? FileManager.default.removeItem(at: gitDirectory)
             if let replacedBranch {
                 _ = try? GitRepository.create(at: directory, initialBranch: replacedBranch)
             }
             throw error
+        }
+    }
+
+    /// A file of the folder the repository's own copy may replace (an Apelin
+    /// workspace's `apelin-project.json`): `settle` is handed the
+    /// repository's bytes before anything is checked out, and answers what
+    /// the file holds afterwards — those bytes, or others — or throws to
+    /// refuse the clone. When the repository has no such file, the folder's
+    /// stays as it is.
+    public struct Replacement {
+        public var path: String
+        public var settle: (Data) throws -> Data
+
+        public init(path: String, settle: @escaping (Data) throws -> Data) {
+            self.path = path
+            self.settle = settle
         }
     }
 
@@ -169,7 +195,9 @@ public enum GitClone {
         url: String,
         branch: String?,
         excluding patterns: [String],
+        replacing replacements: [Replacement],
         checkout: CheckoutRecord,
+        replaced: ReplacementRecord,
         credentials: GitCredentialLookup?,
         progress: @escaping (GitCloneProgress) -> Bool,
     ) throws -> GitCloneIntoResult {
@@ -220,12 +248,26 @@ public enum GitClone {
         git_reference_free(local)
         try repository.setLocalConfigValue("origin", for: "branch.\(name).remote")
         try repository.setLocalConfigValue("refs/heads/\(name)", for: "branch.\(name).merge")
-        try repository.addExcludes(patterns)
+
+        // What the repository brings in place of a folder's file is settled
+        // before anything is written, and that file set aside.
+        let commitID = GitRepository.hex(&target)
+        var excluded = patterns
+        var taken: [String] = []
+        for replacement in replacements {
+            guard let theirs = try repository.fileContents(replacement.path, inCommit: commitID) else { continue }
+            let kept = try replacement.settle(theirs)
+            try replaced.setAside(replacement.path, in: repository.workdir, settled: kept == theirs ? nil : kept)
+            excluded.removeAll { $0 == "/" + replacement.path }
+            taken.append(replacement.path)
+        }
+        try repository.addExcludes(excluded)
 
         let checkedOut = checkout.run { options in git_checkout_tree(pointer, commit, &options) }
         guard checkedOut == 0 else { throw checkout.failure(checkedOut, "checking out \(name)") }
         try GitError.check(git_repository_set_head(pointer, "refs/heads/\(name)"), "point HEAD at \(name)")
-        return GitCloneIntoResult(branch: name, commit: GitRepository.hex(&target))
+        try replaced.finish()
+        return GitCloneIntoResult(branch: name, commit: commitID, replaced: taken)
     }
 
     /// Every folder below `directory`, as relative paths, outside `.git` and

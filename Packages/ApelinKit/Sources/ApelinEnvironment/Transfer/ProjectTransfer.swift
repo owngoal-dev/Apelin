@@ -215,17 +215,11 @@ extension TransferService {
             )
         }
         let newID = UUID().uuidString.lowercased()
-        let text = String(decoding: original, as: UTF8.self)
-        let quoted = CanonicalJSON.quote(oldID)
-        guard text.components(separatedBy: quoted).count == 2 else {
+        guard let replaced = ProjectManifestIdentity.replacing(oldID, with: newID, in: original) else {
             throw ApelinError(
                 .badRequest,
                 "its project ID appears more than once in \(ProjectStore.projectFileName), so it cannot be given a new one",
             )
-        }
-        let replaced = Data(text.replacingOccurrences(of: quoted, with: CanonicalJSON.quote(newID)).utf8)
-        guard (try? StrictJSON.parse(replaced))?["projectID"]?.stringValue == newID else {
-            throw ApelinError(.internal, "could not give the project a new ID")
         }
         let rewritten = ProjectManifestFormat.formatted(replaced) ?? replaced
         try rewritten.write(to: descriptionURL)

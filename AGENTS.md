@@ -753,7 +753,31 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   no user, password, query, fragment or white space). A fetch, pull or
   push given an address where a remote's name goes is `badRequest`
   saying to add a remote at it first, never `noSuchRemote`.
-  Credentials are one per
+  A repository's own `apelin-project.json` coming into a new workspace
+  (owner, 2026-10-31, issue #32; `RepositoryManifest`): while the
+  workspace's manifest holds nothing but its identity
+  (`ProjectManifestIdentity.isBareWorkspace`, what `createEmpty` writes),
+  the repository's file takes its place instead of clashing
+  (`GitClone.Replacement`: settled before anything is checked out, the
+  workspace's set aside and put back when the import fails), and the
+  display name follows it. It keeps its `projectID` when that is a
+  lowercase UUID no other project, conversation (`sessions/*/session.json`),
+  build (`Builds/<id>/`) or memory record names, and nothing names the
+  workspace's ID yet (`ProjectReferences`); otherwise the workspace's ID
+  goes in its one quoted place (`ProjectManifestIdentity.replacing`, the
+  transfer import's rule) and the file shows as changed in git. A
+  conversation names its workspace from the moment it opens (its session
+  reopens only on the ID it was made with), so the agent's git_clone
+  always keeps the workspace's ID; an import the app runs before any
+  conversation can take the repository's. The result says which
+  (`projectFile`, `GitProjectFile`) and the ID the project has
+  (`projectID`). A file that is not a JSON object with a `projectID`, or
+  one whose ID appears twice where it must be replaced, is `badRequest`,
+  the workspace left as it was; a file only in a subfolder is any file;
+  a workspace whose manifest holds more (a declared build) clashes as
+  before. Nothing in it runs and nothing is recorded as approved: the
+  host's ledger holds no digest for an imported description, so a Strict
+  build of it asks. Credentials are one per
   host (lowercased, with `:port` when named): a username and a token
   (`GitCredentialStore`, keychain service and access group
   `wiki.qaq.apelin.git`, `keychain-access-groups` on apelin-environment

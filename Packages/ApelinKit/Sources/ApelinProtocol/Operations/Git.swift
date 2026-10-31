@@ -186,10 +186,17 @@ public struct GitCloneRequest: OperationRequest {
 /// full, and `branch` (nil: the remote's default) checked out over it
 /// without overwriting anything already there, so a repository that has a
 /// file of the same name as one in the folder fails and leaves the folder
-/// as it was. `apelin-project.json` is kept out of the repository through
-/// `.git/info/exclude`. HTTPS only; a credential saved for the URL's host
-/// is used. A task of kind `environment`; events `progress` {stage:
-/// "fetching", …}, then `result` {branch, commit} before the final `state`.
+/// as it was. The one exception is a repository's own `apelin-project.json`
+/// coming into a new workspace, whose manifest holds nothing but its
+/// identity: the repository's wins, with its `projectID` as it is when
+/// nothing on the device names that ID or the workspace's yet, else with
+/// the workspace's put in its place (`projectFile` says which,
+/// `GitProjectFile`); one that is not a JSON object with a `projectID` is
+/// refused. Without one, the workspace's is kept out of the repository
+/// through `.git/info/exclude`. HTTPS only; a credential saved for the
+/// URL's host is used. A task of kind `environment`; events `progress`
+/// {stage: "fetching", …}, then `result` {branch, commit, projectID,
+/// projectFile} before the final `state`.
 public struct GitCloneIntoRequest: OperationRequest {
     public typealias Response = TaskHandle
     public static let operation = AppOperation.gitCloneInto

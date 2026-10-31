@@ -181,6 +181,8 @@ public struct GitTaskToolResponse: Sendable, Hashable, Codable {
     public var forced: Bool?
     /// What the model is told besides, in words.
     public var note: String?
+    /// clone: what became of the project's apelin-project.json, in words.
+    public var projectFile: String?
 
     public init(
         remote: String? = nil,
@@ -193,6 +195,7 @@ public struct GitTaskToolResponse: Sendable, Hashable, Codable {
         comparison: GitBranchComparison? = nil,
         forced: Bool? = nil,
         note: String? = nil,
+        projectFile: String? = nil,
     ) {
         self.remote = remote
         self.branch = branch
@@ -204,6 +207,7 @@ public struct GitTaskToolResponse: Sendable, Hashable, Codable {
         self.comparison = comparison
         self.forced = forced
         self.note = note
+        self.projectFile = projectFile
     }
 }
 

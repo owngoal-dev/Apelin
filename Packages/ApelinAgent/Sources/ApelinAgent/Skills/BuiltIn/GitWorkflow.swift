@@ -50,7 +50,9 @@ extension BuiltInSkills {
 
         ## Remotes
         - `git_clone` imports a repository into a workspace, also one that has
-          only the empty repository it was made with.
+          only the empty repository it was made with. When the repository
+          has its own `apelin-project.json`, it becomes the project's; the
+          answer says whether its projectID was kept or this one's put in.
         - A remote is a name and an HTTPS address: `git_remote_list` lists
           them, `git_remote_set` adds one to a project that has none (or
           points one at another address) with the address the user gave, and

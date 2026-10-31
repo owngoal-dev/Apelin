@@ -207,21 +207,40 @@ public struct GitService: Sendable {
     }
 
     /// The clone into the workspace, run as a task: `progress` while it
-    /// fetches, then `{branch, commit}`. A failure leaves the folder as it
-    /// was.
+    /// fetches, then `{branch, commit, projectID, projectFile}`. A failure
+    /// leaves the folder as it was.
+    ///
+    /// The repository's own `apelin-project.json` wins over a new
+    /// workspace's, which holds nothing but the workspace's identity
+    /// (`RepositoryManifest`); the workspace's stays, kept out of the
+    /// repository, when the repository has none. A workspace whose
+    /// manifest holds more takes no repository that has one: that clashes
+    /// as any file in the way does.
     public func cloneInto(_ request: GitCloneIntoRequest, into root: URL, reporter: TaskReporter) throws -> JSONValue {
         reporter.stage("fetching")
+        let manifest = RepositoryManifest.forImport(into: root, projects: projects)
         let result = try mapped {
             try GitClone.into(
                 root,
                 url: request.url,
                 branch: request.branch,
                 excluding: Self.apelinFiles,
+                replacing: manifest.map { [$0.replacement] } ?? [],
                 credentials: credentialLookup,
                 progress: Self.fetchProgress(reporter),
             )
         }
-        return .object(["branch": .string(result.branch), "commit": .string(result.commit)])
+        var payload: [String: JSONValue] = [
+            "branch": .string(result.branch),
+            "commit": .string(result.commit),
+            "projectFile": .string((manifest?.file ?? .project).rawValue),
+        ]
+        let projectID = manifest?.projectID ?? (try? ProjectFiles.read(RepositoryManifest.fileName, in: root))
+            .flatMap(ProjectManifestIdentity.projectID(in:))
+        if let projectID {
+            payload["projectID"] = .string(projectID)
+        }
+        return .object(payload)
     }
 
     // MARK: Fetch, pull and push

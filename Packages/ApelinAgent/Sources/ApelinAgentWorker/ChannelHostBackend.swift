@@ -843,7 +843,21 @@ public struct ChannelHostBackend: AgentHostBackend {
             updated: updates,
             comparison: try? json["comparison"]?.decode(GitBranchComparison.self),
             forced: forced,
+            projectFile: json["projectFile"]?.stringValue.flatMap(GitProjectFile.init(rawValue:)).flatMap(projectFileNote),
         )
+    }
+
+    /// What an import or a reset did to apelin-project.json, for the model;
+    /// nil when the project's own stayed.
+    static func projectFileNote(_ file: GitProjectFile) -> String? {
+        switch file {
+        case .repository:
+            "apelin-project.json is now the repository's, as it is: the project is what it describes, with its projectID. A build of that description asks the user first in Strict mode."
+        case .repositoryWithProjectID:
+            "apelin-project.json is now the repository's, with this project's own projectID in place of the one it carried, so git_status shows it changed: commit it with your next change. The project is what it describes; a build of that description asks the user first in Strict mode."
+        case .project:
+            nil
+        }
     }
 
     /// At most `bytes` of `text`, cut at a line end where one is near.
