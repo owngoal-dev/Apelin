@@ -306,6 +306,7 @@ Fixtures/project/valid/              one project per kind, plus cli-with-script
 Fixtures/project/invalid/            each with the error it must produce, in expectations.json
 Fixtures/extension/valid|invalid/    the same for manifests
 Fixtures/canonical-json.json         RFC 8785 vectors
+Fixtures/manifest-format.json        the written form (below), and text left as it is
 Fixtures/digest/cli-with-script/     a project with every referenced-file kind, and its expected digests
 ```
 
@@ -313,7 +314,8 @@ Fixtures/digest/cli-with-script/     a project with every referenced-file kind, 
 types each format accepts where) and escaping vectors, then copies the
 digest project and applies an edit
 table (source edited, new source under a glob, version bumped, members
-reordered, toolchain rebound, flag added, build script edited, entitlements
+reordered, written on one line, formatted from one line, toolchain
+rebound, flag added, build script edited, entitlements
 edited, deployment target raised, postinst edited, installed data file
 edited, dependency added, icon set, install path changed), and requires each to move
 exactly the digests this file says it moves. `--update` rewrites
@@ -346,3 +348,28 @@ No other member goes in `external`. apelin-build reads it
 (`ExternalBuildDeclaration`); what the script gets and must write is in
 AGENTS.md ▸ Workspace builds. No digest covers it: under Confirm every
 build of a workspace asks.
+
+### Written form
+
+Apelin writes `apelin-project.json` one way, whatever writes it: creating a
+project (the template's file after substitution, or an empty workspace's),
+renaming it, switching its toolchain or SDK, importing a transfer file under
+a new ID, and every build, which puts a file written otherwise into this
+form before its first step. The form is Python's
+`json.dumps(document, ensure_ascii=False, indent=2)` followed by one `\n`:
+
+1. Two spaces a level, one member or element a line, `"name": value`.
+2. Members and elements in the order they were written, never sorted.
+3. An empty object or array as `{}` or `[]` on its line.
+4. Strings escaped as in the canonical form (rule 4 above): `/`, DEL and
+   non-ASCII as themselves.
+5. Integers in shortest decimal form, so `-0` is written `0`.
+6. `\n` line ends, and one after the document.
+
+Only the text changes: the document read back is the one the file held,
+member order included, so neither digest moves. A file that breaks a rule of
+**JSON** above is left as it is. A file already in the form is the same
+bytes and is not written again. The template files themselves are not JSON
+before substitution and keep their own layout. The reference
+implementation's `manifest_text` and ApelinProject's `ProjectManifestFormat`
+write it; `Fixtures/manifest-format.json` holds both to it.

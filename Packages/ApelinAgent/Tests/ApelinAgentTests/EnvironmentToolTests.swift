@@ -1,4 +1,5 @@
 @testable import ApelinAgent
+import enum ApelinProject.ProjectManifestFormat
 import enum ApelinProtocol.AgentToolName
 import Foundation
 import KWWKAgent
@@ -225,10 +226,28 @@ struct EnvironmentToolTests {
         #expect(asked.isEmpty, "a switch is a project edit")
         #expect(await harness.backend.calls == [.checkEnvironment(toolchainID: nil, sdkID: "iPhoneOS17.5-bbbbbbbb")])
         let written = try harness.home.read("apelin-project.json")
-        #expect(written == Self.manifest
-            .replacingOccurrences(of: "\"iPhoneOS18.2-aaaaaaaa\"", with: "\"iPhoneOS17.5-bbbbbbbb\"")
-            .replacingOccurrences(of: "\"sha256:old-sdk\"", with: "\"sha256:iPhoneOS17.5-bbbbbbbb\"")
-            .replacingOccurrences(of: "\"sha256:old-toolchain\"", with: "\"sha256:clt-16.4-c\""))
+        #expect(written == """
+        {
+          "schemaVersion": 1,
+          "projectID": "p",
+          "environment": {
+            "toolchain": {
+              "id": "clt-16.4-c",
+              "digest": "sha256:clt-16.4-c"
+            },
+            "sdk": {
+              "id": "iPhoneOS17.5-bbbbbbbb",
+              "digest": "sha256:iPhoneOS17.5-bbbbbbbb"
+            }
+          },
+          "language": "objc",
+          "package": {
+            "id": "local.apelin.hello",
+            "description": "sdk \\"quoted\\" — ünïcode"
+          }
+        }
+
+        """, "the four strings, then the file in the written form")
         #expect(text(result).contains("\"changed\" : [\n    \"toolchain\",\n    \"sdk\"\n  ]"), "\(text(result))")
     }
 
@@ -252,13 +271,21 @@ struct EnvironmentToolTests {
     }
 
     @Test
-    func `the rewrite keeps every other byte and refuses a manifest it cannot read`() throws {
+    func `the rewrite changes those four strings alone, writes the written form and refuses a manifest it cannot read`() throws {
         let toolchain = ComponentBinding(id: "clt-15.3-c-swift", digest: "sha256:t")
         let sdk = ComponentBinding(id: "iPhoneOS17.5-bbbbbbbb", digest: "sha256:s")
         let edited = try ProjectEnvironmentEdit.rebind(Data(Self.manifest.utf8), toolchain: toolchain, sdk: sdk)
         #expect(edited.changed == ["toolchain", "sdk"])
+        #expect(ProjectManifestFormat.formatted(edited.data) == edited.data)
         let same = try ProjectEnvironmentEdit.rebind(edited.data, toolchain: toolchain, sdk: sdk)
         #expect(same.changed.isEmpty && same.data == edited.data)
+        // The same document on one line comes out the same.
+        let oneLine = #"{"schemaVersion":1,"projectID":"p","environment":{"toolchain":{"id":"clt-16.4-c","digest":"sha256:old-toolchain"},"sdk":{"id":"iPhoneOS18.2-aaaaaaaa","digest":"sha256:old-sdk"}},"language":"objc","package":{"id":"local.apelin.hello","description":"sdk \"quoted\" — ünïcode"}}"#
+        #expect(try ProjectEnvironmentEdit.rebind(Data(oneLine.utf8), toolchain: toolchain, sdk: sdk).data == edited.data)
+        // One the strict reader refuses is written as the edit left it.
+        let lenient = #"{"schemaVersion": 1.0, "environment": {"toolchain": {"id": "a", "digest": "b"}, "sdk": {"id": "c", "digest": "d"}}}"#
+        let spliced = #"{"schemaVersion": 1.0, "environment": {"toolchain": {"id": "clt-15.3-c-swift", "digest": "sha256:t"}, "sdk": {"id": "iPhoneOS17.5-bbbbbbbb", "digest": "sha256:s"}}}"#
+        #expect(try ProjectEnvironmentEdit.rebind(Data(lenient.utf8), toolchain: toolchain, sdk: sdk).data == Data(spliced.utf8))
         #expect(throws: ToolArgumentError.self) {
             try ProjectEnvironmentEdit.rebind(Data(#"{"environment": {"toolchain": {"id": "a"}}}"#.utf8), toolchain: toolchain, sdk: sdk)
         }

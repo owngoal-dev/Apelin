@@ -99,6 +99,9 @@ public enum ExternalBuild {
             logHandle?.write(Data((line + "\n").utf8))
         }
 
+        if let line = ManifestFormatting.run(projectRoot: inputs.projectRoot) {
+            log(line)
+        }
         reporter.stage("script", product: nil)
         let result = try runScript(inputs, packages: packages, temporary: temporary, cancellation: cancellation, log: log)
         let diagnostics = ToolDiagnostics.parse(result.output, tool: "script", projectRoot: inputs.projectRoot.path)

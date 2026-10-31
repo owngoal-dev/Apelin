@@ -30,7 +30,11 @@ _MAXIMUM_INTEGER = 2**53 - 1
 
 def load_json(path: Path) -> Any:
     with open(path, "rb") as handle:
-        data = handle.read()
+        return parse_json(handle.read(), path)
+
+
+def parse_json(data: bytes, path: Any = "document") -> Any:
+    """The strict reader: README ▸ Common rules ▸ JSON. `path` names it in a refusal."""
     if data.startswith(b"\xef\xbb\xbf"):
         raise ValueError(f"{path}: a byte order mark is not allowed")
 
@@ -251,6 +255,25 @@ def sha256_tag(data: bytes) -> str:
 
 def digest_of(document: Any) -> str:
     return sha256_tag(canonical_json(document))
+
+
+# --------------------------------------------------------------------------
+# Written form of apelin-project.json
+# --------------------------------------------------------------------------
+
+
+def manifest_text(document: Any) -> bytes:
+    """apelin-project.json as Apelin writes it (README ▸ Written form)."""
+    return (json.dumps(document, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+
+
+def formatted_manifest(data: bytes) -> bytes | None:
+    """data in the written form, or None when it does not read strictly."""
+    try:
+        return manifest_text(parse_json(data))
+    except ValueError:
+        # A lone surrogate reads here and only fails as UTF-8, a ValueError too.
+        return None
 
 
 def read_inside(root: Path, relative: str) -> bytes:
@@ -603,7 +626,7 @@ def check_template(extension_root: Path, template: dict) -> list[str]:
 
 
 def instantiate(extension_root: Path, manifest: dict, template: dict, values: dict[str, Any], destination: Path) -> None:
-    """Write the template into destination, which must not exist yet."""
+    """Write the template into destination, which must not exist yet, apelin-project.json in its written form."""
     if destination.exists():
         raise TemplateError(f"{destination} already exists")
     types = _parameter_types(template)
@@ -639,6 +662,7 @@ def instantiate(extension_root: Path, manifest: dict, template: dict, values: di
         errors = validate_project(project)
         if errors:
             raise TemplateError("generated apelin-project.json: " + "; ".join(errors))
+        (staging / "apelin-project.json").write_bytes(manifest_text(project))
         # Claim the name first: rename replaces an empty directory made since the check above.
         try:
             destination.mkdir()

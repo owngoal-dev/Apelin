@@ -5,11 +5,17 @@ import Foundation
 import XCTest
 
 final class ProjectMetadataTests: XCTestCase {
-    func testInitialMetadataKeepsUnchangedTemplatesByteForByte() throws {
+    func testInitialMetadataIsTheTemplateInTheWrittenForm() throws {
         let original = Data("{\n  \"projectID\": \"stable\",\n  \"section\": \"Tweaks\"\n}\n".utf8)
-        XCTAssertEqual(try ProjectMetadata.initial(original, name: "Manual", automaticallyName: false), original)
+        XCTAssertEqual(try ProjectMetadata.initial(original, name: "Manual", automaticallyName: false), original, "byte for byte")
+        let oneLine = Data(#"{"projectID": "stable", "section": "Tweaks"}"#.utf8)
+        XCTAssertEqual(try ProjectMetadata.initial(oneLine, name: "Manual", automaticallyName: false), original)
         let automatic = try ProjectMetadata.initial(original, name: "Apple", automaticallyName: true)
-        XCTAssertTrue(String(decoding: automatic, as: UTF8.self).contains("  \"section\": \"Tweaks\""))
+        XCTAssertEqual(
+            String(decoding: automatic, as: UTF8.self),
+            "{\n  \"displayName\": \"Apple\",\n  \"autoName\": true,\n  \"projectID\": \"stable\",\n  \"section\": \"Tweaks\"\n}\n",
+            "the generated name first",
+        )
         let parsed = try StrictJSON.parse(automatic)
         XCTAssertEqual(parsed["displayName"]?.stringValue, "Apple")
         XCTAssertEqual(parsed["autoName"]?.boolValue, true)

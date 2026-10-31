@@ -195,7 +195,8 @@ extension TransferService {
             }
         }
 
-        // A new ID, written into the description with nothing else changed.
+        // A new ID, written into the description with nothing else changed,
+        // then the description in its written form (ProjectManifestFormat).
         let descriptionURL = tree.appendingPathComponent(ProjectStore.projectFileName)
         guard lstat(descriptionURL.path, &metadata) == 0, metadata.st_mode & S_IFMT == S_IFREG else {
             throw ApelinError(.badRequest, "the project has no \(ProjectStore.projectFileName)")
@@ -222,10 +223,11 @@ extension TransferService {
                 "its project ID appears more than once in \(ProjectStore.projectFileName), so it cannot be given a new one",
             )
         }
-        let rewritten = Data(text.replacingOccurrences(of: quoted, with: CanonicalJSON.quote(newID)).utf8)
-        guard (try? StrictJSON.parse(rewritten))?["projectID"]?.stringValue == newID else {
+        let replaced = Data(text.replacingOccurrences(of: quoted, with: CanonicalJSON.quote(newID)).utf8)
+        guard (try? StrictJSON.parse(replaced))?["projectID"]?.stringValue == newID else {
             throw ApelinError(.internal, "could not give the project a new ID")
         }
+        let rewritten = ProjectManifestFormat.formatted(replaced) ?? replaced
         try rewritten.write(to: descriptionURL)
         do {
             _ = try ProjectValidation.load(rewritten)

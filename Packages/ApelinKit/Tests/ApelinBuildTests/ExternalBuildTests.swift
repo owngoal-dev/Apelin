@@ -206,6 +206,44 @@ final class ExternalBuildTests: XCTestCase {
         }
     }
 
+    /// A manifest written on one line (as `workspace` writes it, and as a
+    /// rename did) is put into its written form by the first build, before
+    /// the script runs, its mode kept and its document unchanged; the next
+    /// build leaves the file alone.
+    func testABuildFormatsTheManifestOnceAndThenLeavesItAlone() throws {
+        let deb = try package(.roothide)
+        let project = try workspace(
+            script: "cp apelin-project.json \"$APELIN_PACKAGE_DIR/../seen.json\"\ncp \"$1\" \"$APELIN_PACKAGE_DIR/\"\n",
+            external: #"{"script": "apelin/build.sh", "arguments": ["\#(deb.path)"]}"#,
+        )
+        let manifest = project.root.appendingPathComponent("apelin-project.json")
+        XCTAssertEqual(chmod(manifest.path, 0o640), 0)
+        let oneLine = try Data(contentsOf: manifest)
+        let expected = try XCTUnwrap(ProjectManifestFormat.formatted(oneLine))
+        XCTAssertNotEqual(oneLine, expected, "the test starts from a file on one line")
+        func formattedLines(_ events: Events) -> [String] {
+            events.payloads("log").compactMap { $0["line"]?.stringValue }.filter { $0.contains("apelin-project.json") }
+        }
+
+        let (taskID, first) = try build(project.id)
+        XCTAssertEqual(first.last?["state"]?.stringValue, "succeeded", "\(first.payloads("log"))")
+        XCTAssertEqual(formattedLines(first), ["formatted apelin-project.json: two spaces a level, one member a line; no value changed"])
+        XCTAssertEqual(try Data(contentsOf: manifest), expected)
+        XCTAssertEqual(try StrictJSON.parse(expected).description, try StrictJSON.parse(oneLine).description)
+        XCTAssertEqual(try FileManager.default.attributesOfItem(atPath: manifest.path)[.posixPermissions] as? Int, 0o640)
+        let work = worker.store.buildsDirectory.appendingPathComponent(project.id).appendingPathComponent(taskID.rawValue)
+        XCTAssertEqual(try Data(contentsOf: work.appendingPathComponent("seen.json")), expected, "formatted before the script ran")
+        let log = try String(contentsOf: work.appendingPathComponent("build.log"), encoding: .utf8)
+        XCTAssertTrue(log.contains("formatted apelin-project.json"), "and said so in build.log too")
+
+        let inode = try FileManager.default.attributesOfItem(atPath: manifest.path)[.systemFileNumber] as? Int
+        let (_, second) = try build(project.id)
+        XCTAssertEqual(second.last?["state"]?.stringValue, "succeeded", "\(second.payloads("log"))")
+        XCTAssertEqual(formattedLines(second), [], "nothing to say the second time")
+        XCTAssertEqual(try Data(contentsOf: manifest), expected)
+        XCTAssertEqual(try FileManager.default.attributesOfItem(atPath: manifest.path)[.systemFileNumber] as? Int, inode, "not written again")
+    }
+
     /// Either build's record lists what the deb installs for the host: no
     /// folder, links too, fewest components first, so a list cut at its
     /// limit keeps an app's executable before its resources.

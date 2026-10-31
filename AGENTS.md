@@ -949,7 +949,8 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   no `.git` anywhere but the top (compared without case); a new project ID
   written into `apelin-project.json` by replacing its one quoted
   occurrence, nothing else changed (so the Confirm ledger has nothing
-  approved under it and two folders never share an ID); `.git` given a
+  approved under it and two folders never share an ID), the file then in
+  its written form (`ProjectManifestFormat`); `.git` given a
   fresh minimal `config` (the HTTPS origin kept) and dropped with a warning
   if it does not open; moved into `Projects/<name>/` by
   `renamex_np(RENAME_EXCL)` — `projectName` taken is `conflict`, absent the
@@ -1406,7 +1407,9 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   hand, is told it is no description and that a workspace builds with a
   script of its own), then the four strings of `environment` rewritten
   in `apelin-project.json` through the file tools' writer, every other
-  byte kept and read back to prove it (`ProjectEnvironmentEdit`). It is a
+  byte kept and read back to prove it, then written in the manifest's
+  written form, which reads back as that same document
+  (`ProjectEnvironmentEdit`). It is a
   project edit under Confirm: the file tools could write the same field,
   only a registered and checked pair goes in, and the binding is not in
   the build description digest (Documents/Schemas/README.md), so the next
@@ -2451,6 +2454,30 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   message. Canonical JSON and both approval digests are byte-identical to
   it: the fixtures, the edit table, and every shipped template instantiated
   by both and compared file by file are in `ApelinProjectTests`.
+- **The written form** (owner, 2026-10-31, issue #30; `ProjectManifestFormat`,
+  the reference's `manifest_text`, Documents/Schemas/README.md ▸ Written
+  form): every writer of `apelin-project.json` writes it as
+  `json.dumps(document, ensure_ascii=False, indent=2)` and one `\n` —
+  two spaces a level, one member or element a line, members in their
+  written order, `{}`/`[]` inline, only the escapes JSON needs — so it
+  reads on GitHub and in a diff: `projectCreate` (the generated manifest,
+  and the empty workspace's), the rename, the transfer import and
+  apelin_project_set_environment. Only the text changes: the document read
+  back is the one the file held, order included, so neither approval digest
+  moves (the edit table's "written on one line" and "formatted from one
+  line"); a file the strict reader refuses is left as it is, and one
+  already in the form is the same bytes. Every build puts the manifest
+  into the form before its first step (after the check, before the
+  workspace's script), says so in one line of its log, and writes nothing
+  when it already is: through the opened project folder, never through a
+  link, mode and owner kept, only while it is still the file read
+  (`ProjectManifestFile`, the rename's writer). The one-line files came
+  from the rename, which wrote the whole manifest compact
+  (`JSONDocument.description`), and from the empty workspace, written
+  compact and sorted by `JSONCoding`. `Fixtures/manifest-format.json`
+  holds both implementations to it. The template files are not JSON before
+  substitution and keep their layout; the file tools write what the model
+  writes, and the next build tidies it.
 - **Extensions** are scanned from `<install root>/usr/share/apelin/development/`
   on every `extensionList`; each is checked alone and a bad one, or both of
   a duplicate id, is listed with its problems and never offered.
@@ -2543,7 +2570,8 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   interpreter?, arguments?}` (`ExternalBuildDeclaration` in ApelinProject:
   a regular file inside the project by canonical path, `sh` by default or
   bash, zsh, python3, perl, at most 32 one-line arguments, nothing else).
-  `buildStart` on a workspace runs it in apelin-build (`ExternalBuild`): as
+  `buildStart` on a workspace runs it in apelin-build (`ExternalBuild`),
+  the manifest in its written form first (The written form, above): as
   mobile in the project, the bootstrap's interpreter, stdin closed, its own
   process group, 30 minutes at most (a cancel or the timeout kills the
   group), the output the build log; with the development environment
@@ -3192,10 +3220,11 @@ its projectID, and under Confirm only by spending one approval the app gave
 that session naming exactly that project and name
 (`detail.projectRename` {projectID, folder, currentName, displayName}),
 every time, never for the session. The file tools still edit the field
-where they reach. The writer opens the
+where they reach. The writer (`ProjectManifestFile`) opens the
 canonical project directory, refuses a symlink manifest, checks its identity and
-bytes again, and replaces it relative to that directory. These display fields
-are excluded from build and packaging approval digests.
+bytes again, and replaces it relative to that directory, its mode and owner
+kept, in the manifest's written form (`ProjectManifestFormat`). These display
+fields are excluded from build and packaging approval digests.
 
 Deleting a project (owner, 2026-10-29: dangerous, but the feature exists
 and the agent may do it, under the modes as they are) is `projectDelete`

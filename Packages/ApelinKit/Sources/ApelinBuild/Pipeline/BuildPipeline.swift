@@ -63,6 +63,9 @@ public final class BuildPipeline: @unchecked Sendable {
         defer { try? logHandle?.close() }
         log("apelin-build \(inputs.buildID): \(project.package.id) \(project.package.version), \(inputs.configuration.rawValue), \(inputs.bootstrap.rawValue) [\(architectures.map(\.rawValue).joined(separator: " "))]")
         log("toolchain \(inputs.toolchain.id), SDK \(inputs.sdk.id) at \(inputs.sdk.path)")
+        if let line = ManifestFormatting.run(projectRoot: inputs.projectRoot) {
+            log(line)
+        }
 
         for step in project.build.steps {
             if cancellation.isCancelled {

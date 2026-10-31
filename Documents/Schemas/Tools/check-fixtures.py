@@ -5,6 +5,8 @@
   project/invalid, extension/invalid  must fail, with the error named in
                                       their expectations.json
   canonical-json.json                 RFC 8785 vectors, byte for byte
+  manifest-format.json                apelin-project.json's written form, byte
+                                      for byte, and what is left as it is
   digest/<case>/                      the build and packaging digests of
                                       project/ equal expected.json, and the
                                       edits below move exactly the digests
@@ -75,6 +77,20 @@ def check_canonical() -> int:
             print(f"FAIL canonical-json[{index}]: {actual!r} != {vector['canonical']!r}")
         else:
             print(f"ok   canonical-json[{index}] {vector['name']}")
+    return failures
+
+
+def check_manifest_format() -> int:
+    failures = 0
+    for index, vector in enumerate(schema.load_json(FIXTURES / "manifest-format.json")):
+        actual = schema.formatted_manifest(vector["text"].encode("utf-8"))
+        expected = vector["formatted"]
+        again = actual and schema.formatted_manifest(actual)
+        if (actual and actual.decode("utf-8")) != expected or again != actual:
+            failures += 1
+            print(f"FAIL manifest-format[{index}] {vector['name']}: {actual!r}")
+        else:
+            print(f"ok   manifest-format[{index}] {vector['name']}")
     return failures
 
 
@@ -159,6 +175,15 @@ def edit_json(path: Path, change) -> None:
     path.write_text(json.dumps(document, indent=4, sort_keys=True) + "\n")
 
 
+def write_compact(path: Path) -> None:
+    path.write_bytes((json.dumps(schema.load_json(path), ensure_ascii=False, separators=(",", ":")) + "\n").encode("utf-8"))
+
+
+def write_formatted(path: Path) -> None:
+    write_compact(path)
+    path.write_bytes(schema.formatted_manifest(path.read_bytes()))
+
+
 def append(path: Path, text: str) -> None:
     with open(path, "a") as handle:
         handle.write(text)
@@ -170,6 +195,8 @@ EDITS = [
     ("new source file under an existing glob", lambda r: (r / "Sources/extra.c").write_text("int extra;\n"), False, False),
     ("package version bumped", lambda r: edit_json(r / "apelin-project.json", lambda d: d["package"].__setitem__("version", "9.9.9")), False, False),
     ("members reordered and reindented", lambda r: edit_json(r / "apelin-project.json", lambda d: None), False, False),
+    ("written on one line", lambda r: write_compact(r / "apelin-project.json"), False, False),
+    ("formatted from one line", lambda r: write_formatted(r / "apelin-project.json"), False, False),
     ("toolchain rebound", lambda r: edit_json(r / "apelin-project.json", lambda d: d["environment"]["toolchain"].__setitem__("id", "clt-28.0")), False, False),
     ("compile flag added", lambda r: edit_json(r / "apelin-project.json", lambda d: d["build"]["steps"][1].__setitem__("flags", ["-DEXTRA=1"])), True, False),
     ("build script edited", lambda r: append(r / "Scripts/generate-version.sh", "# edited\n"), True, False),
@@ -218,6 +245,7 @@ def main() -> int:
     failures = check_documents("project", schema.validate_project)
     failures += check_documents("extension", schema.validate_manifest)
     failures += check_canonical()
+    failures += check_manifest_format()
     failures += check_placeholders()
     failures += check_digests(update)
     print("all fixtures pass" if not failures else f"{failures} fixture(s) failed")

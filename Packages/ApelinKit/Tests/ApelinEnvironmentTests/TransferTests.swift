@@ -1,6 +1,7 @@
 import ApelinCore
 @testable import ApelinEnvironment
 import ApelinGit
+import ApelinProject
 @testable import ApelinProtocol
 import CryptoKit
 import Foundation
@@ -460,9 +461,14 @@ final class TransferTests: XCTestCase {
         XCTAssertNotEqual(imported.projectID, oldID)
         XCTAssertTrue(imported.includesRepository)
         let placed = second.layout.data.projects.appendingPathComponent("Hello Tweak")
-        let description = try String(contentsOf: placed.appendingPathComponent("apelin-project.json"), encoding: .utf8)
-        XCTAssertTrue(description.contains("\"projectID\": \"\(imported.projectID)\""), "only the ID changed, formatting kept")
-        XCTAssertFalse(description.contains(oldID))
+        let description = try Data(contentsOf: placed.appendingPathComponent("apelin-project.json"))
+        let sent = try String(contentsOf: root.appendingPathComponent("apelin-project.json"), encoding: .utf8)
+        XCTAssertEqual(
+            description,
+            ProjectManifestFormat.formatted(Data(sent.replacingOccurrences(of: oldID, with: imported.projectID).utf8)),
+            "only the ID changed, in the written form",
+        )
+        XCTAssertFalse(String(decoding: description, as: UTF8.self).contains(oldID))
         XCTAssertEqual(try String(contentsOf: placed.appendingPathComponent("new.c"), encoding: .utf8), "// new\n")
         XCTAssertFalse(FileManager.default.fileExists(atPath: placed.appendingPathComponent(".git/hooks/pre-commit").path))
         let repository = try GitRepository(at: placed)

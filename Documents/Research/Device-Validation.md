@@ -199,6 +199,17 @@ console now goes on after a restart only past a successful respring.
       says `Failed … status=400` with the provider's words, and the app's
       journal for that launch has the `Conversation` line with the session.
 
+- [ ] `apelin-project.json` in its written form (2026-10-31, issue #30,
+      AGENTS.md ▸ The written form; only the Mac harness has run). On a
+      vphone with the package installed (`make vphone`): a project with a
+      one-line manifest (rename one made before this change, or write it
+      on one line from the terminal) builds, its build log says
+      "formatted apelin-project.json", the file is two spaces a level,
+      every value and its order as before, mobile still owns it, and a second
+      build leaves it alone; under Strict that first build asks nothing
+      the template's digests did not. A new project, a workspace, a
+      rename and apelin_project_set_environment each write it formatted.
+
 - [ ] A preference bundle's Settings row with its icon (2026-10-30, issue
       #19, `wiki.qaq.apelin.dev.preferences` 0.1.3), on a device where
       PreferenceLoader shows panes (the owner's iOS 17.3.1 iPhone): a new

@@ -117,6 +117,10 @@ final class BuildWorkerTests: XCTestCase {
         XCTAssertEqual(last["bootstrap"]?.stringValue, "rootless")
         XCTAssertTrue(events.kinds.contains("artifact"))
         XCTAssertEqual(events.payloads("stage").compactMap { $0["stage"]?.stringValue }, ["check", "compile", "link", "lipo", "dsym", "strip", "sign", "package", "verify"])
+        XCTAssertFalse(
+            events.payloads("log").contains { $0["line"]?.stringValue?.contains("apelin-project.json") == true },
+            "a manifest already in the written form is left alone",
+        )
         let artifact = try XCTUnwrap(events.payloads("artifact").first).decode(BuildArtifact.self)
         XCTAssertEqual(artifact.digest, last["digest"]?.stringValue)
         XCTAssertEqual(artifact.projectID, created.projectID)
@@ -164,6 +168,14 @@ final class BuildWorkerTests: XCTestCase {
         let worker = BuildWorker(installRoot: "/var/jb", home: home.path, registry: registry, extensionDirectory: Repository.extensions)
         let project = try worker.projectCreate(ProjectCreateRequest(templateID: "wiki.qaq.apelin.dev.cli/c", name: "Approved"))
         let approved = try XCTUnwrap(project.descriptionDigests?.build)
+        // On one line, as a rename wrote it before: the same descriptions,
+        // so the approval still holds and the build formats the file.
+        let manifest = URL(fileURLWithPath: project.path).appendingPathComponent("apelin-project.json")
+        let formatted = try Data(contentsOf: manifest)
+        XCTAssertEqual(ProjectManifestFormat.formatted(formatted), formatted, "a new project is in the written form")
+        let oneLine = try Data((StrictJSON.parse(formatted).description + "\n").utf8)
+        try oneLine.write(to: manifest)
+        XCTAssertEqual(try worker.projectCheck(ProjectCheckRequest(projectID: project.projectID)).descriptionDigests, project.descriptionDigests)
 
         let stale = Events()
         let request = BuildStartRequest(projectID: project.projectID, approvedBuildDigest: "sha256:" + String(repeating: "0", count: 64))
@@ -173,11 +185,15 @@ final class BuildWorkerTests: XCTestCase {
         XCTAssertTrue(stale.last?["message"]?.stringValue?.contains("changed after it was approved") == true, "\(String(describing: stale.last))")
         XCTAssertEqual(stale.payloads("stage").compactMap { $0["stage"]?.stringValue }, ["check"], "no step runs")
         XCTAssertFalse(stale.kinds.contains("artifact"))
+        XCTAssertEqual(try Data(contentsOf: manifest), oneLine, "nor is the file formatted")
 
         let current = Events()
         try worker.buildStart(BuildStartRequest(projectID: project.projectID, approvedBuildDigest: approved), taskID: TaskID.make()) { current.append($0, $1, $2) }
         XCTAssertEqual(current.finished.wait(timeout: .now() + 120), .success)
         XCTAssertEqual(current.last?["state"]?.stringValue, "succeeded", "\(current.payloads("log").suffix(20))")
+        XCTAssertTrue(current.payloads("log").contains { $0["line"]?.stringValue?.hasPrefix("formatted apelin-project.json") == true })
+        XCTAssertEqual(try Data(contentsOf: manifest), formatted)
+        XCTAssertEqual(try worker.projectCheck(ProjectCheckRequest(projectID: project.projectID)).descriptionDigests, project.descriptionDigests)
     }
 
     func testDistributionCheckWarnsAboutWhatTheTemplateLeft() throws {

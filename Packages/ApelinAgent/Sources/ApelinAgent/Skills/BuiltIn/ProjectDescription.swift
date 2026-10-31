@@ -12,6 +12,9 @@ extension BuiltInSkills {
         key or a wrong type is an error naming its field, such as
         `/products/0/sources`. The complete schema is this skill's file
         `apelin-project.schema.json` (apelin_skill_read with that file).
+        Apelin writes it two spaces a level, one member or element a line,
+        and every build puts it back in that form, values unchanged: keep to
+        it, and read the file again before file_edit after a build.
 
         ## Members Apelin writes
         Never invent, copy or change these:

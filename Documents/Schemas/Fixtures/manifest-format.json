@@ -1,0 +1,87 @@
+[
+  {
+    "name": "one line, as a rename wrote it before",
+    "text": "{\"schemaVersion\":1,\"projectID\":\"00000000-0000-4000-8000-000000000001\",\"kind\":\"tweak\",\"template\":{\"extensionID\":\"wiki.qaq.apelin.dev.tweak\",\"templateID\":\"objc-hook\",\"version\":\"0.1.1\"},\"architectures\":{\"rootless\":[\"arm64\",\"arm64e\"],\"roothide\":[\"arm64e\"]},\"products\":[{\"id\":\"tweak\",\"type\":\"dylib\",\"sources\":[\"Sources/*.m\"],\"objcARC\":true,\"extensionSupport\":[{\"extension\":\"wiki.qaq.apelin.dev.tweak\",\"component\":\"substrate\"}]}],\"displayName\":\"Weather Widget\",\"autoName\":false}\n",
+    "formatted": "{\n  \"schemaVersion\": 1,\n  \"projectID\": \"00000000-0000-4000-8000-000000000001\",\n  \"kind\": \"tweak\",\n  \"template\": {\n    \"extensionID\": \"wiki.qaq.apelin.dev.tweak\",\n    \"templateID\": \"objc-hook\",\n    \"version\": \"0.1.1\"\n  },\n  \"architectures\": {\n    \"rootless\": [\n      \"arm64\",\n      \"arm64e\"\n    ],\n    \"roothide\": [\n      \"arm64e\"\n    ]\n  },\n  \"products\": [\n    {\n      \"id\": \"tweak\",\n      \"type\": \"dylib\",\n      \"sources\": [\n        \"Sources/*.m\"\n      ],\n      \"objcARC\": true,\n      \"extensionSupport\": [\n        {\n          \"extension\": \"wiki.qaq.apelin.dev.tweak\",\n          \"component\": \"substrate\"\n        }\n      ]\n    }\n  ],\n  \"displayName\": \"Weather Widget\",\n  \"autoName\": false\n}\n"
+  },
+  {
+    "name": "already in the written form: the same bytes",
+    "text": "{\n  \"schemaVersion\": 1,\n  \"projectID\": \"00000000-0000-4000-8000-000000000001\",\n  \"kind\": \"tweak\",\n  \"template\": {\n    \"extensionID\": \"wiki.qaq.apelin.dev.tweak\",\n    \"templateID\": \"objc-hook\",\n    \"version\": \"0.1.1\"\n  },\n  \"architectures\": {\n    \"rootless\": [\n      \"arm64\",\n      \"arm64e\"\n    ],\n    \"roothide\": [\n      \"arm64e\"\n    ]\n  },\n  \"products\": [\n    {\n      \"id\": \"tweak\",\n      \"type\": \"dylib\",\n      \"sources\": [\n        \"Sources/*.m\"\n      ],\n      \"objcARC\": true,\n      \"extensionSupport\": [\n        {\n          \"extension\": \"wiki.qaq.apelin.dev.tweak\",\n          \"component\": \"substrate\"\n        }\n      ]\n    }\n  ],\n  \"displayName\": \"Weather Widget\",\n  \"autoName\": false\n}\n",
+    "formatted": "{\n  \"schemaVersion\": 1,\n  \"projectID\": \"00000000-0000-4000-8000-000000000001\",\n  \"kind\": \"tweak\",\n  \"template\": {\n    \"extensionID\": \"wiki.qaq.apelin.dev.tweak\",\n    \"templateID\": \"objc-hook\",\n    \"version\": \"0.1.1\"\n  },\n  \"architectures\": {\n    \"rootless\": [\n      \"arm64\",\n      \"arm64e\"\n    ],\n    \"roothide\": [\n      \"arm64e\"\n    ]\n  },\n  \"products\": [\n    {\n      \"id\": \"tweak\",\n      \"type\": \"dylib\",\n      \"sources\": [\n        \"Sources/*.m\"\n      ],\n      \"objcARC\": true,\n      \"extensionSupport\": [\n        {\n          \"extension\": \"wiki.qaq.apelin.dev.tweak\",\n          \"component\": \"substrate\"\n        }\n      ]\n    }\n  ],\n  \"displayName\": \"Weather Widget\",\n  \"autoName\": false\n}\n"
+  },
+  {
+    "name": "a template's objects and arrays on one line each",
+    "text": "{\n  \"schemaVersion\": 1,\n  \"environment\": {\n    \"toolchain\": { \"id\": \"clt-27.0\", \"digest\": \"sha256:1\" },\n    \"sdk\": { \"id\": \"iPhoneOS27.0\", \"digest\": \"sha256:2\" }\n  },\n  \"architectures\": {\"rootless\": [\"arm64\", \"arm64e\"], \"roothide\": [\"arm64e\"]},\n  \"configurations\": {\n    \"Debug\": { \"optimization\": \"0\", \"debugInfo\": true, \"defines\": { \"DEBUG\": \"1\" } }\n  },\n  \"build\": {\n    \"steps\": [\n      { \"type\": \"compile\", \"product\": \"tweak\" },\n      { \"type\": \"sign\", \"product\": \"tweak\", \"identity\": \"adhoc\" }\n    ]\n  }\n}\n",
+    "formatted": "{\n  \"schemaVersion\": 1,\n  \"environment\": {\n    \"toolchain\": {\n      \"id\": \"clt-27.0\",\n      \"digest\": \"sha256:1\"\n    },\n    \"sdk\": {\n      \"id\": \"iPhoneOS27.0\",\n      \"digest\": \"sha256:2\"\n    }\n  },\n  \"architectures\": {\n    \"rootless\": [\n      \"arm64\",\n      \"arm64e\"\n    ],\n    \"roothide\": [\n      \"arm64e\"\n    ]\n  },\n  \"configurations\": {\n    \"Debug\": {\n      \"optimization\": \"0\",\n      \"debugInfo\": true,\n      \"defines\": {\n        \"DEBUG\": \"1\"\n      }\n    }\n  },\n  \"build\": {\n    \"steps\": [\n      {\n        \"type\": \"compile\",\n        \"product\": \"tweak\"\n      },\n      {\n        \"type\": \"sign\",\n        \"product\": \"tweak\",\n        \"identity\": \"adhoc\"\n      }\n    ]\n  }\n}\n"
+  },
+  {
+    "name": "member order kept, never sorted",
+    "text": "{\"b\":1,\"a\":{\"z\":0,\"y\":-7},\"\":\"x\"}",
+    "formatted": "{\n  \"b\": 1,\n  \"a\": {\n    \"z\": 0,\n    \"y\": -7\n  },\n  \"\": \"x\"\n}\n"
+  },
+  {
+    "name": "an empty object or array stays on its line",
+    "text": "{\"a\":{},\"b\":[],\"c\":[[],{}],\"d\":[{\"e\":[]}]}",
+    "formatted": "{\n  \"a\": {},\n  \"b\": [],\n  \"c\": [\n    [],\n    {}\n  ],\n  \"d\": [\n    {\n      \"e\": []\n    }\n  ]\n}\n"
+  },
+  {
+    "name": "strings: only quote, backslash and C0 controls escaped",
+    "text": "{\"s\":\"line\\nfeed\\t\\\"q\\\" \\\\ \\u0001 \\u001f \\u007f \\u00e9 \\/ \\u2028 \\ud83d\\ude00\",\"\\u00e9\":\"\u00e9\"}",
+    "formatted": "{\n  \"s\": \"line\\nfeed\\t\\\"q\\\" \\\\ \\u0001 \\u001f \u007f \u00e9 / \u2028 \ud83d\ude00\",\n  \"\u00e9\": \"\u00e9\"\n}\n"
+  },
+  {
+    "name": "integers, booleans and null as written; -0 is 0",
+    "text": "{\"max\":9007199254740991,\"min\":-9007199254740991,\"zero\":-0,\"t\":true,\"f\":false,\"n\":null}",
+    "formatted": "{\n  \"max\": 9007199254740991,\n  \"min\": -9007199254740991,\n  \"zero\": 0,\n  \"t\": true,\n  \"f\": false,\n  \"n\": null\n}\n"
+  },
+  {
+    "name": "four spaces, CRLF and no final newline",
+    "text": "{\r\n    \"a\": [\r\n        1\r\n    ]\r\n}",
+    "formatted": "{\n  \"a\": [\n    1\n  ]\n}\n"
+  },
+  {
+    "name": "an array at the top",
+    "text": "[1,[2,[3]],{\"a\":\"b\"}]",
+    "formatted": "[\n  1,\n  [\n    2,\n    [\n      3\n    ]\n  ],\n  {\n    \"a\": \"b\"\n  }\n]\n"
+  },
+  {
+    "name": "left as it is: a non-integer number",
+    "text": "{\"a\": 1.0}",
+    "formatted": null
+  },
+  {
+    "name": "left as it is: an exponent",
+    "text": "{\"a\": 1e3}",
+    "formatted": null
+  },
+  {
+    "name": "left as it is: a duplicate member",
+    "text": "{\"a\": 1, \"a\": 2}",
+    "formatted": null
+  },
+  {
+    "name": "left as it is: a byte order mark",
+    "text": "\ufeff{\"a\": 1}",
+    "formatted": null
+  },
+  {
+    "name": "left as it is: text after the document",
+    "text": "{\"a\": 1} x",
+    "formatted": null
+  },
+  {
+    "name": "left as it is: a lone surrogate",
+    "text": "{\"a\": \"\\ud800\"}",
+    "formatted": null
+  },
+  {
+    "name": "left as it is: NaN",
+    "text": "{\"a\": NaN}",
+    "formatted": null
+  },
+  {
+    "name": "left as it is: nothing",
+    "text": "",
+    "formatted": null
+  }
+]

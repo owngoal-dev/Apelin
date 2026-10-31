@@ -75,15 +75,15 @@ public struct ProjectStore: Sendable {
         guard mkdir(staging.path, 0o755) == 0 else { throw ApelinError(.internal, "could not create the workspace") }
         defer { try? FileManager.default.removeItem(at: staging) }
         let id = UUID().uuidString.lowercased()
-        let document: [String: JSONValue] = [
-            "schemaVersion": .number(Double(Self.projectSchemaVersion)),
-            "projectID": .string(id),
-            "kind": .string("workspace"),
-            "buildSystem": .string("external"),
-            "displayName": .string(name),
-            "autoName": .bool(automaticallyName),
-        ]
-        try JSONCoding.encode(document)
+        let document = JSONObject([
+            ("schemaVersion", .integer(Int64(Self.projectSchemaVersion))),
+            ("projectID", .string(id)),
+            ("kind", .string("workspace")),
+            ("buildSystem", .string("external")),
+            ("displayName", .string(name)),
+            ("autoName", .bool(automaticallyName)),
+        ])
+        try ProjectManifestFormat.data(.object(document))
             .write(to: staging.appendingPathComponent(Self.projectFileName), options: .atomic)
         try EmptyRepository.make(in: staging)
         guard renamex_np(staging.path, destination.path, UInt32(RENAME_EXCL)) == 0 else {
@@ -108,10 +108,12 @@ public struct ProjectStore: Sendable {
 
     /// `projectCreate`: the template's files, substituted with typed and
     /// escaped values, written into a sibling staging folder on the same
-    /// file system, the generated project validated and digested there,
-    /// then given an untouched repository on `main` (`EmptyRepository`) and
-    /// renamed into `Projects/<name>/`, which must not exist. A failure
-    /// removes only the staging folder. No template script runs.
+    /// file system, the manifest in its written form
+    /// (`ProjectManifestFormat`), the generated project validated and
+    /// digested there, then given an untouched repository on `main`
+    /// (`EmptyRepository`) and renamed into `Projects/<name>/`, which must
+    /// not exist. A failure removes only the staging folder. No template
+    /// script runs.
     public func create(
         templateID qualifiedID: String,
         name: String,

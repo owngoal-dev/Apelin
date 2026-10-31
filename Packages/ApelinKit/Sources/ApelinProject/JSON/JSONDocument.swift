@@ -387,6 +387,41 @@ enum JSONWriter {
         return out
     }
 
+    /// Two spaces a level, one member or element a line, `": "` after a
+    /// name, an empty object or array as `{}` or `[]`, members in stored
+    /// order: Python's `json.dumps(value, ensure_ascii=False, indent=2)`,
+    /// the manifest's written form (`ProjectManifestFormat`).
+    static func indented(_ value: JSONDocument) -> String {
+        var out = ""
+        writeIndented(value, level: 0, into: &out)
+        return out
+    }
+
+    private static func writeIndented(_ value: JSONDocument, level: Int, into out: inout String) {
+        let inner = String(repeating: "  ", count: level + 1)
+        switch value {
+        case let .array(items) where !items.isEmpty:
+            out += "["
+            for (index, item) in items.enumerated() {
+                out += index > 0 ? ",\n" : "\n"
+                out += inner
+                writeIndented(item, level: level + 1, into: &out)
+            }
+            out += "\n" + String(repeating: "  ", count: level) + "]"
+        case let .object(object) where !object.isEmpty:
+            out += "{"
+            for (index, entry) in object.entries.enumerated() {
+                out += index > 0 ? ",\n" : "\n"
+                out += inner
+                out += CanonicalJSON.quote(entry.key) + ": "
+                writeIndented(entry.value, level: level + 1, into: &out)
+            }
+            out += "\n" + String(repeating: "  ", count: level) + "}"
+        default:
+            write(value, into: &out, separators: (",", ":"))
+        }
+    }
+
     private static func write(_ value: JSONDocument, into out: inout String, separators: (item: String, key: String)) {
         switch value {
         case .null: out += "null"

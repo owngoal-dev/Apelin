@@ -176,6 +176,13 @@ final class SchemaFixtureTests: XCTestCase {
                 try JSONWriter.compact(.object(JSONObject(document.entries.reversed()))).write(to: url)
             }
         }
+        let writeOneLine: Edit = { root in
+            let url = root.appendingPathComponent("apelin-project.json")
+            let oneLine = try JSONWriter.compact(StrictJSON.parse(contentsOf: url)) + Data("\n".utf8)
+            // Afresh, in its folder's group, which formatting keeps.
+            try FileManager.default.removeItem(at: url)
+            try oneLine.write(to: url)
+        }
         func set(_ object: inout JSONObject, _ path: [String], _ value: JSONDocument) {
             guard let head = path.first else { return }
             if path.count == 1 {
@@ -198,6 +205,8 @@ final class SchemaFixtureTests: XCTestCase {
             ("new source file", { try Data("int extra;\n".utf8).write(to: $0.appendingPathComponent("Sources/extra.c")) }, false, false),
             ("package version bumped", editJSON { set(&$0, ["package", "version"], .string("9.9.9")) }, false, false),
             ("members reordered", editJSON { _ in }, false, false),
+            ("written on one line", writeOneLine, false, false),
+            ("formatted from one line", { try writeOneLine($0); XCTAssertTrue(try ProjectManifestFormat.formatFile(in: $0)) }, false, false),
             ("toolchain rebound", editJSON { set(&$0, ["environment", "toolchain", "id"], .string("clt-28.0")) }, false, false),
             ("compile flag added", editJSON { set(&$0, ["build", "steps", "1", "flags"], .array([.string("-DEXTRA=1")])) }, true, false),
             ("build script edited", append("Scripts/generate-version.sh", "# edited\n"), true, false),
