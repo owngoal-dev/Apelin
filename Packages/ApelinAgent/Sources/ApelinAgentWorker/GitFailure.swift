@@ -59,7 +59,9 @@ enum GitFailure {
             return "This project has no repository yet: make one with git_init, then commit with git_commit and all: true."
         }
         if reason == ApelinError.Reason.noSuchRemote.rawValue {
-            guard operation == "git push" else { return nil }
+            guard operation == "git push" else {
+                return "The project has no remote of that name: git_remote_list lists the ones it has, and git_remote_set adds one at the address the user gave you."
+            }
             return "The project has no such remote yet: ask the user whether to create a GitHub repository for it with apelin_git_create_repository, and with which owner, name and visibility, or for the HTTPS address of an empty repository they made (no README, licence or .gitignore); then git_push with url."
         }
         if reason == ApelinError.Reason.headChanged.rawValue {

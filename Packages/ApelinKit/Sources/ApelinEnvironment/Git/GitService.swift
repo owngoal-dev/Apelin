@@ -590,7 +590,7 @@ public struct GitService: Sendable {
 
     /// The URLs a remote operation talks to: HTTPS, and, for tests only, a
     /// local path.
-    private func checkRemoteURL(_ url: String) throws {
+    func checkRemoteURL(_ url: String) throws {
         if acceptsLocalRemotes, url.hasPrefix("/") {
             return
         }
@@ -601,6 +601,11 @@ public struct GitService: Sendable {
 
     private func remoteTarget(_ repository: GitRepository, remote: String, branch: String?) throws -> RemoteTarget {
         guard let url = repository.remoteURL(remote) else {
+            // An address where a remote's name goes is no remote by another
+            // name: the refusal says to add one at it first (gitRemoteSet).
+            if let problem = GitRemoteName.existingProblem(remote) {
+                throw ApelinError(.badRequest, problem)
+            }
             throw ApelinError(.notFound, "no remote \(remote.debugDescription)", reason: .noSuchRemote)
         }
         try checkRemoteURL(url)
@@ -692,7 +697,7 @@ public struct GitService: Sendable {
         return GitSignature(name: name, email: email)
     }
 
-    private func mapped<T>(_ body: () throws -> T) throws -> T {
+    func mapped<T>(_ body: () throws -> T) throws -> T {
         do {
             return try body()
         } catch {

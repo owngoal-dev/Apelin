@@ -268,6 +268,13 @@ final class ServiceTableTests: XCTestCase {
         case .gitSquash:
             let squashed = GitSquashResponse(branch: "main", previousHead: "h", base: "b", commits: [], count: 2)
             return Row(reply: squashed) { _ = try await $0.gitSquash(GitSquashRequest(projectID: "p", count: 2, preview: true)) }
+        case .gitRemoteList:
+            return Row(reply: GitRemoteListResponse(remotes: [])) { _ = try await $0.gitRemoteList(projectID: "p") }
+        case .gitRemoteSet:
+            let set = GitRemoteSetResponse(remote: GitRemoteSummary(name: "origin", url: "https://example.com/r.git"))
+            return Row(reply: set) { _ = try await $0.gitRemoteSet(projectID: "p", name: "origin", url: "https://example.com/r.git") }
+        case .gitRemoteRemove:
+            return Row(reply: ack) { try await $0.gitRemoteRemove(projectID: "p", name: "origin") }
         }
     }
 

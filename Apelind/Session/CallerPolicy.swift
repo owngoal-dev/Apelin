@@ -60,6 +60,9 @@ enum CallerPolicy {
         // Its own project's commits combined into one, under Confirm only as
         // the user approved exactly it (AgentSquashRules); a preview freely.
         .gitSquash,
+        // Its own project's remotes, listed, added, pointed elsewhere or
+        // removed; a push that later uses one still asks, naming its URL.
+        .gitRemoteList, .gitRemoteSet, .gitRemoteRemove,
         .gitSettings, .gitAuthorSet, .gitCredentialSet, .gitCredentialRemove,
         // An empty repository on GitHub with the user's sign-in, under
         // Confirm only as the user approved exactly it

@@ -162,6 +162,12 @@ public final class EnvironmentWorker: @unchecked Sendable {
             await WorkerMain.serve(GitCommitRequest.self, request) { [self] in try git.commit($0) }
         case .gitInit:
             await WorkerMain.serve(GitInitRequest.self, request) { [self] in try git.initialize($0) }
+        case .gitRemoteList:
+            await WorkerMain.serve(GitRemoteListRequest.self, request) { [self] in try git.remotes($0) }
+        case .gitRemoteSet:
+            await WorkerMain.serve(GitRemoteSetRequest.self, request) { [self] in try git.setRemote($0) }
+        case .gitRemoteRemove:
+            await WorkerMain.serve(GitRemoteRemoveRequest.self, request) { [self] in try git.removeRemote($0) }
         case .distributionRepositoryList:
             await WorkerMain.serve(DistributionRepositoryListRequest.self, request) { [self] in
                 try await distribution.list($0)

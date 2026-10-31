@@ -13,6 +13,7 @@ enum GitHandler: DomainHandler {
         }
         switch request.operation {
         case .gitStatus, .gitDiff, .gitStage, .gitUnstage, .gitCommit, .gitInit,
+             .gitRemoteList, .gitRemoteSet, .gitRemoteRemove,
              .gitSettings, .gitAuthorSet, .gitCredentialSet, .gitCredentialRemove:
             return await host.forward(request, to: .environment)
         case .gitRepositoryCreate:

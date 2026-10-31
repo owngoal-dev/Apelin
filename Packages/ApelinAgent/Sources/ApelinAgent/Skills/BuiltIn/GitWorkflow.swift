@@ -51,6 +51,11 @@ extension BuiltInSkills {
         ## Remotes
         - `git_clone` imports a repository into a workspace, also one that has
           only the empty repository it was made with.
+        - A remote is a name and an HTTPS address: `git_remote_list` lists
+          them, `git_remote_set` adds one to a project that has none (or
+          points one at another address) with the address the user gave, and
+          `git_remote_remove` takes one away. `git_fetch`, `git_pull` and
+          `git_push` name a remote, never its address.
         - From any other chat, a repository goes into a new workspace, whatever
           it holds: `apelin_project_create` with
           `wiki.qaq.apelin.workspace/empty`, then `apelin_conversation_create`

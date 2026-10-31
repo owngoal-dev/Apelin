@@ -738,6 +738,22 @@ actor ToolRunner {
                 branch: arguments.argNonEmptyString("branch"),
             )))
 
+        case .gitRemoteList:
+            return try await json(backend.gitRemoteList(GitRemoteListToolRequest(context: context)))
+
+        case .gitRemoteSet:
+            return try await json(backend.gitRemoteSet(GitRemoteSetToolRequest(
+                context: context,
+                name: arguments.requireString("name"),
+                url: arguments.requireString("url"),
+            )))
+
+        case .gitRemoteRemove:
+            return try await json(backend.gitRemoteRemove(GitRemoteRemoveToolRequest(
+                context: context,
+                name: arguments.requireString("name"),
+            )))
+
         case .gitReadSettings:
             return try await json(backend.gitSettings(context: context))
 

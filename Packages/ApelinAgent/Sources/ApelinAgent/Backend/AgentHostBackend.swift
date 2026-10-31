@@ -76,6 +76,11 @@ public protocol AgentHostBackend: Sendable {
     /// The checked-out branch's last commits combined into one, or, as a
     /// preview, what that would combine; the host checks it was approved.
     func gitSquash(_ request: GitSquashToolRequest) async throws -> GitSquashResponse
+    /// The session's project's remotes, without credentials.
+    func gitRemoteList(_ request: GitRemoteListToolRequest) async throws -> GitRemoteListToolResponse
+    /// A remote added at an HTTPS address, or pointed there.
+    func gitRemoteSet(_ request: GitRemoteSetToolRequest) async throws -> GitRemoteSetToolResponse
+    func gitRemoteRemove(_ request: GitRemoteRemoveToolRequest) async throws -> GitRemoteListToolResponse
     /// The device's commit author and the hosts with a saved credential.
     func gitSettings(context: HostCallContext) async throws -> GitSettingsToolResponse
     func gitSetAuthor(_ request: GitAuthorToolRequest) async throws -> GitSettingsToolResponse

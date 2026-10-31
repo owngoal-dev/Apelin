@@ -11,6 +11,9 @@ extension ToolRunner {
     func gatherFacts(_ tool: InvocationFacts.Tool, arguments: JSONValue) async throws -> InvocationFacts {
         guard case let .local(name) = tool else { return InvocationFacts(tool: tool) }
         var facts = InvocationFacts(tool: tool)
+        if GitRemoteTools.namingRemote.contains(name) {
+            try GitRemoteTools.checkName(arguments.argNonEmptyString("remote"))
+        }
         switch name {
         case .fileWrite, .fileEdit, .fileCreate:
             let path = try arguments.requireString("path")
@@ -74,6 +77,10 @@ extension ToolRunner {
             // An address that would never be fetched is refused before
             // anyone is asked about it.
             _ = try WebFetch.target(arguments.requireString("url"))
+        case .gitRemoteSet:
+            try GitRemoteTools.checkSet(arguments)
+        case .gitRemoteRemove:
+            try GitRemoteTools.checkName(arguments.argNonEmptyString("name"))
         case .gitPush:
             // The branch the card names is the one pushed: an omitted one is
             // read now and sent explicitly.

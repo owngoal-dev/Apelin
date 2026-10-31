@@ -764,7 +764,7 @@ public struct ChannelHostBackend: AgentHostBackend {
 
     /// One git request; a refusal comes back as a `GitToolFailure` that says
     /// what to do about it.
-    private func git<T>(
+    func git<T>(
         _ operation: String,
         host: String? = nil,
         forced: Bool = false,

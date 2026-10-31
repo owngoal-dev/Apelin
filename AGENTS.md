@@ -232,7 +232,8 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   `gitStatus`, `gitDiff`, `gitStage`, `gitUnstage`, `gitCommit`, `gitInit`,
   `gitClone`, `gitCloneInto`, `gitFetch`, `gitPull`, `gitPush`, `gitSettings`,
   `gitAuthorSet`, `gitCredentialSet`, `gitCredentialRemove`,
-  `gitRepositoryCreate`, `gitIssueCreate`, `gitSquash`;
+  `gitRepositoryCreate`, `gitIssueCreate`, `gitSquash`, `gitRemoteList`,
+  `gitRemoteSet`, `gitRemoteRemove`;
   `distributionRepositoryList`, `distributionRepositoryCreate`,
   `distributionRepositoryLink`, `distributionRepositoryUnlink`,
   `distributionPublish`, `feedbackSend`, `feedbackRead`, `feedbackEdit`,
@@ -737,7 +738,22 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   own files kept out through `.git/info/exclude`. The untouched repository
   a new workspace starts with (`GitRepository.isUntouched`: HEAD unborn, no
   reference, remote or staged entry) is replaced, and put back on its
-  branch when the import fails; any other `.git` is `conflict`. Credentials are one per
+  branch when the import fails; any other `.git` is `conflict`.
+  A project's own remotes (owner, 2026-10-31, issue #32;
+  `GitService+Remotes.swift`): `gitRemoteList` names each remote and its
+  address, never a user, token, query or fragment in it
+  (`GitRemoteURL.shown`, `hidesCredential` when one was left out);
+  `gitRemoteSet {name, url}` adds one, or points one at another address
+  for fetch and push alike (its own `pushurl` taken away), fetching
+  nothing; `gitRemoteRemove` takes one away with its tracking branches
+  and any upstream record of it (`notFound`, reason `noSuchRemote`, when
+  there is none). A name is `GitRemoteName`'s (letters, digits, `.`, `_`
+  and `-`, at most 64, a letter or digit first, no `..`: never a path, an
+  option or an address), an address `GitRemoteURL`'s (HTTPS with a host,
+  no user, password, query, fragment or white space). A fetch, pull or
+  push given an address where a remote's name goes is `badRequest`
+  saying to add a remote at it first, never `noSuchRemote`.
+  Credentials are one per
   host (lowercased, with `:port` when named): a username and a token
   (`GitCredentialStore`, keychain service and access group
   `wiki.qaq.apelin.git`, `keychain-access-groups` on apelin-environment
@@ -1359,7 +1375,13 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   git_stage, git_unstage, git_commit (`all: true` stages every change)
   and git_init → the matching `git*` request,
   git_fetch, git_pull, git_push and git_clone → `gitFetch`, `gitPull`,
-  `gitPush` and `gitCloneInto` read to their end; all of them run under
+  `gitPush` and `gitCloneInto` read to their end, and git_remote_list,
+  git_remote_set and git_remote_remove → `gitRemoteList`, `gitRemoteSet`
+  and `gitRemoteRemove` (owner, 2026-10-31, issue #32: a remote added to a
+  project that has none, or pointed elsewhere, with the address the user
+  gave; a name or address the host would refuse, or an address given to
+  git_fetch, git_pull or git_push where a remote's name goes, is refused
+  before the host and told to use git_remote_set); all of them run under
   Confirm like a project edit except git_push, which asks every time for
   the remote and branch it names (the checked-out branch read first when
   none is given, then sent explicitly) and the `url` it adds the remote
@@ -1841,7 +1863,7 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   a generic verb on the
   session's own project is `<domain>_<verb>`: `file_read`, `file_write`,
   `file_create`, `file_edit`, `file_list`, `file_grep`, `file_find`,
-  `file_show`, `shell_run`, and the repository's eleven `git_*`. MCP tools
+  `file_show`, `shell_run`, and the repository's `git_*`. MCP tools
   keep kwwk's `mcp__<server>__<tool>`. Lowercase, `[a-z0-9_]`, a letter
   first, no `__`, at most 64 characters, which every provider takes
   (`AgentToolNameTests`). An agent tool extension's tools keep their

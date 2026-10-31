@@ -437,7 +437,10 @@ public struct ApprovalPolicy: Sendable, Hashable {
         // edit, and nothing leaves the device. A fetch, pull or clone
         // only brings commits in; pull never merges, clone never
         // overwrites; init makes an empty repository where there is none.
-        case .gitStage, .gitUnstage, .gitCommit, .gitInit, .gitFetch, .gitPull, .gitClone:
+        // A remote set or removed is a line of the repository's
+        // configuration, and the push that uses one asks, naming its URL.
+        case .gitStage, .gitUnstage, .gitCommit, .gitInit, .gitFetch, .gitPull, .gitClone,
+             .gitRemoteSet, .gitRemoteRemove:
             return .allow(.notRequired)
 
         // Another conversation of the project, opened, sent to or stopped:
@@ -524,7 +527,7 @@ public struct ApprovalPolicy: Sendable, Hashable {
         case .fileRead, .fileList, .fileGrep, .fileFind, .fileShow, .sdkAnalyzeFramework, .sdkReadHeader,
              .packageList, .packageConfirmLoaded, .logRead, .crashList, .crashRead, .crashSymbolicate,
              .screenCapture, .screenReadTree, .memoryList, .skillList, .skillRead, .projectCheckDistribution,
-             .templateList, .projectList, .gitStatus, .gitDiff, .gitReadSettings,
+             .templateList, .projectList, .gitStatus, .gitDiff, .gitReadSettings, .gitRemoteList,
              .conversationList, .conversationRead, .toolchainList, .sdkList, .webFetch, .feedbackRead:
             if presets.readTools.contains(tool) {
                 return .allow(.preset(tool.rawValue))
