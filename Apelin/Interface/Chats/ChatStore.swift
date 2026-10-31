@@ -79,13 +79,15 @@ struct SessionReplay: Codable, Sendable {
 extension ChatRecord {
     /// `message` sent by the reader, shown at once from `sending` until the
     /// host echoes it, the composer emptied if it held that draft. Writing
-    /// in a conversation is what moves it up the sidebar (`lastInteraction`).
+    /// in a conversation is what moves it up the sidebar (`lastInteraction`),
+    /// and a conversation the reader writes in is read.
     mutating func submit(_ message: ComposerDraft, at now: Date = Date()) {
         sending = (sending ?? []) + [message]
         if draft.id == message.id {
             draft = ComposerDraft()
         }
         summary.lastInteraction = now
+        summary.markRead()
     }
 
     /// Takes out of `sending` each message `events` echo, and returns it

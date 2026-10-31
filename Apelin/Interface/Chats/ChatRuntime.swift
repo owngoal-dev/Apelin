@@ -62,6 +62,17 @@ final class ChatRuntime {
         records.values.map(\.summary)
     }
 
+    /// The conversation the reader is looking at, nil while they look at
+    /// none (`RootInterfaceController.syncViewedChat`). A reply that comes
+    /// while another is looked at, or none, leaves it unread; looking at
+    /// one reads it (`ChatUnread`).
+    var viewedChat: UUID? {
+        didSet {
+            guard let viewedChat, viewedChat != oldValue, records[viewedChat]?.summary.markRead() == true else { return }
+            changed(viewedChat)
+        }
+    }
+
     /// Reads every saved conversation. An untouched one left by an earlier
     /// launch is dropped, unless it is `selected`, the one to show again.
     func load(keeping selected: UUID?) async {
@@ -504,6 +515,8 @@ final class ChatRuntime {
                     let batch = try await ApelinService.app.attach(task, afterSeq: cursor)
                     guard !Task.isCancelled, records[id]?.task == task else { return }
                     let fresh = records[id]?.take(batch.events) ?? []
+                    // never the replay, which `take` reads past
+                    records[id]?.summary.noteReplies(in: fresh, isViewed: id == viewedChat)
                     settleSending(in: id, against: fresh)
                     let builds = CompletedBuilds.count(in: fresh)
                     if builds > 0 {

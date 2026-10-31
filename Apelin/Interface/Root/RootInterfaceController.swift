@@ -165,6 +165,18 @@ final class RootInterfaceController: UIViewController {
             name: UIApplication.didEnterBackgroundNotification,
             object: nil,
         )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(syncViewedChat),
+            name: UIApplication.didBecomeActiveNotification,
+            object: nil,
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(resignedActive),
+            name: UIApplication.willResignActiveNotification,
+            object: nil,
+        )
 
         // the detail column sits a step above the sidebar: in the dark its
         // grounds resolve to their elevated shade, as a sheet's do
@@ -218,6 +230,24 @@ final class RootInterfaceController: UIViewController {
         }
     }
 
+    /// Out of the reader's sight, the conversation on the page is no longer
+    /// looked at: a reply that comes meanwhile leaves it unread, until the
+    /// app is back in front with it.
+    @objc private func resignedActive() {
+        chatRuntime.viewedChat = nil
+    }
+
+    /// Tells the runtime which conversation the reader is looking at
+    /// (`ChatRuntime.viewedChat`): the one on the conversation page, while
+    /// that page is the column's, no drawer is out over it and the app is
+    /// in front. A sheet over the page does not count: nothing tells the
+    /// page when one goes, and its conversation is still the page under it.
+    @objc private func syncViewedChat() {
+        let page = navigator.topViewController as? ChatController
+        let isLooking = UIApplication.shared.applicationState == .active && !(isDrawer && drawerProgress > 0)
+        chatRuntime.viewedChat = isLooking ? page?.chat?.id : nil
+    }
+
     func presentWelcome() {
         guard presentedViewController == nil else { return }
         WelcomeFlow.present(from: self) { [weak self] project in
@@ -246,6 +276,9 @@ final class RootInterfaceController: UIViewController {
                 // after this pass: showing a page lays the columns out again
                 DispatchQueue.main.async { [weak self] in self?.sidebar.startNewChat(picked: false) }
             }
+            // a drawer that was out is gone; after this pass, since reading
+            // a conversation redraws the sidebar and the page
+            DispatchQueue.main.async { [weak self] in self?.syncViewedChat() }
         }
         layoutColumns()
     }
@@ -333,6 +366,8 @@ final class RootInterfaceController: UIViewController {
         drawerProgress = open ? 1 : 0
         syncBarItems()
         animateLayout(velocity: velocity)
+        // the page under an open drawer is not looked at
+        syncViewedChat()
     }
 
     private func toggleSidebar() {
@@ -382,8 +417,10 @@ final class RootInterfaceController: UIViewController {
     /// a drawer a new conversation. The page is put back at the root only
     /// when something else is there; otherwise it takes the conversation
     /// where it is. Only a conversation the reader picked puts the drawer
-    /// away.
+    /// away. What is shown is what the reader looks at, unless a drawer is
+    /// out over it (`syncViewedChat`).
     private func open(_ chat: ChatSummary?, picked: Bool) {
+        defer { syncViewedChat() }
         guard let chat else {
             if isDrawer {
                 sidebar.startNewChat(picked: picked)

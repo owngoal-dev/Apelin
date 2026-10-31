@@ -5,9 +5,9 @@
 # messages go back to the composer, which conversations a deleted project
 # takes with it, which tool results are builds the star prompt counts and
 # how often it asks, the order the sidebar lists conversations in, which
-# projects the project menu lists at its top, and which conversations
-# offer Delete and when it asks first, against the harness
-# modules.
+# projects the project menu lists at its top, which conversations offer
+# Delete and when it asks first, and which replies leave a conversation
+# unread, against the harness modules.
 # Usage: test-chat-transcript.sh <ApelinKit modules directory>
 set -euo pipefail
 
@@ -18,6 +18,7 @@ trap 'rm -rf -- "${work:?}"' EXIT
 
 sources=(
     "$root/Apelin/Interface/Chats/ChatSummary.swift"
+    "$root/Apelin/Interface/Chats/ChatUnread.swift"
     "$root/Apelin/Interface/Chats/Composer/ComposerDraft.swift"
     "$root/Apelin/Interface/Chats/Messages/ChatMessage.swift"
     "$root/Apelin/Interface/Chats/Messages/ApprovalCardText.swift"
@@ -48,6 +49,7 @@ sources=(
     "$root/Tests/ChatTranscript/SidebarOrderCheck.swift"
     "$root/Tests/ChatTranscript/ProjectMenuOrderCheck.swift"
     "$root/Tests/ChatTranscript/ChatDeletionCheck.swift"
+    "$root/Tests/ChatTranscript/ChatUnreadCheck.swift"
     "$root/Tests/ChatTranscript/main.swift"
 )
 

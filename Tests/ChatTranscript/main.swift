@@ -1094,3 +1094,5 @@ try checkSidebarOrder()
 checkProjectMenuOrder()
 
 checkChatDeletion()
+
+try checkChatUnread()

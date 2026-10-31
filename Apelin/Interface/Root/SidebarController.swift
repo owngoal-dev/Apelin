@@ -52,7 +52,7 @@ final class SidebarController: UIViewController {
         }
         let changedRows = chats.compactMap { chat -> UUID? in
             guard let old = previous[chat.id],
-                  old.title != chat.title || old.isWorking != chat.isWorking
+                  old.title != chat.title || old.isWorking != chat.isWorking || old.showsUnread != chat.showsUnread
             else { return nil }
             return chat.id
         }
@@ -204,18 +204,28 @@ final class SidebarController: UIViewController {
         content.text = summary?.displayTitle
         content.textProperties.numberOfLines = 1
         cell.contentConfiguration = content
-        let isWorking = summary?.isWorking == true
-        if isWorking {
-            let indicator = cell.accessoryView as? UIActivityIndicatorView ?? UIActivityIndicatorView(style: .medium)
-            indicator.isAccessibilityElement = false
-            indicator.startAnimating()
-            cell.accessoryView = indicator
+        // working wins; the dot shows once it is at rest
+        let status: ChatRowStatusView.Status? = if summary?.isWorking == true {
+            .working
+        } else if summary?.showsUnread == true {
+            .unread
         } else {
-            (cell.accessoryView as? UIActivityIndicatorView)?.stopAnimating()
+            nil
+        }
+        if let status {
+            let view = cell.accessoryView as? ChatRowStatusView ?? ChatRowStatusView()
+            view.show(status)
+            cell.accessoryView = view
+        } else {
+            (cell.accessoryView as? ChatRowStatusView)?.show(nil)
             cell.accessoryView = nil
         }
         cell.isAccessibilityElement = true
-        cell.accessibilityValue = isWorking ? String(localized: "Working") : nil
+        cell.accessibilityValue = switch status {
+        case .working: String(localized: "Working")
+        case .unread: String(localized: "Unread")
+        case nil: nil
+        }
         cell.configurationUpdateHandler = { cell, state in
             var background = UIBackgroundConfiguration.listGroupedCell().updated(for: state)
             if state.isSelected || state.isHighlighted {
@@ -450,20 +460,24 @@ final class SidebarController: UIViewController {
 
     /// The projects to switch to, the open one ticked: the newest at the
     /// top and the rest under More Projects (`ProjectMenuOrder`), then
-    /// the picker, which also makes a new one.
+    /// the picker, which also makes a new one. Each says how many of its
+    /// conversations wait unread, as General Chat and More Projects do for
+    /// theirs (`ChatUnread`); the menu is built again each time it opens.
     private func projectMenu() -> UIMenu {
         let open = project?.name
         let byName = Dictionary(projects.map { ($0.name, $0) }) { first, _ in first }
+        let chats = runtime.summaries
         let order = ProjectMenuOrder.split(
             projects.map(\.name),
             created: byName.compactMapValues(\.created),
-            chats: runtime.summaries,
+            chats: chats,
             open: open,
         )
-        let switchAction = { (name: String) -> UIAction? in
+        let unread = ChatUnread.Counts(chats)
+        let switchAction = { [weak self] (name: String) -> UIAction? in
             guard let candidate = byName[name] else { return nil }
             return UIAction(
-                title: candidate.displayTitle,
+                title: ChatUnread.menuTitle(candidate.displayTitle, unread: unread.projects[name] ?? 0),
                 state: name == open ? .on : .off,
             ) { [weak self] _ in
                 self?.switchProject(to: candidate)
@@ -472,12 +486,12 @@ final class SidebarController: UIViewController {
         var switches: [UIMenuElement] = order.top.compactMap(switchAction)
         if !order.more.isEmpty {
             switches.append(UIMenu(
-                title: String(localized: "More Projects"),
+                title: ChatUnread.menuTitle(String(localized: "More Projects"), unread: unread.total(of: order.more)),
                 children: order.more.compactMap(switchAction),
             ))
         }
         let general = UIAction(
-            title: String(localized: "General Chat"),
+            title: ChatUnread.menuTitle(String(localized: "General Chat"), unread: unread.general),
             state: project == nil ? .on : .off,
         ) { [weak self] _ in self?.switchProject(to: nil) }
         let allProjects = UIAction(title: String(localized: "All Projects…")) { [weak self] _ in

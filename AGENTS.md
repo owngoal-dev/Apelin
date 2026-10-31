@@ -2083,7 +2083,12 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   conversation the reader started or wrote in it (`lastInteraction`) or
   its folder's creation, whichever is later: the five newest, and the open
   project wherever it falls, then the rest in a More Projects submenu,
-  shown only when there are more. Menu rows have no icons
+  shown only when there are more. Each row is `Name - Count`
+  (`Pineora - 3`; owner, 2026-10-31, issue #28): the name, then how many
+  of its conversations show the unread dot, the name alone with none and
+  never `- 0`; General Chat counts its temporary conversations and More
+  Projects the projects inside it, so one hidden there is still found
+  (`ChatUnread.Counts`, one format, `%@ - %lld`). Menu rows have no icons
   except the system's selected checkmark. The toolbar is
   glass on iOS 26 and the toolbar's blur before it. Before iOS 26 the
   accent is black in the light and white in the dark, the window's tint
@@ -2100,8 +2105,24 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   darker grey — a
   title on one line each, with a system activity indicator at the trailing
   edge while `ChatSummary.isWorking` is true (and "Working" as the row's
-  accessibility value). `SidebarController.refresh()` reconfigures a row
-  whose title or working state changed without changing selection or order; the runtime derives working state from prompt/finished events.
+  accessibility value), or else a yellow dot while it is unread ("Unread"):
+  `ChatRowStatusView`, the spinner's size with the 10 pt dot centred in it,
+  so the two share a centre and the title keeps its width whichever shows.
+  Unread (owner, 2026-10-31, issue #28; `ChatUnread`, tested in
+  `Tests/ChatTranscript`) is `ChatSummary.isUnread`, saved with the chat
+  (absent: read) and kept apart from working, which wins while it works.
+  A conversation becomes unread when its task brings an assistant message
+  with text, an error, a turn's end the reader did not stop (`aborted`) or
+  an approval asked while the reader is not looking at it — never from a
+  reopened session's replay (`take` reads past it), the reader's own
+  message, a title, a queued echo or a count; events read at launch past
+  the saved cursor count. Looking at it is `ChatRuntime.viewedChat`, which
+  the root sets (`syncViewedChat`): the conversation page is the column's,
+  the app is active and no drawer is out over it — an open drawer is not
+  looking, so a reply behind it gets its dot, and closing the drawer over
+  it reads it; a sheet over the page still counts. Becoming looked at reads
+  it, and so does sending in it. `SidebarController.refresh()` reconfigures a row
+  whose title, working or unread state changed without changing selection or order; the runtime derives working state from prompt/finished events.
   The saved conversation is restored at launch; an iPhone, or any drawer
   layout, without one creates a new chat only after its project selection
   is restored. New Chat reuses the project's untouched conversation (no
