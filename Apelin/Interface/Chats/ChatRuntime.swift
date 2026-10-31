@@ -7,6 +7,10 @@ import UniformTypeIdentifiers
 /// Owns chat history, drafts and live sessions independently of the selected page.
 @MainActor
 final class ChatRuntime {
+    /// The window's runtime, which names a conversation's journal in
+    /// Settings ▸ Logs however Settings was opened.
+    static weak var active: ChatRuntime?
+
     var onChange: (() -> Void)?
     /// The saved conversations could not be read.
     var onError: ((Error) -> Void)?
@@ -251,6 +255,11 @@ final class ChatRuntime {
     private func removeRecord(_ id: UUID) async throws {
         // Keep the in-memory row on disk failure, so Delete can be retried.
         try await store.remove(id)
+        // its agent's journal goes with its history, as its banners do
+        if let session = records[id]?.sessionID {
+            let journals = AppJournal.agentDirectory
+            Task.detached { JournalFiles.removeConversation(session, in: journals) }
+        }
         readers.removeValue(forKey: id)?.cancel()
         savesDeferred.removeValue(forKey: id)?.cancel()
         savedAt[id] = nil

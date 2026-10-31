@@ -701,7 +701,7 @@ public actor AgentSession {
     }
 
     private func compactionEnded(_ outcome: AgentContextCompactionOutcome) async {
-        journal.compactionEnded(outcome, usage: contextUsage, stopped: aborted)
+        journal.compactionEnded(outcome, usage: contextUsage, nativeSummary: goesOnFromNativeSummary, stopped: aborted)
         let result = switch outcome {
         case let .compacted(messagesCompacted, _):
             AgentCompactionResult(
@@ -775,6 +775,7 @@ public actor AgentSession {
         await mcpManager?.shutdown()
         await runner.closeToolExtensions()
         journal.sessionClosed()
+        await journal.flush()
         await log.close()
     }
 
@@ -844,7 +845,7 @@ public actor AgentSession {
             journal.compactionStarted(.automatic, model: agent.state.model, messages: messagesCount, usage: usage)
         case let .compactEnd(outcome):
             // kwwk compacted on its own, as the context filled
-            journal.compactionEnded(outcome, usage: contextUsage, stopped: aborted)
+            journal.compactionEnded(outcome, usage: contextUsage, nativeSummary: goesOnFromNativeSummary, stopped: aborted)
             if case .compacted = outcome {
                 snapshotStale = true
             }
@@ -1043,5 +1044,13 @@ public actor AgentSession {
     /// How full the context is now, as kwwk measures it for compaction.
     private var contextUsage: AgentContextUsage {
         AgentContextCompactor.currentUsage(messages: agent.state.messages, model: agent.state.model)
+    }
+
+    /// Whether the conversation goes on from the provider's own summary:
+    /// its recap carries the native compaction's payload, which kwwk keeps
+    /// only when it used it.
+    private var goesOnFromNativeSummary: Bool {
+        guard case let .user(recap)? = agent.state.messages.first else { return false }
+        return recap.nativeCompaction != nil
     }
 }

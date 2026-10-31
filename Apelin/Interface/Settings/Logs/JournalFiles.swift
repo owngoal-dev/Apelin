@@ -12,13 +12,20 @@ struct JournalFile: Hashable, Sendable {
     let size: Int
     /// The conversation's session, for a conversation's journal.
     var sessionID: String?
-    /// The file the conversation's journal rotated out, read before it.
-    var previous: URL?
     /// When a conversation's journal was last written.
     var modified: Date?
 
     var name: String {
         url.lastPathComponent
+    }
+
+    /// The file a conversation's journal rotated out, read before it:
+    /// looked for each time it is asked, since the journal can rotate while
+    /// its page is open.
+    var previous: URL? {
+        guard let sessionID else { return nil }
+        let url = url.deletingLastPathComponent().appendingPathComponent(sessionID + ".old.log")
+        return JournalFiles.isRegularFile(url) ? url : nil
     }
 
     /// What Share names the copy it sends: `apelin-<launch>.log`, or
@@ -66,14 +73,12 @@ enum JournalFiles {
             guard UUID(uuidString: session) != nil else { return nil }
             let url = directory.appendingPathComponent(name)
             guard let metadata = regularFile(at: url) else { return nil }
-            let previous = directory.appendingPathComponent(session + ".old.log")
             let modified = metadata.st_mtimespec
             return JournalFile(
                 url: url,
                 started: nil,
                 size: Int(metadata.st_size),
                 sessionID: session,
-                previous: regularFile(at: previous) == nil ? nil : previous,
                 modified: Date(timeIntervalSince1970: Double(modified.tv_sec) + Double(modified.tv_nsec) / 1e9),
             )
         }
@@ -87,6 +92,20 @@ enum JournalFiles {
     static func started(fromName name: String) -> Date? {
         guard name.count == 36, name.hasPrefix("Dog_"), name.hasSuffix(".log") else { return nil }
         return formatter.date(from: String(name.dropFirst(4).prefix(19)))
+    }
+
+    /// Removes the journal of the conversation `session` and the file it
+    /// rotated out, as its history goes; a link there is removed, never
+    /// followed. A name that is no session's removes nothing.
+    static func removeConversation(_ session: String, in directory: URL) {
+        guard UUID(uuidString: session) != nil else { return }
+        for name in [session + ".log", session + ".old.log"] {
+            unlink(directory.appendingPathComponent(name).path)
+        }
+    }
+
+    static func isRegularFile(_ url: URL) -> Bool {
+        regularFile(at: url) != nil
     }
 
     private static func regularFile(at url: URL) -> stat? {

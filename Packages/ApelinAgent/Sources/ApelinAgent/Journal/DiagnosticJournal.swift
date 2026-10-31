@@ -1,4 +1,9 @@
 import Foundation
+// The one-line rule is ApelinCore's (`LogText`); the Mac harness compiles
+// its file beside this one, with no module to import.
+#if canImport(ApelinCore)
+    import enum ApelinCore.LogText
+#endif
 
 /// A level as Dog writes it into a line: Dog's own `DogLevel` raw values,
 /// which Settings ▸ Logs reads back.
@@ -91,22 +96,7 @@ public final class DiagnosticJournal: @unchecked Sendable {
 
     /// `* |<level>| <timestamp>| <message>`, the message on one line.
     public static func entry(level: DiagnosticLevel, timestamp: String, message: String) -> String {
-        "* |\(level.rawValue)| \(timestamp)| " + oneLine(message)
-    }
-
-    /// `text` with every line break written `\n`.
-    public static func oneLine(_ text: String) -> String {
-        guard text.contains(where: \.isNewline) else { return text }
-        var line = ""
-        line.reserveCapacity(text.utf8.count)
-        for character in text {
-            if character.isNewline {
-                line += "\\n"
-            } else {
-                line.append(character)
-            }
-        }
-        return line
+        "* |\(level.rawValue)| \(timestamp)| " + LogText.oneLine(message)
     }
 
     /// What the journal holds, the rotated file first, each read up to
@@ -117,24 +107,49 @@ public final class DiagnosticJournal: @unchecked Sendable {
         return [previousURL, url].compactMap { Self.read($0, limit: 2 * rotationBytes) }.joined()
     }
 
+    /// The journal's last `bytes` — of the rotated file too when the
+    /// current one is shorter — from the first whole line in them.
+    public func tail(bytes: Int) -> String {
+        lock.lock()
+        defer { lock.unlock() }
+        var text = Self.read(url, last: bytes) ?? ""
+        let missing = bytes - text.utf8.count
+        if missing > 0, let earlier = Self.read(previousURL, last: missing) {
+            text = earlier + text
+        }
+        // what comes before the first line end may be part of a line
+        guard text.utf8.count >= bytes, let newline = text.firstIndex(of: "\n") else { return text }
+        return String(text[text.index(after: newline)...])
+    }
+
     /// Removes the journals in `folder` past the `keeping` written last,
-    /// with their rotated files, never `sparing`'s. Only regular files
-    /// count: a link is neither followed nor removed.
+    /// a journal and its rotated file going together, never `sparing`'s.
+    /// One whose current file is gone still counts by its rotated one.
+    /// Only regular files count: a link is neither followed nor removed.
     public static func prune(folder: URL, keeping: Int = retainedJournals, sparing: String? = nil) {
         let names = (try? FileManager.default.contentsOfDirectory(atPath: folder.path)) ?? []
-        let journals = names.filter { $0.hasSuffix("." + fileExtension) && !$0.hasSuffix(previousSuffix) }
-            .compactMap { name -> (name: String, modified: Double)? in
-                var metadata = stat()
-                guard lstat(folder.appendingPathComponent(name).path, &metadata) == 0,
-                      metadata.st_mode & S_IFMT == S_IFREG else { return nil }
-                let modified = Double(metadata.st_mtimespec.tv_sec) + Double(metadata.st_mtimespec.tv_nsec) / 1e9
-                return (name, modified)
+        // a journal was last written when its current file was; its
+        // predecessor only stands in when that file is gone
+        var current: [String: Double] = [:]
+        var previous: [String: Double] = [:]
+        for name in names where name.hasSuffix("." + fileExtension) {
+            var metadata = stat()
+            guard lstat(folder.appendingPathComponent(name).path, &metadata) == 0,
+                  metadata.st_mode & S_IFMT == S_IFREG else { continue }
+            let journal = name.hasSuffix(previousSuffix)
+                ? String(name.dropLast(previousSuffix.count))
+                : String(name.dropLast(fileExtension.count + 1))
+            let modified = Double(metadata.st_mtimespec.tv_sec) + Double(metadata.st_mtimespec.tv_nsec) / 1e9
+            if name.hasSuffix(previousSuffix) {
+                previous[journal] = modified
+            } else {
+                current[journal] = modified
             }
-            .sorted { $0.modified != $1.modified ? $0.modified > $1.modified : $0.name > $1.name }
-        for journal in journals.dropFirst(max(0, keeping)) {
-            let name = String(journal.name.dropLast(fileExtension.count + 1))
-            guard name != sparing else { continue }
-            unlink(folder.appendingPathComponent(journal.name).path)
+        }
+        let written = previous.merging(current) { _, own in own }
+        let journals = written.sorted { $0.value != $1.value ? $0.value > $1.value : $0.key > $1.key }
+        for (name, _) in journals.dropFirst(max(0, keeping)) where name != sparing {
+            unlink(folder.appendingPathComponent(name + "." + fileExtension).path)
             unlink(folder.appendingPathComponent(name + previousSuffix).path)
         }
     }
@@ -206,14 +221,25 @@ public final class DiagnosticJournal: @unchecked Sendable {
     }
 
     private static func read(_ url: URL, limit: Int) -> String? {
+        read(url) { size in (0, min(size, limit)) }
+    }
+
+    /// The last `bytes` of the file at `url`.
+    private static func read(_ url: URL, last bytes: Int) -> String? {
+        read(url) { size in (max(0, size - bytes), min(size, bytes)) }
+    }
+
+    /// The part of the file at `url` that `span` picks from its size, read
+    /// without following a link.
+    private static func read(_ url: URL, span: (Int) -> (offset: Int, count: Int)) -> String? {
         let opened = open(url.path, O_RDONLY | O_NOFOLLOW | O_CLOEXEC)
         guard opened >= 0 else { return nil }
         defer { close(opened) }
         var metadata = stat()
         guard fstat(opened, &metadata) == 0, metadata.st_mode & S_IFMT == S_IFREG else { return nil }
-        let count = min(Int(metadata.st_size), limit)
+        let (offset, count) = span(Int(metadata.st_size))
         var data = Data(count: count)
-        let read = data.withUnsafeMutableBytes { Darwin.read(opened, $0.baseAddress, count) }
+        let read = data.withUnsafeMutableBytes { pread(opened, $0.baseAddress, count, off_t(offset)) }
         guard read >= 0 else { return nil }
         return String(decoding: data.prefix(read), as: UTF8.self)
     }

@@ -84,7 +84,7 @@ actor ToolExtensionSessions {
         }
     }
 
-    private static let closing = ToolDeniedError(message: "the conversation is closing")
+    private static let closing = ConversationClosingError()
 
     private static func request(_ tool: ExtensionTool, _ arguments: JSONValue, in session: String) -> ToolExtensionCallRequest {
         ToolExtensionCallRequest(sessionID: session, tool: tool.name, arguments: arguments, timeoutSeconds: tool.timeoutSeconds)

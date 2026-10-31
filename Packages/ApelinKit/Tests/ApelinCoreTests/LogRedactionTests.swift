@@ -72,4 +72,40 @@ final class LogRedactionTests: XCTestCase {
         XCTAssertEqual(LogRedaction.grouped(999), "999")
         XCTAssertEqual(LogRedaction.grouped(-1000), "-1,000")
     }
+
+    func testATextIsOneLineOfAJournalWhateverItsLineEnds() {
+        // an error that forges an entry, and one whose `\r` would swallow the next
+        let forged = "boom\n[Session]\n* |critical| 2026-01-01_00-00-00| Closed session=x\r\nend\r"
+        let line = LogText.oneLine(forged)
+        XCTAssertFalse(line.contains(where: \.isNewline), line)
+        XCTAssertEqual(line, #"boom\n[Session]\n* |critical| 2026-01-01_00-00-00| Closed session=x\nend\n"#)
+        XCTAssertEqual(LogText.oneLine("a\u{2028}b\u{85}c"), #"a\nb\nc"#)
+        XCTAssertEqual(LogText.oneLine("plain"), "plain")
+    }
+
+    func testTheDevicesOwnNameIsTakenOutAndEveryDevicesKept() {
+        let redaction = LogRedaction(home: nil, installRoot: nil, names: ["Adas-iPhone", "iPhone"])
+        XCTAssertEqual(redaction.redacted("ping Adas-iPhone from an iPhone"), "ping <device name> from an iPhone")
+        XCTAssertEqual(redaction.redacted("Adas-iPhones"), "Adas-iPhones", "a word, not a part of one")
+    }
+
+    func testANameSaysASecretWordByWord() {
+        for name in ["authToken", "apiToken", "sessionToken", "secretKey", "privateKey", "apiSecret", "AWS_SECRET_ACCESS_KEY",
+                     "DB_PASS", "MYSQL_PASSWORD", "x-api-key", "Set-Cookie", "Authorization", "access", "refresh", "APIKey"]
+        {
+            XCTAssertTrue(LogRedaction.isSecretName(name), name)
+        }
+        for name in ["max_tokens", "passed", "author", "tokenizer", "keyboard", "monkey", "path", "accessibility", "secretary"] {
+            XCTAssertFalse(LogRedaction.isSecretName(name), name)
+        }
+    }
+
+    func testAnEndpointOnTheLocalNetworkIsTold() {
+        for host in ["localhost", "192.168.1.5", "10.0.0.1", "127.0.0.1", "adas-mac.local", "router.home.arpa", "fd12:3456::1", "proxy"] {
+            XCTAssertTrue(PrivateShapes.isLocalHost(host), host)
+        }
+        for host in ["api.githubcopilot.com", "api.anthropic.com", "8.8.8.8", "openrouter.ai"] {
+            XCTAssertFalse(PrivateShapes.isLocalHost(host), host)
+        }
+    }
 }

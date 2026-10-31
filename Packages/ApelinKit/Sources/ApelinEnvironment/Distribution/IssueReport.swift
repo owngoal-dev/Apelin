@@ -85,12 +85,6 @@ struct IssueReport: Sendable {
     }
 
     static func currentHostName() -> String? {
-        var buffer = [CChar](repeating: 0, count: Int(MAXHOSTNAMELEN) + 1)
-        guard gethostname(&buffer, buffer.count) == 0 else { return nil }
-        var name = String(cString: buffer)
-        if name.lowercased().hasSuffix(".local") {
-            name.removeLast(".local".count)
-        }
-        return name.isEmpty ? nil : name
+        PrivateShapes.currentHostName()
     }
 }

@@ -31,8 +31,6 @@ final class LogsController: TableController {
     }
 
     private var loader: Task<Void, Never>?
-    /// The name of the conversation a session is, when the app has it.
-    private let conversationTitle: @MainActor (String) -> String?
 
     /// Where Dog writes: its own answer once it is open, else the data
     /// folder's `Journal/` (`AppJournal`).
@@ -46,14 +44,13 @@ final class LogsController: TableController {
         (file.started ?? file.modified)?.formatted(date: .numeric, time: .shortened) ?? file.name
     }
 
-    init(conversationTitle: @escaping @MainActor (String) -> String? = { _ in nil }) {
-        self.conversationTitle = conversationTitle
+    init() {
         super.init(style: .insetGrouped)
     }
 
     @available(*, unavailable)
     required init?(coder _: NSCoder) {
-        fatalError("Use init(conversationTitle:)")
+        fatalError("Use init()")
     }
 
     override func viewDidLoad() {
@@ -98,7 +95,8 @@ final class LogsController: TableController {
             let rows = launches.map { Row(file: $0, isCurrent: $0.name == current, conversation: nil) }
             let earlier = rows.filter { !$0.isCurrent }
             let chats = conversations.map { file in
-                Row(file: file, isCurrent: false, conversation: file.sessionID.flatMap { conversationTitle($0) })
+                // named by the window's runtime, however Settings was opened
+                Row(file: file, isCurrent: false, conversation: file.sessionID.flatMap { ChatRuntime.active?.title(ofSession: $0) })
             }
             var sections: [(Section, [Row])] = []
             if let running = rows.first(where: \.isCurrent) {
@@ -162,12 +160,14 @@ final class LogsController: TableController {
             style: .destructive,
             title: String(localized: "Delete"),
         ) { [weak self] _, _, complete in
-            let files = [row.file.url, row.file.previous].compactMap(\.self)
+            let file = row.file
             Task { [weak self] in
                 do {
                     try await Task.detached {
-                        for url in files {
-                            try FileManager.default.removeItem(at: url)
+                        try FileManager.default.removeItem(at: file.url)
+                        // the file it rotated into, as it is now
+                        if let previous = file.previous {
+                            try FileManager.default.removeItem(at: previous)
                         }
                     }.value
                     complete(true)

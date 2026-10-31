@@ -109,6 +109,7 @@ struct SessionJournalTests {
             runStopped: false,
         )
         journal.runFailed("401 from https://user:hunter22@example.com with \(key)")
+        journal.drain()
         let text = file.contents()
         for secret in [key, "hunter22", "someone@example.com", "/var/mobile"] {
             #expect(!text.contains(secret), "\(secret) survived:\n\(text)")
@@ -187,8 +188,12 @@ struct SessionJournalTests {
         #expect(started.contains(#"arguments={"path":"README.md","reason":"Read it"}"#), "\(started)")
         let ended = try #require(Self.line(in: text, containing: "Ended call=call-read tool=file_read session=\(session.id) "))
         #expect(ended.contains(" status=succeeded started="), "\(ended)")
-        #expect(ended.contains(" duration=") && ended.contains("result="))
+        // the file is the user's: its size, never its text
+        #expect(ended.contains(" duration=") && ended.contains(#"result=""#) && ended.contains(" bytes in "), "\(ended)")
+        #expect(!ended.contains("hello"), "\(ended)")
         #expect(text.contains("[Session]\n") && text.contains("| Opened session=\(session.id) "))
+        // the faux provider's endpoint is this machine
+        #expect(text.contains(" host=local-endpoint "), "\(text)")
         #expect(text.contains(" api=\(faux.getModel().api) ") && text.contains("| Run 1 started "))
         #expect(text.contains("| Run 1 ended reason=completed ") && text.contains(" tools=1"))
         #expect(text.contains("| Closed session=\(session.id)"))
@@ -325,7 +330,8 @@ struct SessionJournalTests {
             Issue.record("the refused compaction went on: \(result)")
             return
         }
-        journal.compactionEnded(.failed(reason), usage: usage, stopped: false)
+        journal.compactionEnded(.failed(reason), usage: usage, nativeSummary: false, stopped: false)
+        journal.drain()
 
         let text = file.contents()
         let native = try #require(Self.line(in: text, containing: "| Native compaction failed status=400 "))
@@ -362,6 +368,129 @@ struct SessionJournalTests {
         text = try Self.journal(of: reopened, in: home)
         #expect(text.components(separatedBy: " status=interrupted ").count == 3, "\(text)")
         #expect(text.contains("| Reopened session=\(id) "))
+    }
+
+    // MARK: - What a result keeps
+
+    @Test
+    func `a content tool's result is its size, any other's a short redacted summary`() {
+        let redaction = JournalRedaction(home: "/var/mobile", installRoot: "/var/jb")
+        let file = AgentToolResult(content: [.text(TextContent(text: "1 let password = \"hunter2\"\n2 return\n"))])
+        for tool in ["file_read", "file_grep", "apelin_memory_list", "apelin_web_fetch", "apelin_screen_read_tree"] {
+            #expect(redaction.result(file, tool: tool, isError: false) == #""36 bytes in 2 lines""#, "\(tool)")
+        }
+        let screenshot = AgentToolResult(content: [.image(ImageContent(data: "AAAA", mimeType: "image/png"))])
+        #expect(redaction.result(screenshot, tool: "apelin_screen_capture", isError: false) == #""1 image""#)
+        // its own error says what went wrong, not what the user holds
+        let missing = AgentToolResult(content: [.text(TextContent(text: "no such file: Sources/Tweak.m"))])
+        #expect(redaction.result(missing, tool: "file_read", isError: true) == "no such file: Sources/Tweak.m")
+        let build = String(repeating: "compiling a step of the build\n", count: 100)
+        let kept = redaction.result(AgentToolResult(content: [.text(TextContent(text: build))]), tool: "shell_run", isError: false)
+        #expect(kept.utf8.count < 600 && kept.hasSuffix("[truncated from 3,000 bytes]"), "\(kept)")
+    }
+
+    // MARK: - Compaction lines
+
+    @Test(.timeLimit(.minutes(1)))
+    func `a native summary is said only where the conversation goes on from it`() async throws {
+        let folder = try Self.folder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let faux = await registerFauxProvider()
+        defer { faux.unregister() }
+        let model = faux.getModel()
+        let native: NativeCompactionFn = { model, _, _, _ in
+            NativeCompactionResult(
+                summary: "The user built a tweak.",
+                payload: NativeCompactionPayload(model: model, items: [.string("opaque")]),
+            )
+        }
+        let long = String(repeating: "The build log says the hook loaded. ", count: 1200)
+        let messages: [Message] = ["one", "two", "three"].flatMap { prompt -> [Message] in
+            [.user(UserMessage(text: prompt)), .assistant(fauxAssistantMessage(prompt + ": " + long))]
+        }
+        let usage = AgentContextUsage(tokens: 30000, window: 200_000)
+        for tooLarge in [false, true] {
+            let file = DiagnosticJournal(folder: folder, name: "native-\(tooLarge)")
+            let journal = SessionJournal(sessionID: "native", file: file, redaction: JournalRedaction(home: nil, installRoot: nil))
+            journal.compactionStarted(.requested, model: model, messages: messages.count, usage: usage)
+            // kwwk sets a native summary aside when it is too large for the
+            // target and summarises itself: the recap then carries none
+            faux.setResponses([.message(fauxAssistantMessage("The user built a tweak; the hook loads."))])
+            let result = await AgentContextCompactor.compactMessages(
+                messages: messages,
+                model: model,
+                sessionId: "native",
+                config: journal.observingCompaction(AgentContextCompactionConfig(nativeCompaction: native)),
+            )
+            switch result {
+            case let .success(replacement):
+                guard case let .user(recap)? = replacement.messages.first else {
+                    Issue.record("no recap")
+                    return
+                }
+                journal.compactionEnded(
+                    .compacted(messagesCompacted: replacement.messagesCompacted, hasRunningTasksLedger: false),
+                    usage: usage,
+                    nativeSummary: !tooLarge && recap.nativeCompaction != nil,
+                    stopped: false,
+                )
+            case let .failure(failure):
+                journal.compactionEnded(failure.outcome, usage: usage, nativeSummary: false, stopped: false)
+            }
+            journal.drain()
+            let text = file.contents()
+            #expect(text.contains("| Native compaction answered "), "\(text)")
+            let ended = try #require(text.split(separator: "\n").last.map(String.init))
+            if tooLarge {
+                #expect(ended.contains(" summary=local native=too-large "), "\(ended)")
+            } else {
+                #expect(ended.contains("| Ended outcome=compacted ") && ended.contains(" summary=native "), "\(ended)")
+            }
+        }
+    }
+
+    // MARK: - Reopening
+
+    @Test
+    func `a reopen reads only the journal's end, from its first whole line`() throws {
+        let folder = try Self.folder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let file = DiagnosticJournal(folder: folder, name: "S", rotationBytes: 64 * 1024)
+        for index in 0 ..< 4000 {
+            file.write("Tool", "Started call=c\(index) tool=shell_run session=S at=10:00:00.000 arguments={}")
+            file.write("Tool", "Ended call=c\(index) tool=shell_run session=S status=succeeded result=ok")
+        }
+        file.write("Tool", "Started call=crashed tool=shell_run session=S at=10:05:00.000 arguments={}")
+        let tail = file.tail(bytes: 4096)
+        #expect(tail.utf8.count <= 4096, "\(tail.utf8.count)")
+        #expect(tail.hasPrefix("* |") || tail.hasPrefix("["), "\(tail.prefix(40))")
+        #expect(tail.hasSuffix("arguments={}\n"))
+        // an end whose start fell before the tail starts nothing
+        #expect(SessionJournal.unfinishedCalls(in: tail, session: "S").map(\.id) == ["crashed"])
+    }
+
+    @Test
+    func `two live calls of one ID end one by one, and the one left is interrupted`() throws {
+        let folder = try Self.folder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let file = DiagnosticJournal(folder: folder, name: "dup")
+        let journal = SessionJournal(sessionID: "dup", file: file, redaction: JournalRedaction(home: nil, installRoot: nil))
+        journal.toolStarted(id: "call_0", name: "shell_run", arguments: .object([:]))
+        journal.toolStarted(id: "call_0", name: "file_read", arguments: .object([:]))
+        journal.toolEnded(id: "call_0", name: "shell_run", result: AgentToolResult(content: []), isError: false, runStopped: false)
+        journal.sessionClosed()
+        journal.drain()
+        let lines = file.contents().split(separator: "\n").filter { $0.contains("Ended call=call_0 ") }
+        #expect(lines.count == 2, "\(lines)")
+        #expect(lines.first?.contains(" status=succeeded started=") == true)
+        #expect(lines.last?.contains("tool=file_read") == true && lines.last?.contains(" status=interrupted ") == true)
+        #expect(SessionJournal.unfinishedCalls(in: file.contents(), session: "dup").isEmpty)
+    }
+
+    @Test
+    func `a call refused because its conversation was closing was stopped`() {
+        #expect(ToolCallOutcome.of(ConversationClosingError(), stopped: false).status == .cancelled)
+        #expect(ConversationClosingError().localizedDescription == "the conversation is closing")
     }
 
     // MARK: - Helpers

@@ -326,8 +326,9 @@ actor ToolRunner {
         case .approve:
             return .user(requestID: request.id, fingerprint: fingerprint)
         case let .deny(reason):
-            // a stop while it waited is the stop's, as the wrapper notes it
-            if cancellation?.isCancelled != true {
+            // a stop while it waited, the run's or the task's, is the stop's,
+            // as the wrapper notes it
+            if cancellation?.isCancelled != true, !Task.isCancelled {
                 journal?.note(ToolCallOutcome(.denied, "the user declined it"), for: toolCallID)
             }
             throw ToolDeniedError(message: "the user declined this call\(reason.map { ": \($0)" } ?? "")")

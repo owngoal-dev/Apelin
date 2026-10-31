@@ -86,7 +86,20 @@ require(conversations[0].previous?.lastPathComponent == newer + ".old.log", "the
 require(conversations[1].previous == nil, "a journal that never rotated has none")
 require(conversations[0].shareName == "apelin-agent-\(newer).log", "a conversation's journal is shared under its session")
 require(files[0].shareName == "apelin-2026-10-22_09-30-00_BBBBBBBB.log", "a launch's under its launch")
-print("ok: the conversations' journals (sessions only, written last first, rotated file attached)")
+
+// a journal that rotates while its page is open is shared and deleted whole
+try Data("rotated since".utf8).write(to: agent.appendingPathComponent(older + ".old.log"))
+require(conversations[1].previous?.lastPathComponent == older + ".old.log", "the rotated file is looked for when it is read")
+JournalFiles.removeConversation(older, in: agent)
+require(
+    !FileManager.default.fileExists(atPath: agent.appendingPathComponent(older + ".log").path)
+        && !FileManager.default.fileExists(atPath: agent.appendingPathComponent(older + ".old.log").path),
+    "a conversation's journal goes with its rotated file",
+)
+JournalFiles.removeConversation("notes", in: agent)
+require(FileManager.default.fileExists(atPath: agent.appendingPathComponent("notes.log").path), "a name that is no session's stays")
+require(JournalFiles.conversations(in: agent).map(\.sessionID) == [newer], "the rest stay")
+print("ok: the conversations' journals (sessions only, written last first, rotated file found when read, removed whole)")
 
 // What the agent writes is what the log page reads: Dog's lines, a message
 // on one line whatever it held, the category with each change.

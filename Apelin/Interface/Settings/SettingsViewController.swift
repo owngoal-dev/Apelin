@@ -55,9 +55,6 @@ final class SettingsViewController: TableController {
     }
 
     private var memorySummary: String?
-    /// The name of the conversation a session is, which Logs names a
-    /// conversation's journal by; the sidebar's opener gives it.
-    var conversationTitle: @MainActor (String) -> String? = { _ in nil }
     private var loader: Task<Void, Never>?
 
     init() {
@@ -197,7 +194,7 @@ final class SettingsViewController: TableController {
         case .templates: page = TemplatesController()
         case .git: page = GitSettingsController()
         case .licenses: page = LicensesViewController()
-        case .logs: page = LogsController(conversationTitle: conversationTitle)
+        case .logs: page = LogsController()
         case .version: return
         }
         navigationController?.pushViewController(page, animated: true)

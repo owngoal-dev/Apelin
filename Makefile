@@ -447,6 +447,7 @@ harness:
 	xcrun --sdk macosx swiftc -swift-version 5 \
 		"$(ROOT_DIR)/Apelin/Interface/Settings/Logs/JournalFiles.swift" \
 		"$(ROOT_DIR)/Apelin/Interface/Settings/Logs/JournalLines.swift" \
+		"$(ROOT_DIR)/Packages/ApelinKit/Sources/ApelinCore/LogText.swift" \
 		"$(ROOT_DIR)/Packages/ApelinAgent/Sources/ApelinAgent/Journal/DiagnosticJournal.swift" \
 		"$(ROOT_DIR)/Tests/Journal/main.swift" \
 		-o "$$harness_dir/journal" && \

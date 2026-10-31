@@ -1,3 +1,4 @@
+import ApelinCore
 import Foundation
 
 /// What feedback filed on Apelin's own repository may say (`feedbackSend`,
@@ -122,89 +123,33 @@ public enum FeedbackRules {
 
     // MARK: Private data
 
+    /// The kind of private data `text` holds, by the shapes every device's
+    /// takes (`PrivateShapes`, which a diagnostic log replaces too) and
+    /// this device's own paths and names.
     private static func privateKind(in text: String, paths: [String], names: [String]) -> String? {
-        if matches(credential, text) {
+        if PrivateShapes.matches(PrivateShapes.credential, text) || PrivateShapes.matches(PrivateShapes.bearer, text)
+            || PrivateShapes.matches(PrivateShapes.privateKey, text)
+        {
             return "a token or key"
         }
         let lowered = text.lowercased()
         // `/var/jb`, rootless's install root, is every rootless device's.
         let ownPaths = paths.filter { $0.count > 1 && $0 != "/var/jb" }
-        if matches(homePath, text) || ownPaths.contains(where: { lowered.contains($0.lowercased()) }) {
+        if PrivateShapes.matches(PrivateShapes.homePath, text) || ownPaths.contains(where: { lowered.contains($0.lowercased()) }) {
             return "a home or install path (write ~ for mobile's home)"
         }
-        if names.contains(where: { isOwnName($0) && containsWord($0, in: text) }) {
+        if names.contains(where: { PrivateShapes.isOwnName($0) && !PrivateShapes.ranges(ofWord: $0, in: text).isEmpty }) {
             return "this device's name"
         }
-        if matches(localName, text) || matches(localIPv6, text) || containsLocalIPv4(text) {
+        if PrivateShapes.matches(PrivateShapes.localName, text) || PrivateShapes.matches(PrivateShapes.localIPv6, text)
+            || !PrivateShapes.localIPv4(in: text).isEmpty
+        {
             return "a local network address or name"
         }
-        if matches(deviceIdentifier, text) {
+        if PrivateShapes.matches(PrivateShapes.deviceIdentifier, text) {
             return "what looks like a device identifier (a UDID, serial number or MAC address; a commit hash reads the same, so shorten it)"
         }
         return nil
-    }
-
-    private static let credential = pattern(
-        #"gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|(?<![\w-])sk-[A-Za-z0-9_-]{20,}|AKIA[0-9A-Z]{16}"#
-            + #"|xox[abprs]-[A-Za-z0-9-]{10,}|AIza[0-9A-Za-z_-]{35}|-----BEGIN [A-Z ]*PRIVATE KEY-----"#
-            + #"|eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.|(?i:bearer)\s+[A-Za-z0-9._~+/-]{20,}"#,
-    )
-
-    /// Mobile's and root's homes, an app's container, roothide's jbroot
-    /// (named for its install), a Mac's or Linux's home.
-    private static let homePath = pattern(
-        #"/var/(?:mobile|root)(?![\w.-])|/var/containers/|\.jbroot-|/Users/[^/\s]+|/home/[^/\s]+"#,
-    )
-
-    /// A name on the local network, as mDNS and home routers spell them.
-    private static let localName = pattern(#"(?i)\b[a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?:local|lan)(?![\w-]|\.[\w-])"#)
-
-    /// A link-local or unique local IPv6 address.
-    private static let localIPv6 = pattern(#"(?i)(?<![0-9a-f:])(?:fe80|fd[0-9a-f]{2})::?[0-9a-f]{0,4}:"#)
-
-    private static let ipv4 = pattern(#"(?<![\d.])(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})(?!\d|\.\d)"#)
-
-    /// A UDID (40 hex digits, or 8 and 16 since 2018), an Apple serial
-    /// number (10 to 12 capital letters and digits, two of each at least,
-    /// never the end of a UUID) or a MAC address.
-    private static let deviceIdentifier = pattern(
-        #"(?<![0-9A-Fa-f])[0-9A-Fa-f]{40}(?![0-9A-Fa-f])|(?<![0-9A-Fa-f-])[0-9A-Fa-f]{8}-[0-9A-Fa-f]{16}(?![0-9A-Fa-f-])"#
-            + #"|(?<![A-Za-z0-9_-])(?=(?:[A-Z]*[0-9]){2})(?=(?:[0-9]*[A-Z]){2})[A-Z0-9]{10,12}(?![A-Za-z0-9_-])"#
-            + #"|(?<![0-9A-Fa-f:])(?:[0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}(?![0-9A-Fa-f:])"#,
-    )
-
-    /// 10/8, 172.16/12, 192.168/16, link-local 169.254/16 and the shared
-    /// 100.64/10 a VPN's tailnet hands out.
-    private static func containsLocalIPv4(_ text: String) -> Bool {
-        let range = NSRange(text.startIndex..., in: text)
-        return ipv4.matches(in: text, range: range).contains { match in
-            let octets = (1 ... 4).compactMap { index in
-                Range(match.range(at: index), in: text).flatMap { Int(text[$0]) }
-            }
-            guard octets.count == 4, octets.allSatisfy({ $0 <= 255 }) else { return false }
-            return switch (octets[0], octets[1]) {
-            case (10, _), (192, 168), (169, 254): true
-            case (172, 16 ... 31), (100, 64 ... 127): true
-            default: false
-            }
-        }
-    }
-
-    /// A host name that names this device, not every device of its kind.
-    private static func isOwnName(_ name: String) -> Bool {
-        name.count >= 3 && !["localhost", "iphone", "ipad", "ipod", "ipod-touch"].contains(name.lowercased())
-    }
-
-    private static func containsWord(_ word: String, in text: String) -> Bool {
-        let escaped = NSRegularExpression.escapedPattern(for: word)
-        guard let expression = try? NSRegularExpression(pattern: #"(?i)(?<![\w-])"# + escaped + #"(?![\w-])"#) else {
-            return false
-        }
-        return matches(expression, text)
-    }
-
-    private static func matches(_ expression: NSRegularExpression, _ text: String) -> Bool {
-        expression.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)) != nil
     }
 
     private static func pattern(_ text: String) -> NSRegularExpression {

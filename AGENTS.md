@@ -1227,9 +1227,9 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   files stay at the top of `Journal/`), in Dog's line format — a
   `[Category]` line at each change, `* |<level>| <yyyy-MM-dd_HH-mm-ss>|
   <message>`, a line break in a message written `\n` so no tool output
-  starts an entry —, appended across reopens, written synchronously under
-  a lock and only while the file is a regular one of mobile's with one
-  link (`DiagnosticJournal`). Past 2 MB it becomes `<session>.old.log`,
+  starts an entry —, appended across reopens, formatted and written on a
+  queue of its own, never on the session's actor, and only while the file
+  is a regular one of mobile's with one link (`DiagnosticJournal`). Past 2 MB it becomes `<session>.old.log`,
   replacing the one before; each open keeps the 100 journals written last.
   `SessionJournal` writes, by category: Session (open or reopen with
   provider, model id, API wire and the endpoint's host, never a key; an
@@ -1259,16 +1259,28 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   ends `interrupted`, and one the journal shows started and never ended is
   ended `interrupted` when the conversation opens again, so a crash leaves
   no call that looks as if it were running. Every line is redacted first
-  (`JournalRedaction` over ApelinCore's `LogRedaction`): tokens and keys
-  by their shapes (`ghp_`, `gho_`, `github_pat_`, `sk-`, `oc_sk_`, AWS,
-  Slack, Google, JWTs, private keys), Bearer and Basic values, fields and
-  headers named like a secret, a password in an address, e-mail
-  addresses, mobile's home (`~`), the install root, roothide's
-  `.jbroot-<id>`, root's home and an app container's ID; arguments keep
-  their shape with each string cut to 256 bytes, and an argument summary
-  or result is cut to 1 KB, an error to 4 KB, each marked
-  `… [truncated from <n> bytes]`. Tested by `SessionJournalTests`,
-  `LogRedactionTests` and `Tests/Journal`. `agentCompact` (the
+  (`JournalRedaction` over ApelinCore's `LogRedaction`, every rule linear
+  in the text and a long text redacted only as far as it can be kept,
+  then cut): tokens and keys by their shapes (`ghp_`, `gho_`,
+  `github_pat_`, `sk-`, `oc_sk_`, `xai-`, `glpat-`, `hf_`, `gsk_`,
+  `sk_live_`, AWS, Slack, Google, JWTs, private keys), Bearer and Basic
+  values, fields, headers, environment variables and options named like
+  a secret (`isSecretName`, inside JSON written as a string too), a
+  password in an address, e-mail addresses, mobile's home (`~`), the
+  install root, roothide's `.jbroot-<id>`, root's home, an app
+  container's ID, and the device and network identifiers feedback refuses
+  (`PrivateShapes`: UDIDs, serials, MAC addresses, local addresses and
+  names, the device's own name); an endpoint on the local network is
+  named `local-endpoint`. Arguments keep their shape, each string redacted
+  and then cut to 256 bytes, the whole at most 1 KB; a tool that returns the user's content (the
+  file read tools, file_show, memory and skills, apelin_conversation_read,
+  apelin_web_fetch, logs and crashes, the screen and its UI tree) is
+  recorded by its size alone, any other result by a redacted summary of
+  at most 512 bytes, an error at most 4 KB, each cut marked
+  `… [truncated from <n> bytes]`. The app's own `Conversation` lines go
+  through the same redaction and onto one line (`LogText`). Tested by
+  `SessionJournalTests`, `JournalReviewTests`, `LogRedactionTests`,
+  `LogRedactionAttackTests` and `Tests/Journal`. `agentCompact` (the
   app's alone, 2026-10-24) compacts the conversation between runs with
   kwwk's own compactor, as it does when the context fills — natively where
   the provider can —, answers once begun (`conflict` while a run or

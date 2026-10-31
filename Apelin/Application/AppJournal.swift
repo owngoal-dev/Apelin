@@ -18,11 +18,13 @@ enum AppJournal {
     }
 
     /// What the app's lines never name: credentials, e-mail addresses,
-    /// mobile's home and, on roothide, the install root (`LogRedaction`).
-    /// A journal is shared to report a problem.
+    /// mobile's home, on roothide the install root, network names and
+    /// device identifiers, the device's own name (`LogRedaction`). A
+    /// journal is shared to report a problem.
     static let redaction = LogRedaction(
         home: DataFolder.app.root.deletingLastPathComponent().deletingLastPathComponent().path,
         installRoot: RoothideRoot.containing(Bundle.main.bundlePath),
+        names: PrivateShapes.currentHostName().map { [$0] } ?? [],
     )
 
     /// Opens this launch's file, once, early in `didFinishLaunching`. In

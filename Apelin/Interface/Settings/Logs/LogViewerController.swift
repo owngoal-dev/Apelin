@@ -7,10 +7,11 @@ import UIKit
 /// text has what is typed, so a tool call is found by its ID.
 ///
 /// The file is parsed once into `parsed` and filtered from there, so a filter
-/// change costs a filter rather than a re-parse. The running launch's file is
-/// followed while the screen is up: the poll compares the file's size, and
-/// only a file that actually grew is read again. An earlier launch's file no
-/// longer changes and is read once.
+/// change costs a filter rather than a re-parse. The running launch's file,
+/// and a conversation's, which its agent may be writing, are followed while
+/// the screen is up: the poll compares the file's size, and only a file that
+/// changed is read again, a conversation's with the file it rotated into. An
+/// earlier launch's file no longer changes and is read once.
 final class LogViewerController: UIViewController, UITableViewDelegate, UISearchResultsUpdating {
     let tableView = FirstFillTableView(frame: .zero, style: .plain)
     let file: JournalFile
@@ -101,8 +102,9 @@ final class LogViewerController: UIViewController, UITableViewDelegate, UISearch
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        guard isCurrent else { return }
-        // The running launch writes while it is being read. A sheet
+        guard isCurrent || file.sessionID != nil else { return }
+        // The running launch writes while it is being read, and so may a
+        // conversation's agent. A sheet
         // dismissed over this screen appears it again without ever
         // disappearing it: the previous timer goes first.
         tail?.invalidate()
