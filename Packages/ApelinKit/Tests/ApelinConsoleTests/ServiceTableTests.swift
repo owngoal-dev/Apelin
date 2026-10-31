@@ -275,6 +275,17 @@ final class ServiceTableTests: XCTestCase {
             return Row(reply: set) { _ = try await $0.gitRemoteSet(projectID: "p", name: "origin", url: "https://example.com/r.git") }
         case .gitRemoteRemove:
             return Row(reply: ack) { try await $0.gitRemoteRemove(projectID: "p", name: "origin") }
+        case .gitResetPreview:
+            return Row(reply: handle) { _ = try await $0.gitResetPreview(GitResetPreviewRequest(projectID: "p", remote: "origin")) }
+        case .gitResetToRemote:
+            let reset = GitResetToRemoteRequest(
+                projectID: "p",
+                remote: "origin",
+                branch: "main",
+                expectedRemoteCommit: String(repeating: "a", count: 40),
+                expectedHead: nil,
+            )
+            return Row(reply: handle) { _ = try await $0.gitResetToRemote(reset) }
         }
     }
 

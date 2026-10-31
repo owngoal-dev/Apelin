@@ -248,6 +248,16 @@ public final class EnvironmentWorker: @unchecked Sendable {
                 let target = try git.preparePush(typed)
                 return { reporter, _ in try reporter.emit("result", self.git.push(target, reporter: reporter)) }
             }
+        case .gitResetPreview:
+            await startTask(GitResetPreviewRequest.self, request, resultInState: true) { [self] typed, _ in
+                let target = try git.prepareResetPreview(typed)
+                return { reporter, _ in try reporter.emit("result", self.git.resetPreview(target, reporter: reporter)) }
+            }
+        case .gitResetToRemote:
+            await startTask(GitResetToRemoteRequest.self, request, resultInState: true) { [self] typed, _ in
+                let target = try git.prepareReset(typed)
+                return { reporter, _ in try reporter.emit("result", self.git.reset(target, typed, reporter: reporter)) }
+            }
         case .gitSettings:
             await WorkerMain.serve(GitSettingsRequest.self, request) { [self] _ in try git.settings() }
         case .gitAuthorSet:

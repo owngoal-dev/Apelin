@@ -1388,6 +1388,10 @@ await rootRunChecks(scratch: scratch, scratchPath: scratchPath)
 
 await screenConsentChecks(scratch: scratch, scratchPath: scratchPath)
 
+// MARK: - A reset to a remote (ResetToRemoteChecks.swift)
+
+await resetToRemoteChecks(scratch: scratch, scratchPath: scratchPath)
+
 // MARK: - Install bridge against a fake irisind
 
 final class FakeIrisin: InstallService, @unchecked Sendable {

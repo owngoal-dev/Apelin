@@ -63,6 +63,10 @@ enum CallerPolicy {
         // Its own project's remotes, listed, added, pointed elsewhere or
         // removed; a push that later uses one still asks, naming its URL.
         .gitRemoteList, .gitRemoteSet, .gitRemoteRemove,
+        // Its own project made exactly a remote's branch, in every mode only
+        // as the user approved exactly that reset (AgentResetToRemoteRules);
+        // what it would lose is read first.
+        .gitResetPreview, .gitResetToRemote,
         .gitSettings, .gitAuthorSet, .gitCredentialSet, .gitCredentialRemove,
         // An empty repository on GitHub with the user's sign-in, under
         // Confirm only as the user approved exactly it

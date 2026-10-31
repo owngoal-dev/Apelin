@@ -87,6 +87,8 @@ enum GitFailure {
             return "Pull only fast-forwards: the branch has diverged from its upstream, or a local change is in the way. Tell the user; do not force it."
         case "git push":
             return "The remote has commits this branch does not. Fetch and pull first (pull only fast-forwards), then merge or rebase as the user agrees. A refused push is never a reason to force it: force_with_lease is only for a forced push the user explicitly asked for."
+        case "git reset to remote":
+            return "Nothing was changed. Call git_reset_to_remote again, so the user sees what it would discard now and decides again."
         case "git clone":
             return "The workspace already has a repository, or files with the same names as the repository's. Tell the user; do not delete their files to make room."
         default:

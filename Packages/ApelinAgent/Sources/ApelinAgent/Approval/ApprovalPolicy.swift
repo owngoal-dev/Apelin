@@ -129,6 +129,9 @@ public struct InvocationFacts: Sendable, Hashable {
     /// that runs icli (or another of `ScreenConsent.programs`): what it does
     /// on the screen, as the host is asked for it.
     public var screenControl: ScreenControlApproval?
+    /// For git_reset_to_remote: the state the reset was read in, from a
+    /// fetch just before asking, and what it loses.
+    public var resetToRemote: ResetToRemoteApproval?
 
     public init(
         tool: Tool,
@@ -220,6 +223,10 @@ public struct ApprovalPolicy: Sendable, Hashable {
         if case .local(.shellRun) = facts.tool, facts.runsAsRoot {
             return evaluateRoot(facts)
         }
+        // A reset to a remote discards local work: Full asks as Strict does.
+        if case .local(.gitResetToRemote) = facts.tool {
+            return Self.resetVerdict(facts)
+        }
         if mode != .confirm {
             return .allow(.relaxed)
         }
@@ -275,6 +282,16 @@ public struct ApprovalPolicy: Sendable, Hashable {
             return .ask(reason: "What this call does on the screen could not be read. \(Self.screenNote)", detail: .none)
         }
         return .ask(reason: "\(Self.screenPhrase(use)) \(Self.screenNote)", detail: .screenControl(use))
+    }
+
+    /// A reset to a remote discards local work: it asks in every mode,
+    /// whatever the presets say, the card saying what is lost; the host
+    /// spends that one approval.
+    static func resetVerdict(_ facts: InvocationFacts) -> GateVerdict {
+        guard let reset = facts.resetToRemote else {
+            return .ask(reason: "What this reset would discard could not be read.", detail: .none)
+        }
+        return .ask(reason: reset.reason, detail: .resetToRemote(reset))
     }
 
     static let screenNote = "Ask Before Using the Screen is on, so each use of the screen needs your approval, in every mode."
@@ -448,6 +465,10 @@ public struct ApprovalPolicy: Sendable, Hashable {
         // that would ask, asks there.
         case .conversationCreate, .conversationSend, .conversationStop:
             return .allow(.notRequired)
+
+        // Discards local work: `evaluate` asked already, in every mode.
+        case .gitResetToRemote:
+            return Self.resetVerdict(facts)
 
         // Publishes commits with the user's credential: every push asks,
         // and the card names where it goes.

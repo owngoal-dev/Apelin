@@ -679,6 +679,10 @@ actor EventRelay {
         // (AgentScreenRules).
         case let .screenControl(use):
             payload["detail"] = .object(screenDetail(use))
+        // The state the host matches an agent's gitResetToRemote to
+        // (AgentResetToRemoteRules).
+        case let .resetToRemote(reset):
+            payload["detail"] = .object(["resetToRemote": (try? ApelinCore.JSONValue(encoding: reset)) ?? .null])
         }
         return .object(payload)
     }

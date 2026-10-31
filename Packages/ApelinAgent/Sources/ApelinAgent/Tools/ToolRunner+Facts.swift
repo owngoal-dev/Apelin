@@ -79,6 +79,8 @@ extension ToolRunner {
             _ = try WebFetch.target(arguments.requireString("url"))
         case .gitRemoteSet:
             try GitRemoteTools.checkSet(arguments)
+        case .gitResetToRemote:
+            facts.resetToRemote = try await resetToAsk(arguments)
         case .gitRemoteRemove:
             try GitRemoteTools.checkName(arguments.argNonEmptyString("name"))
         case .gitPush:

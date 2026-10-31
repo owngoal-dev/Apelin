@@ -58,6 +58,14 @@ extension BuiltInSkills {
           points one at another address) with the address the user gave, and
           `git_remote_remove` takes one away. `git_fetch`, `git_pull` and
           `git_push` name a remote, never its address.
+        - When the user explicitly asks for the project to match a remote,
+          overwriting what is local ("make it the same as the remote",
+          "overwrite my code with the latest"), `git_reset_to_remote` does
+          it: add the remote first when the project lacks one, then name it
+          and the branch. Its card shows the user what is lost, and they
+          decide, in every mode; then tell them the `apelin-backup/…` branch
+          that keeps it. Never use it to resolve a conflict or get past a
+          refused pull or push on your own: say what is in the way and ask.
         - From any other chat, a repository goes into a new workspace, whatever
           it holds: `apelin_project_create` with
           `wiki.qaq.apelin.workspace/empty`, then `apelin_conversation_create`

@@ -81,6 +81,13 @@ public protocol AgentHostBackend: Sendable {
     /// A remote added at an HTTPS address, or pointed there.
     func gitRemoteSet(_ request: GitRemoteSetToolRequest) async throws -> GitRemoteSetToolResponse
     func gitRemoteRemove(_ request: GitRemoteRemoveToolRequest) async throws -> GitRemoteListToolResponse
+    /// Fetches a remote's branch and reads what making the project that
+    /// branch would lose, read to the end; only the remote-tracking branch
+    /// moves.
+    func gitResetPreview(_ request: GitResetPreviewToolRequest) async throws -> GitResetPreviewToolResponse
+    /// The project made that branch, against exactly the state the card
+    /// showed, read to the end; the host spends the user's approval of it.
+    func gitResetToRemote(_ request: GitResetToolRequest) async throws -> GitResetToolResponse
     /// The device's commit author and the hosts with a saved credential.
     func gitSettings(context: HostCallContext) async throws -> GitSettingsToolResponse
     func gitSetAuthor(_ request: GitAuthorToolRequest) async throws -> GitSettingsToolResponse

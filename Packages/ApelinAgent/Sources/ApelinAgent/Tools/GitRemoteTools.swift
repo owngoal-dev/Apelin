@@ -10,7 +10,7 @@ import KWWKAI
 /// "no such remote".
 enum GitRemoteTools {
     /// The tools whose `remote` argument names a remote.
-    static let namingRemote: Set<AgentToolName> = [.gitFetch, .gitPull, .gitPush]
+    static let namingRemote: Set<AgentToolName> = [.gitFetch, .gitPull, .gitPush, .gitResetToRemote]
 
     /// Refuses a remote's name that is an address, a path or an option;
     /// any other a remote the project has may carry. Nil, the tool's

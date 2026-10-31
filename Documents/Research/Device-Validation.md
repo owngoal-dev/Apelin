@@ -247,6 +247,25 @@ console now goes on after a restart only past a successful respring.
       with each commit and the new message, and squashes on Approve with
       the files unchanged; in Relaxed it squashes without a card; after a
       push, the card says publishing it needs a forced push.
+
+- [ ] Remotes, "remote wins" and a repository's own manifest (2026-10-31,
+      issue #32; the Mac only so far: `GitRemoteSetTests`,
+      `GitImportManifestTests`, `GitResetTests`, `GitResetServiceTests`,
+      `GitRemoteToolTests`, `GitResetToolTests`, the session host's
+      `ResetToRemoteChecks`). On the iPhone vphone, `make device-run
+      SCRIPT=i2-git-remote` (the remote list, set and remove, the refusals
+      before any network, a preview of origin that is up to date). In a
+      project with history and no remote, asked to make it match
+      `owngoal-dev/Pineora` and overwrite what is local: the agent adds the
+      remote with git_remote_set, git_reset_to_remote's card names the
+      commits lost, the unrelated histories and the backup branch, and asks
+      in Strict, Relaxed and Full alike; after Approve the folder is the
+      repository's, `apelin-project.json` keeps the project's projectID (git
+      shows it changed), the project and its conversations are still there,
+      and the `apelin-backup/…` branch holds the old work. New Project with
+      that address: the import succeeds and the sidebar shows the
+      repository's name for it.
+
 - [ ] A preference bundle's Settings row with its icon (2026-10-30, issue
       #19, `wiki.qaq.apelin.dev.preferences` 0.1.3), on a device where
       PreferenceLoader shows panes (the owner's iOS 17.3.1 iPhone): a new

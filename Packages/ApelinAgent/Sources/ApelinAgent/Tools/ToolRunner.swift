@@ -345,13 +345,14 @@ actor ToolRunner {
     /// packages published to the user's package repository, nor for a use
     /// of the screen while Ask Before Using the Screen is on, nor for a
     /// forced push, which takes commits off the remote's branch, nor for a
-    /// squash, which replaces the project's own.
+    /// squash, which replaces the project's own, nor for a reset to a
+    /// remote, which discards work.
     static func allowsSessionScope(_ tool: InvocationFacts.Tool, detail: ApprovalDetail) -> Bool {
         switch tool {
         case .local(.packageRemove), .local(.gitPush), .local(.toolchainSetup), .local(.sdkImport),
              .local(.skillSave), .local(.skillRemove), .local(.feedbackSend), .local(.gitCreateRepository),
              .local(.projectDelete), .local(.packagePublish), .local(.feedbackEdit), .local(.gitCreateIssue),
-             .local(.gitSquash):
+             .local(.gitSquash), .local(.gitResetToRemote):
             return false
         default:
             break
@@ -359,7 +360,7 @@ actor ToolRunner {
         switch detail {
         case .gitSettings, .descriptionChanged, .toolchainSetup, .sdkImport, .otherProject, .externalBuild, .skillChange,
              .projectRename, .rootCommand, .feedback, .feedbackEdit, .repositoryCreate, .issueCreate, .projectDelete,
-             .packagePublish, .screenControl, .forcePush, .squash:
+             .packagePublish, .screenControl, .forcePush, .squash, .resetToRemote:
             return false
         case .none, .command, .packageRemoval, .gitPush:
             return true
@@ -753,6 +754,13 @@ actor ToolRunner {
                 context: context,
                 name: arguments.requireString("name"),
             )))
+
+        case .gitResetToRemote:
+            // The reset the card named, held to the state it showed.
+            guard let reset = facts.resetToRemote else {
+                throw ToolDeniedError(message: "what the reset would discard could not be read")
+            }
+            return try await json(backend.gitResetToRemote(GitResetToolRequest(context: context, approval: reset)))
 
         case .gitReadSettings:
             return try await json(backend.gitSettings(context: context))

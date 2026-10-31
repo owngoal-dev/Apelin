@@ -584,6 +584,7 @@ struct ChatTranscript {
         case .gitRemoteList: return String(localized: "List the remotes")
         case .gitRemoteSet: return String(localized: "Set a remote")
         case .gitRemoteRemove: return String(localized: "Remove a remote")
+        case .gitResetToRemote: return String(localized: "Reset to the remote")
         case .gitReadSettings: return String(localized: "Read the Git settings")
         case .gitSetAuthor: return String(localized: "Set the commit author")
         case .gitSaveCredential: return String(localized: "Save a Git credential")

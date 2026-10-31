@@ -792,6 +792,17 @@ public struct ChannelHostBackend: AgentHostBackend {
         forced: Bool = false,
         _ start: () async throws -> TaskHandle,
     ) async throws -> GitTaskToolResponse {
+        try await Self.gitResult(gitTaskResult(operation, host: host, forced: forced, start))
+    }
+
+    /// The `result` a git task reported, read to its final `state`, or a
+    /// failure in words.
+    func gitTaskResult(
+        _ operation: String,
+        host: String? = nil,
+        forced: Bool = false,
+        _ start: () async throws -> TaskHandle,
+    ) async throws -> ApelinCore.JSONValue? {
         let handle = try await git(operation, host: host, forced: forced, start)
         var result: ApelinCore.JSONValue?
         var reason: String?
@@ -805,7 +816,7 @@ public struct ChannelHostBackend: AgentHostBackend {
         }
         switch end.state {
         case .succeeded:
-            return Self.gitResult(result)
+            return result
         case .cancelled:
             throw GitToolFailure(message: "\(operation) was cancelled.")
         case .interrupted:

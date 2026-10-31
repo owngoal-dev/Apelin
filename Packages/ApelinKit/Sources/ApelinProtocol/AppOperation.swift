@@ -106,6 +106,8 @@ public enum AppOperation: String, Codable, CaseIterable, Sendable {
     case gitRemoteList
     case gitRemoteSet
     case gitRemoteRemove
+    case gitResetPreview
+    case gitResetToRemote
 
     case distributionRepositoryList
     case distributionRepositoryCreate
@@ -145,7 +147,8 @@ public enum AppOperation: String, Codable, CaseIterable, Sendable {
         case .gitStatus, .gitDiff, .gitStage, .gitUnstage, .gitCommit, .gitInit, .gitClone, .gitCloneInto, .gitFetch,
              .gitPull,
              .gitPush, .gitSettings, .gitAuthorSet, .gitCredentialSet, .gitCredentialRemove, .gitRepositoryCreate,
-             .gitIssueCreate, .gitSquash, .gitRemoteList, .gitRemoteSet, .gitRemoteRemove:
+             .gitIssueCreate, .gitSquash, .gitRemoteList, .gitRemoteSet, .gitRemoteRemove, .gitResetPreview,
+             .gitResetToRemote:
             .git
         case .transferExport, .transferInspect, .transferImport: .transfer
         case .distributionRepositoryList, .distributionRepositoryCreate, .distributionRepositoryLink,
@@ -243,6 +246,8 @@ public enum AppOperation: String, Codable, CaseIterable, Sendable {
         case .gitRemoteList: GitRemoteListRequest.self
         case .gitRemoteSet: GitRemoteSetRequest.self
         case .gitRemoteRemove: GitRemoteRemoveRequest.self
+        case .gitResetPreview: GitResetPreviewRequest.self
+        case .gitResetToRemote: GitResetToRemoteRequest.self
         case .distributionRepositoryList: DistributionRepositoryListRequest.self
         case .distributionRepositoryCreate: DistributionRepositoryCreateRequest.self
         case .distributionRepositoryLink: DistributionRepositoryLinkRequest.self

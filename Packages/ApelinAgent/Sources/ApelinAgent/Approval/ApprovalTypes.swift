@@ -138,6 +138,11 @@ public enum ApprovalDetail: Sendable, Hashable, Codable {
     /// mode, never granted for the session; the host lets through only the
     /// call it names, once.
     case screenControl(ScreenControlApproval)
+    /// The project made exactly a remote's branch, discarding local work:
+    /// the state it was read in and what is lost. Asked in every mode,
+    /// never granted for the session; the host lets through only the
+    /// reset it names, once.
+    case resetToRemote(ResetToRemoteApproval)
 }
 
 /// What a card asks while Ask Before Using the Screen is on (owner,

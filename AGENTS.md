@@ -233,7 +233,7 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   `gitClone`, `gitCloneInto`, `gitFetch`, `gitPull`, `gitPush`, `gitSettings`,
   `gitAuthorSet`, `gitCredentialSet`, `gitCredentialRemove`,
   `gitRepositoryCreate`, `gitIssueCreate`, `gitSquash`, `gitRemoteList`,
-  `gitRemoteSet`, `gitRemoteRemove`;
+  `gitRemoteSet`, `gitRemoteRemove`, `gitResetPreview`, `gitResetToRemote`;
   `distributionRepositoryList`, `distributionRepositoryCreate`,
   `distributionRepositoryLink`, `distributionRepositoryUnlink`,
   `distributionPublish`, `feedbackSend`, `feedbackRead`, `feedbackEdit`,
@@ -306,6 +306,8 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   `AgentFeedbackRules`, and `feedbackRead`;
   `gitRepositoryCreate`, narrowed by `AgentRepositoryCreateRules`;
   `gitIssueCreate`, narrowed by `AgentIssueCreateRules`;
+  `gitResetToRemote`, narrowed in every mode by `AgentResetToRemoteRules`,
+  with `gitResetPreview`;
   `distributionPublish`, narrowed by `AgentPublishRules`, the rest of the
   package repository's operations staying the app's), the
   environment worker `installPackage`, `removePackage`
@@ -521,6 +523,14 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
     preview passes in every mode.
     `environmentAttach` reads only the tasks the session started
     (`startedTasks`, recorded by `startTask`).
+    A reset to a remote (owner, 2026-10-31, issue #32;
+    `Session/Agent/AgentResetToRemoteRules.swift`) discards local work, so
+    an agent's `gitResetToRemote` spends, in every mode, Full included, one
+    approval the app gave this session whose own `approvalRequested` names
+    exactly it (`detail.resetToRemote` {projectID, remote, url, branch,
+    remoteCommit, head?}, with what is lost beside it for the card), never
+    for the session; the request must carry that commit, HEAD and address,
+    which apelin-environment holds the project to again.
   - *Files* (`Session/Files/`). `fileRead` scopes: a project ID or
     `project:<name>`, `sdk:<id>`, `extension:<id>`, `agent-tools:<id>`,
     `grant:<id>` (app only); canonical paths, checked again on the opened
@@ -629,7 +639,9 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   copies, ordinary events leaving the record alone and its number and time
   read back from the log, one `agentOpen` of a session at a time, Ask
   Before Using the Screen's refusals and spends in every mode
-  (`ScreenConsentChecks.swift`), and a real PTY.
+  (`ScreenConsentChecks.swift`), a reset to a remote only on the approval
+  of exactly it, in every mode (`ResetToRemoteChecks.swift`), and a real
+  PTY.
   `Documents/Console/scripts/i1-smoke.json` drives it on a device;
   `r1-resume-build.json`, `r1-resume-sdk-import.json` and
   `r2-resume-toolchain.json` check a resume, killing the host by its
@@ -753,6 +765,33 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   no user, password, query, fragment or white space). A fetch, pull or
   push given an address where a remote's name goes is `badRequest`
   saying to add a remote at it first, never `noSuchRemote`.
+  "Remote wins" (owner, 2026-10-31, issue #32; `GitService+Reset.swift`,
+  ApelinGit's `GitReset.swift`): `gitResetPreview {projectID, remote,
+  branch?}` fetches that branch alone (nil: the one the remote's HEAD
+  names) into its remote-tracking branch, whatever refspecs the remote
+  has, and answers what a reset would do (`GitResetPreview`: the remote's
+  commit, HEAD, whether the histories are unrelated, the commits that
+  leave the branch, the tracked files whose uncommitted changes go, the
+  untracked or ignored files the remote's tree replaces, each list's count
+  and its first 50, and what `apelin-project.json` becomes);
+  `gitResetToRemote {projectID, remote, branch, expectedRemoteCommit,
+  expectedHead, expectedURL?}` fetches again and, only while the remote is
+  at that commit and address and HEAD at that commit (nil: none), else
+  `conflict` with nothing changed, does what `git checkout -f -B <branch>
+  <remote>/<branch>` does: the local branch of that name moved there and
+  checked out, the index and tracked files the remote's, untracked and
+  ignored files it lacks left alone, upstream recorded; it works as well
+  on a history unrelated to the remote's. First it saves what it would
+  lose on a new branch `apelin-backup/<yyyyMMdd-HHmmss>` (a number after
+  it when taken), named in its result: HEAD's commit, with a commit on top
+  holding the tracked files as they are and the files it replaces when
+  anything is uncommitted or replaced. A local branch of that name that is
+  not checked out and has commits the remote lacks is `conflict`. The
+  project keeps its identity: the remote's `apelin-project.json` with this
+  project's `projectID` in its one quoted place (`RepositoryManifest`,
+  refused when it does not read), or this project's own, kept out through
+  `.git/info/exclude`, when the remote has none; the icon likewise. Both
+  are tasks that are not resumed.
   A repository's own `apelin-project.json` coming into a new workspace
   (owner, 2026-10-31, issue #32; `RepositoryManifest`): while the
   workspace's manifest holds nothing but its identity
@@ -1399,7 +1438,16 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   git_stage, git_unstage, git_commit (`all: true` stages every change)
   and git_init → the matching `git*` request,
   git_fetch, git_pull, git_push and git_clone → `gitFetch`, `gitPull`,
-  `gitPush` and `gitCloneInto` read to their end, and git_remote_list,
+  `gitPush` and `gitCloneInto` read to their end, git_reset_to_remote →
+  `gitResetPreview` before asking, then `gitResetToRemote` with the
+  commits and address its card showed (owner, 2026-10-31, issue #32:
+  asked on a card in every mode, Full included, naming what is lost —
+  commits, uncommitted changes, replaced files, unrelated histories —,
+  never with a session grant; nothing to do is answered without asking;
+  its description, the prompt's `# Working` and `apelin-git-workflow`
+  keep it to the user's explicit request to make the project match the
+  remote, never to resolve a conflict or get past a refused pull or push
+  on its own), and git_remote_list,
   git_remote_set and git_remote_remove → `gitRemoteList`, `gitRemoteSet`
   and `gitRemoteRemove` (owner, 2026-10-31, issue #32: a remote added to a
   project that has none, or pointed elsewhere, with the address the user
@@ -2983,6 +3031,11 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   `--force-with-lease`'s protection, never a plain force: if the remote's
   branch is not where the card said, nothing is pushed and the user is
   asked again.
+  A reset of the project to a remote (git_reset_to_remote, owner,
+  2026-10-31, issue #32) asks in every mode, Full included: it discards
+  local work, so its card names what is lost, it is never granted for the
+  session, and what it discards goes first onto an `apelin-backup/…`
+  branch.
   *Ask Before Using the Screen* (owner, 2026-10-30: asked to
   report a problem upstream, an agent opened the issue page in Safari with
   `icli url open` and read the UI tree twice, never asking) is a setting

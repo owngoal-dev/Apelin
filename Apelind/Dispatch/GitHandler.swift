@@ -26,7 +26,9 @@ enum GitHandler: DomainHandler {
             return await push(request, host: host)
         case .gitSquash:
             return await squash(request, host: host)
-        case .gitCloneInto, .gitFetch, .gitPull:
+        case .gitResetToRemote:
+            return await resetToRemote(request, host: host)
+        case .gitCloneInto, .gitFetch, .gitPull, .gitResetPreview:
             // Not resumed: a push or pull cut off is answered by running it
             // again, which the caller decides.
             return await host.startTask(request, kind: .environment, role: .environment, resumable: false)
@@ -108,6 +110,24 @@ enum GitHandler: DomainHandler {
             }
         }
         return await host.forward(request, to: .environment)
+    }
+
+    /// An agent's spends, in every mode, the approval of exactly this
+    /// reset; then it runs as a task that is not resumed, since what it
+    /// would lose must be read again.
+    private static func resetToRemote(_ request: HostRequest, host: SessionHost) async -> HostReply {
+        if case let .worker(.agent, instance) = request.caller {
+            let reset: GitResetToRemoteRequest
+            do {
+                reset = try request.decode(GitResetToRemoteRequest.self)
+            } catch {
+                return request.fail(error)
+            }
+            if let refusal = await AgentResetToRemoteRules.authorize(reset, session: instance, registry: host.registry) {
+                return request.fail(refusal)
+            }
+        }
+        return await host.startTask(request, kind: .environment, role: .environment, resumable: false)
     }
 
     /// An agent's is checked here before it is forwarded.
