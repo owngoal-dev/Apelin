@@ -61,8 +61,13 @@ enum ApelinLink: Hashable, Sendable {
             let prompt = items.first { $0.name == "prompt" }?.value ?? ""
             self = Self.isPrompt(prompt) ? .chat(prompt: prompt) : .unknown
         case 1 where components[0].lowercased() == "import":
-            let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
-            self = Self.repositoryImport(items)
+            let parts = URLComponents(url: url, resolvingAgainstBaseURL: false)
+            // a value whose escapes do not decode to text is no value at all
+            let undecodable = (parts?.percentEncodedQueryItems ?? []).contains {
+                ["url", "branch"].contains($0.name) && !($0.value ?? "").isEmpty
+                    && $0.value?.removingPercentEncoding == nil
+            }
+            self = undecodable ? .invalidImport : Self.repositoryImport(parts?.queryItems ?? [])
         case 2:
             let value = components[1]
             switch components[0].lowercased() {
@@ -141,18 +146,47 @@ enum ApelinLink: Hashable, Sendable {
     /// Bounded, with a path that names something: a component at least,
     /// none `.` or `..`, and no control or format character once its
     /// escapes are decoded.
+    ///
+    /// A link comes from a web page, so its host is a public name: no `%`
+    /// in it (an escape would show one host and reach another), no address
+    /// literal and no name that only a local network resolves —
+    /// `localhost`, a name without a dot, `.local`, `.lan`, `.internal`,
+    /// `.home.arpa`, `.localhost` —, and a port, if any, of 1–65535.
     static func isRepositoryAddress(_ address: String) -> Bool {
         guard address.hasPrefix("https://"), address.utf8.count <= maximumAddressLength,
               address.unicodeScalars.allSatisfy(addressCharacters.contains),
               hasWellFormedEscapes(address),
+              let authority = address.dropFirst("https://".count).split(separator: "/", omittingEmptySubsequences: false).first,
+              !authority.contains("%"),
               let parts = URLComponents(string: address), parts.scheme == "https",
-              let host = parts.host, !host.isEmpty,
+              let host = parts.host, isPublicHostName(host),
+              parts.port.map({ (1 ... 65535).contains($0) }) ?? !authority.hasSuffix(":"),
               parts.user == nil, parts.password == nil, parts.query == nil, parts.fragment == nil
         else { return false }
         let names = parts.path.split(separator: "/")
         return !names.isEmpty && !names.contains { $0 == "." || $0 == ".." }
             && !parts.path.unicodeScalars.contains { CharacterSet.controlCharacters.contains($0) }
     }
+
+    /// A name the public DNS answers for: letters, digits, `-` and dots,
+    /// at least one dot, no address literal and none of the suffixes only
+    /// a local network resolves.
+    static func isPublicHostName(_ host: String) -> Bool {
+        let name = host.lowercased().hasSuffix(".") ? String(host.lowercased().dropLast()) : host.lowercased()
+        let labels = name.split(separator: ".", omittingEmptySubsequences: false)
+        guard labels.count >= 2, name.utf8.count <= 253,
+              labels.allSatisfy({ label in
+                  !label.isEmpty && label.count <= 63 && !label.hasPrefix("-") && !label.hasSuffix("-")
+                      && label.unicodeScalars.allSatisfy { hostCharacters.contains($0) }
+              }),
+              // every label digits: an IPv4 address, in any of its spellings
+              !labels.allSatisfy({ $0.allSatisfy(\.isNumber) || $0.hasPrefix("0x") })
+        else { return false }
+        let local = ["local", "lan", "internal", "localhost", "localdomain", "intranet", "home.arpa", "corp", "test", "invalid"]
+        return !local.contains { name == $0 || name.hasSuffix("." + $0) }
+    }
+
+    private static let hostCharacters = CharacterSet(charactersIn: "abcdefghijklmnopqrstuvwxyz0123456789-")
 
     /// A branch git takes (`git check-ref-format --branch`, which libgit2's
     /// `git_branch_name_is_valid` follows), bounded, and shown as it reads:
@@ -166,7 +200,11 @@ enum ApelinLink: Hashable, Sendable {
               !name.hasPrefix("-"), name != "HEAD", name != "@",
               !name.hasPrefix("/"), !name.hasSuffix("/"), !name.hasSuffix("."),
               !name.contains("//"), !name.contains(".."), !name.contains("@{"),
-              !name.unicodeScalars.contains(where: branchForbidden.contains)
+              !name.unicodeScalars.contains(where: branchForbidden.contains),
+              !name.unicodeScalars.contains(where: { scalar in
+                  scalar.properties.isDefaultIgnorableCodePoint || scalar.properties.isNoncharacterCodePoint
+                      || [.format, .privateUse, .unassigned, .surrogate].contains(scalar.properties.generalCategory)
+              })
         else { return false }
         return !name.split(separator: "/").contains { $0.hasPrefix(".") || $0.hasSuffix(".lock") }
     }
@@ -174,6 +212,9 @@ enum ApelinLink: Hashable, Sendable {
     private static let branchForbidden = CharacterSet.controlCharacters
         .union(.whitespacesAndNewlines)
         .union(CharacterSet(charactersIn: "~^:?*[\\"))
+        // what draws nothing, so a branch would show blank: the fillers
+        // and the braille blank, beside every default-ignorable code point
+        .union(CharacterSet(charactersIn: "\u{2800}\u{3164}\u{115F}\u{1160}\u{FFA0}"))
 
     /// Every `%` begins an escape of two hexadecimal digits.
     private static func hasWellFormedEscapes(_ text: String) -> Bool {

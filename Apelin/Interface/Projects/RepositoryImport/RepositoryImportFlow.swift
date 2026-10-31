@@ -1,3 +1,4 @@
+import AlertController
 import SPIndicator
 import UIKit
 
@@ -55,6 +56,12 @@ enum RepositoryImportFlow {
             guard let root, current === page else { return }
             var top = root
             while let presented = top.presentedViewController {
+                // never over an alert, a progress card's among them: its
+                // dismissal would take the sheet with it
+                if presented is AlertViewController || presented is UIAlertController {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { present(page, over: root) }
+                    return
+                }
                 if presented.isBeingDismissed || presented.isBeingPresented {
                     if let transition = presented.transitionCoordinator {
                         transition.animate(alongsideTransition: nil) { _ in present(page, over: root) }

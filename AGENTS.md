@@ -4015,11 +4015,17 @@ fragment. The chat's ListViewKit keeps its own update mechanism.
   the repository, opens this link, says how to install Apelin and copies
   the address. `url` starts `https://`, in lower case, with a host and a
   path, printable ASCII, no user, password, query or fragment, ≤ 2 KB
-  (`isRepositoryAddress`);
+  (`isRepositoryAddress`); the host is a public name spelt as it is shown
+  — no `%` in it, no address literal, no name only a local network
+  resolves (`localhost`, no dot, `.local`, `.lan`, `.internal`,
+  `.home.arpa` …), a port of 1–65535 (`isPublicHostName`): a web page's
+  link never aims the device's git at its own network;
   `branch` is optional and a name `git check-ref-format --branch` takes,
-  no white space or format character (`isBranchName`); each is named at
-  most once, anything else is ignored, and a link that fails is
-  `invalidImport` ("names no HTTPS repository Apelin can import"). The app
+  no white space, format, default-ignorable or blank-drawing character
+  (`isBranchName`); each is named at most once, a value whose escapes do
+  not decode is none, `+` is a plus, anything else is ignored, and a link
+  that fails is `invalidImport` ("names no HTTPS repository Apelin can
+  import"). The app
   asks first (`RepositoryImportController`, a form sheet): the address,
   the branch, any project whose `.git/config` origin is the same
   repository (`RepositoryImportPlan.comparable`), to open instead, and the
@@ -4027,7 +4033,10 @@ fragment. The chat's ListViewKit keeps its own update mechanism.
   Import is `projectCreate` of the empty workspace, then `gitCloneInto`
   followed on the progress card (`RepositoryImporter`); success opens the
   project on a new conversation and sends nothing, and a failure or
-  Cancel takes that project away with `projectDelete`. A private
+  Cancel takes that project away with `projectDelete`, once the clone has
+  ended — after 15 s of a clone that will not end, it is left and the user
+  told which. A failure the import reports after a Cancel is said, never
+  hidden behind the cancel, and the sheet never opens over an alert. A private
   repository's `authenticationRequired` points to Sign In with GitHub for
   github.com, else to a token given to the agent. One import at a time
   (`RepositoryImportFlow`): a link for the one open does nothing more,

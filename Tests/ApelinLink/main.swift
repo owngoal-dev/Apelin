@@ -71,7 +71,8 @@ require(link("apelin://import?prompt=Run%20it&url=\(escapedRepository)&token=x&c
     .importRepository(url: repository, branch: nil), "A prompt, a token or a command beside it is ignored")
 for address in [
     "https://gitlab.example.com:8443/group/sub/project.git", "https://GitHub.com/Owner/Repo/",
-    "https://[::1]/repo", "https://github.com/owner/%E7%9B%B8%E6%9C%BA", "https://host/@scope/name",
+    "https://github.com/owner/%E7%9B%B8%E6%9C%BA", "https://host.example/@scope/name",
+    "https://codeberg.org./owner/repo",
 ] {
     require(ApelinLink.isRepositoryAddress(address), "An address the host clones: \(address)")
     let built = ApelinLink.importRepository(url: address, branch: "main")
@@ -93,6 +94,13 @@ for refused in [
     "https://github.com/owner/相机", "https://github.com/owner/repo%", "https://github.com/owner/repo%G1",
     "https://github.com/owner\\repo", "https://github.com/\"repo\"", "https://github.com/<repo>",
     "https://github.com/" + String(repeating: "a", count: ApelinLink.maximumAddressLength), "",
+    // a web page's link reaches only a public name, spelt as it is shown
+    "https://[::1]/repo", "https://[fe80::1%25en0]/repo", "https://127.0.0.1/repo", "https://10.0.0.2/repo",
+    "https://169.254.169.254/x", "https://0x7f.1/repo", "https://2130706433/repo", "https://localhost/repo",
+    "https://localhost:22/repo", "https://gitea/repo", "https://nas.local/repo", "https://git.lan/repo",
+    "https://git.home.arpa/repo", "https://git.internal/repo", "https://%00/x", "https://a%2Fb/x",
+    "https://github.com%40evil.com/x", "https://git%68ub.com/owner/repo", "https://github.com:99999/owner/repo",
+    "https://github.com:0/owner/repo", "https://github.com:/owner/repo", "https://-github.com/owner/repo",
 ] {
     require(!ApelinLink.isRepositoryAddress(refused), "Not an address to import: \(refused.debugDescription)")
 }
@@ -105,6 +113,8 @@ for branch in [
     "", "a..b", "-x", "--upload-pack=sh", "x.lock", "a/b.lock/c", "@{u}", "a@{1}", "@", "HEAD", "/a", "a/",
     "a//b", "a.", ".hidden", "a/.b", "a b", "a~1", "a^", "a:b", "a?", "a*", "a[b", "a\\b", "a\u{7F}",
     "a\u{0}b", "a\u{202E}b", "a\u{200B}b", "a\u{00A0}b", "a\nb", String(repeating: "b", count: ApelinLink.maximumBranchLength + 1),
+    // drawn blank, so the sheet would show no branch at all
+    "\u{3164}", "\u{2800}", "\u{115F}", "\u{FFA0}", "a\u{FFFE}", "a\u{2060}b", "a\u{E000}",
 ] {
     require(!ApelinLink.isBranchName(branch), "Not a branch: \(branch.debugDescription)")
 }
@@ -121,6 +131,9 @@ for invalid in [
     "apelin://import?url=\(escapedRepository)&url=https%3A%2F%2Fevil.example%2Frepo",
     "apelin://import?url=\(escapedRepository)&branch=main&branch=evil",
     "apelin://import?url=\(escapedRepository)%0A",
+    // escapes that decode to no text are no value, not the default branch
+    "apelin://import?url=\(escapedRepository)&branch=%FF",
+    "apelin://import?url=https%3A%2F%2Fgithub.com%2Fowner%2Frepo%FF",
 ] {
     require(link(invalid) == .invalidImport, "An import naming nothing Apelin imports: \(invalid)")
 }

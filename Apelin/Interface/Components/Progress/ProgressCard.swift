@@ -51,14 +51,21 @@ enum ProgressCard {
         } onCancel: {
             work.cancel()
         }
-        // read before the wait: a Cancel tapped while the card is leaving
-        // came after the work ended, and must not discard its result
-        let cancelled = work.isCancelled
         await card.finish()
-        if cancelled {
+        // The work's own outcome: one that finished is kept whatever Cancel
+        // was tapped while the card left, and a failure the work reported
+        // after a cancel (what it could not take back) is said, not hidden
+        // behind the cancel.
+        switch result {
+        case let .success(value):
+            return value
+        case let .failure(error) where work.isCancelled && !(error is CancellationError):
+            throw error
+        case .failure where work.isCancelled:
             throw CancellationError()
+        case let .failure(error):
+            throw error
         }
-        return try result.get()
     }
 }
 

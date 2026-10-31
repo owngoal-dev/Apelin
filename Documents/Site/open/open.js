@@ -24,8 +24,11 @@ function isRepositoryAddress(address) {
   const match = /^https:\/\/([^/]*)(\/.*)?$/.exec(address);
   if (!match) return false;
   const authority = match[1];
-  if (authority.includes("@")) return false;
-  if (!/^(\[[0-9A-Fa-f:.]+\]|[A-Za-z0-9\-._~!$&'()*+,;=%]+)(:[0-9]*)?$/.test(authority)) return false;
+  // a public host name, spelt as it is shown: no escape, no address
+  // literal, no name only a local network resolves; a port of 1-65535
+  const hostAndPort = /^([A-Za-z0-9.-]+)(?::([0-9]{1,5}))?$/.exec(authority);
+  if (!hostAndPort || !isPublicHostName(hostAndPort[1])) return false;
+  if (hostAndPort[2] !== undefined && !(Number(hostAndPort[2]) >= 1 && Number(hostAndPort[2]) <= 65535)) return false;
   const path = match[2] || "";
   const names = path.split("/").filter((name) => name.length > 0);
   if (names.length === 0 || names.some((name) => name === "." || name === "..")) return false;
@@ -38,22 +41,52 @@ function isRepositoryAddress(address) {
   return !/[\p{Cc}\p{Cf}]/u.test(decoded);
 }
 
+// A name the public DNS answers for: letters, digits, - and dots, at least
+// one dot, no address literal, none of the suffixes only a local network
+// resolves.
+function isPublicHostName(host) {
+  let name = host.toLowerCase();
+  if (name.endsWith(".")) name = name.slice(0, -1);
+  const labels = name.split(".");
+  if (labels.length < 2 || name.length > 253) return false;
+  if (!labels.every((label) => /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/.test(label))) return false;
+  if (labels.every((label) => /^[0-9]+$/.test(label) || label.startsWith("0x"))) return false;
+  const local = ["local", "lan", "internal", "localhost", "localdomain", "intranet", "home.arpa", "corp", "test", "invalid"];
+  return !local.some((suffix) => name === suffix || name.endsWith("." + suffix));
+}
+
 // A branch git takes (check-ref-format --branch), bounded, shown as it reads.
 function isBranchName(name) {
   if (name.length === 0 || utf8Length(name) > MAX_BRANCH) return false;
   if (name.startsWith("-") || name === "HEAD" || name === "@") return false;
   if (name.startsWith("/") || name.endsWith("/") || name.endsWith(".")) return false;
   if (name.includes("//") || name.includes("..") || name.includes("@{")) return false;
-  if (/[\p{Cc}\p{Cf}\p{Z}\s~^:?*[\\]/u.test(name)) return false;
+  if (/[\p{Cc}\p{Cf}\p{Co}\p{Cn}\p{Z}\s~^:?*[\\]/u.test(name)) return false;
+  // drawn blank: the fillers, the braille blank, noncharacters
+  if (/[\u2800\u3164\u115F\u1160\uFFA0\uFFFE\uFFFF]/u.test(name)) return false;
   return name.split("/").every((part) => !part.startsWith(".") && !part.endsWith(".lock"));
 }
 
 // `url` and `branch` each at most once, as Apelin reads them; anything else
 // in the address is ignored. Null when the link names nothing to import.
 function readRequest(search) {
-  const parameters = new URLSearchParams(search);
-  const addresses = parameters.getAll("url");
-  const branches = parameters.getAll("branch");
+  // read as Apelin reads them: `+` is a plus, not a space, and a value
+  // whose escapes do not decode to text names nothing
+  const addresses = [];
+  const branches = [];
+  for (const pair of search.replace(/^\?/, "").split("&")) {
+    if (pair === "") continue;
+    const at = pair.indexOf("=");
+    const name = at < 0 ? pair : pair.slice(0, at);
+    if (name !== "url" && name !== "branch") continue;
+    let value;
+    try {
+      value = decodeURIComponent(at < 0 ? "" : pair.slice(at + 1));
+    } catch {
+      return null;
+    }
+    (name === "url" ? addresses : branches).push(value);
+  }
   if (addresses.length !== 1 || branches.length > 1 || !isRepositoryAddress(addresses[0])) return null;
   const branch = branches.length === 1 && branches[0] !== "" ? branches[0] : null;
   if (branch !== null && !isBranchName(branch)) return null;

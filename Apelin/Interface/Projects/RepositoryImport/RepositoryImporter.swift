@@ -101,18 +101,37 @@ enum RepositoryImporter {
         }
     }
 
+    /// How long a stopped clone may take to end before the workspace is
+    /// left where it is and the user told: a host that stopped answering
+    /// mid-fetch can hold a clone, and the sheet must not wait on it.
+    static let discardWait: Duration = .seconds(15)
+
     /// Takes the workspace away again, its clone stopped and read to its
     /// end first, so the folder goes only once nothing writes in it.
-    /// Answers whether it went.
+    /// Answers whether it went; a clone that does not end within
+    /// `discardWait` leaves it.
     private static func discard(_ created: ProjectCreateResponse, clone: TaskHandle?) async -> Bool {
         let service = ApelinService.app
         if let clone {
             try? await service.environmentCancel(taskID: clone.taskID)
-            do {
-                for try await _ in service.events(of: clone) {}
-            } catch {
-                // the host may have gone with the task; the delete says so
+            let ended = await withTaskGroup(of: Bool.self) { group in
+                group.addTask {
+                    do {
+                        for try await _ in service.events(of: clone) {}
+                    } catch {
+                        // the host may have gone with the task; the delete says so
+                    }
+                    return true
+                }
+                group.addTask {
+                    try? await Task.sleep(for: discardWait)
+                    return false
+                }
+                let first = await group.next() ?? false
+                group.cancelAll()
+                return first
             }
+            guard ended else { return false }
         }
         do {
             _ = try await service.projectDelete(ProjectDeleteRequest(
