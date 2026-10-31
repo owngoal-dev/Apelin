@@ -1,0 +1,220 @@
+import Foundation
+
+/// A level as Dog writes it into a line: Dog's own `DogLevel` raw values,
+/// which Settings ▸ Logs reads back.
+public enum DiagnosticLevel: String, Sendable {
+    case verbose
+    case info
+    case warning
+    case error
+    case critical
+}
+
+/// One conversation's diagnostic journal, `Journal/Agent/<session>.log` in
+/// the data folder, in Dog's line format so that Settings ▸ Logs reads it as
+/// it reads the app's own journal: a `[Category]` line when the category
+/// changes, then `* |<level>| yyyy-MM-dd_HH-mm-ss| message`. A message is
+/// one line: a line break in it is written `\n`, so nothing a tool printed
+/// can start an entry or a category of its own.
+///
+/// The worker writes it as mobile; nothing links Dog here. It is appended to
+/// across the session's reopens. Past `rotationBytes` the file becomes
+/// `<session>.old.log`, replacing the one before, and a new one starts.
+/// Every write is synchronous under a lock, so the worker's last moment
+/// still reaches the file. The file is opened without following a link and
+/// written only while it is a regular file of this user's with one link:
+/// a link, another user's file or a second name of one is never written
+/// through. One deleted from Settings meanwhile is made again.
+public final class DiagnosticJournal: @unchecked Sendable {
+    /// Where a file is rotated: one predecessor of at most this much is kept.
+    public static let rotationBytes = 2 * 1024 * 1024
+    /// The conversations whose journals the folder keeps, written last first.
+    public static let retainedJournals = 100
+    public static let fileExtension = "log"
+    /// What a rotated file's name ends with: `<session>.old.log`.
+    public static let previousSuffix = ".old.log"
+
+    public let url: URL
+    /// The file `url` was rotated into last.
+    public let previousURL: URL
+    private let rotationBytes: Int
+    private let lock = NSLock()
+    private var descriptor: Int32 = -1
+    private var identity: (device: dev_t, inode: ino_t)?
+    private var size = 0
+    /// The category of the last line written to the open file.
+    private var category: String?
+    private let formatter = DiagnosticJournal.formatter("yyyy-MM-dd_HH-mm-ss")
+
+    /// The journal `name` in `folder`, which must exist; nothing is opened
+    /// until the first write.
+    public init(folder: URL, name: String, rotationBytes: Int = DiagnosticJournal.rotationBytes) {
+        url = folder.appendingPathComponent(name + "." + Self.fileExtension)
+        previousURL = folder.appendingPathComponent(name + Self.previousSuffix)
+        self.rotationBytes = rotationBytes
+    }
+
+    deinit {
+        if descriptor >= 0 {
+            close(descriptor)
+        }
+    }
+
+    /// Writes one entry, with its category line first when the category
+    /// changed. Answers whether it reached the file.
+    @discardableResult
+    public func write(
+        _ category: String,
+        _ message: String,
+        level: DiagnosticLevel = .info,
+        date: Date = Date(),
+    ) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        let entry = Self.entry(level: level, timestamp: formatter.string(from: date), message: message)
+        guard prepare(adding: entry.utf8.count + category.utf8.count + 3) else { return false }
+        var text = self.category == category ? "" : "[\(category)]\n"
+        text += entry + "\n"
+        let data = Array(text.utf8)
+        let written = data.withUnsafeBytes { bytes in
+            Darwin.write(descriptor, bytes.baseAddress, bytes.count)
+        }
+        size += max(0, written)
+        guard written == data.count else {
+            // the category line may be what was lost: write it again next time
+            self.category = nil
+            return false
+        }
+        self.category = category
+        return true
+    }
+
+    /// `* |<level>| <timestamp>| <message>`, the message on one line.
+    public static func entry(level: DiagnosticLevel, timestamp: String, message: String) -> String {
+        "* |\(level.rawValue)| \(timestamp)| " + oneLine(message)
+    }
+
+    /// `text` with every line break written `\n`.
+    public static func oneLine(_ text: String) -> String {
+        guard text.contains(where: \.isNewline) else { return text }
+        var line = ""
+        line.reserveCapacity(text.utf8.count)
+        for character in text {
+            if character.isNewline {
+                line += "\\n"
+            } else {
+                line.append(character)
+            }
+        }
+        return line
+    }
+
+    /// What the journal holds, the rotated file first, each read up to
+    /// twice `rotationBytes` without following a link.
+    public func contents() -> String {
+        lock.lock()
+        defer { lock.unlock() }
+        return [previousURL, url].compactMap { Self.read($0, limit: 2 * rotationBytes) }.joined()
+    }
+
+    /// Removes the journals in `folder` past the `keeping` written last,
+    /// with their rotated files, never `sparing`'s. Only regular files
+    /// count: a link is neither followed nor removed.
+    public static func prune(folder: URL, keeping: Int = retainedJournals, sparing: String? = nil) {
+        let names = (try? FileManager.default.contentsOfDirectory(atPath: folder.path)) ?? []
+        let journals = names.filter { $0.hasSuffix("." + fileExtension) && !$0.hasSuffix(previousSuffix) }
+            .compactMap { name -> (name: String, modified: Double)? in
+                var metadata = stat()
+                guard lstat(folder.appendingPathComponent(name).path, &metadata) == 0,
+                      metadata.st_mode & S_IFMT == S_IFREG else { return nil }
+                let modified = Double(metadata.st_mtimespec.tv_sec) + Double(metadata.st_mtimespec.tv_nsec) / 1e9
+                return (name, modified)
+            }
+            .sorted { $0.modified != $1.modified ? $0.modified > $1.modified : $0.name > $1.name }
+        for journal in journals.dropFirst(max(0, keeping)) {
+            let name = String(journal.name.dropLast(fileExtension.count + 1))
+            guard name != sparing else { continue }
+            unlink(folder.appendingPathComponent(journal.name).path)
+            unlink(folder.appendingPathComponent(name + previousSuffix).path)
+        }
+    }
+
+    /// A formatter fixed to en_US_POSIX and the Gregorian calendar, as
+    /// Dog's, so the reader's calendar or clock cannot change a line.
+    public static func formatter(_ format: String) -> DateFormatter {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.dateFormat = format
+        return formatter
+    }
+
+    // MARK: - The file
+
+    /// The file open and ready for `bytes` more: opened again when the one
+    /// open is no longer at `url`, rotated first when it would grow past
+    /// `rotationBytes`.
+    private func prepare(adding bytes: Int) -> Bool {
+        if descriptor >= 0, !isStillAtURL() {
+            closeFile()
+        }
+        if descriptor < 0, !openFile() {
+            return false
+        }
+        if size > 0, size + bytes > rotationBytes {
+            closeFile()
+            // one that cannot be moved aside is written on: a line is
+            // worth more than the bound
+            _ = rename(url.path, previousURL.path)
+            return openFile()
+        }
+        return true
+    }
+
+    private func isStillAtURL() -> Bool {
+        var metadata = stat()
+        guard lstat(url.path, &metadata) == 0, let identity else { return false }
+        return metadata.st_dev == identity.device && metadata.st_ino == identity.inode
+    }
+
+    private func openFile() -> Bool {
+        let opened = open(url.path, O_WRONLY | O_APPEND | O_CREAT | O_NOFOLLOW | O_CLOEXEC, 0o600)
+        guard opened >= 0 else { return false }
+        var metadata = stat()
+        guard fstat(opened, &metadata) == 0, metadata.st_mode & S_IFMT == S_IFREG,
+              metadata.st_nlink == 1, metadata.st_uid == geteuid()
+        else {
+            close(opened)
+            return false
+        }
+        descriptor = opened
+        identity = (metadata.st_dev, metadata.st_ino)
+        size = Int(metadata.st_size)
+        // what the file ended with is not known: the next line names its category
+        category = nil
+        return true
+    }
+
+    private func closeFile() {
+        if descriptor >= 0 {
+            close(descriptor)
+        }
+        descriptor = -1
+        identity = nil
+        size = 0
+        category = nil
+    }
+
+    private static func read(_ url: URL, limit: Int) -> String? {
+        let opened = open(url.path, O_RDONLY | O_NOFOLLOW | O_CLOEXEC)
+        guard opened >= 0 else { return nil }
+        defer { close(opened) }
+        var metadata = stat()
+        guard fstat(opened, &metadata) == 0, metadata.st_mode & S_IFMT == S_IFREG else { return nil }
+        let count = min(Int(metadata.st_size), limit)
+        var data = Data(count: count)
+        let read = data.withUnsafeMutableBytes { Darwin.read(opened, $0.baseAddress, count) }
+        guard read >= 0 else { return nil }
+        return String(decoding: data.prefix(read), as: UTF8.self)
+    }
+}

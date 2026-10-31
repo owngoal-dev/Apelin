@@ -129,6 +129,7 @@ enum ChatActions {
         } catch is CancellationError {
             return
         } catch {
+            ConversationJournal.compactFailed(error, session: runtime.records[id]?.sessionID)
             presenter.presentNotice(title: "Unable to Compact Chat", message: error.readableMessage)
             return
         }

@@ -265,7 +265,7 @@ final class SidebarController: UIViewController {
             projectMenuButton,
             UIBarButtonItem(
                 image: UIImage(systemName: "gearshape"),
-                primaryAction: UIAction { [weak self] _ in self?.presentPageAsFormSheet(SettingsViewController()) },
+                primaryAction: UIAction { [weak self] _ in self?.presentSettings() },
             ).then { $0.accessibilityLabel = String(localized: "Settings") },
         ]
 
@@ -531,6 +531,14 @@ final class SidebarController: UIViewController {
                 onProjectsLoaded?()
             }
         } catch { presentNotice(title: "Projects Unavailable", message: error.readableMessage) }
+    }
+
+    /// Settings, whose Logs names each conversation's journal by the
+    /// conversation the runtime has for its session.
+    private func presentSettings() {
+        let settings = SettingsViewController()
+        settings.conversationTitle = { [weak self] session in self?.runtime.title(ofSession: session) }
+        presentPageAsFormSheet(settings)
     }
 
     private func openNewProject() {

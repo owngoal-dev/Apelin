@@ -116,6 +116,7 @@ public struct ChannelHostBackend: AgentHostBackend {
                 : response.stderr,
             truncated: response.truncated,
             durationMilliseconds: response.durationMilliseconds,
+            timedOut: response.timedOut,
         )
     }
 

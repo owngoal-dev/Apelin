@@ -274,8 +274,8 @@ final class ChatRuntime {
     }
 
     /// The title of the conversation `sessionID` is, which names a message
-    /// its agent sent.
-    private func title(ofSession sessionID: String) -> String? {
+    /// its agent sent, and its journal in Settings ▸ Logs.
+    func title(ofSession sessionID: String) -> String? {
         records.values.first { $0.sessionID == sessionID }?.summary.displayTitle
     }
 
@@ -517,6 +517,7 @@ final class ChatRuntime {
                     let fresh = records[id]?.take(batch.events) ?? []
                     // never the replay, which `take` reads past
                     records[id]?.summary.noteReplies(in: fresh, isViewed: id == viewedChat)
+                    ConversationJournal.note(fresh, session: records[id]?.sessionID)
                     settleSending(in: id, against: fresh)
                     let builds = CompletedBuilds.count(in: fresh)
                     if builds > 0 {

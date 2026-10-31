@@ -39,6 +39,13 @@ public struct ApelinDataRoot: Sendable, Hashable {
         url.appendingPathComponent("skills", isDirectory: true)
     }
 
+    /// `Journal/Agent/`: each conversation's diagnostic journal, beside
+    /// the app's own Dog files in `Journal/` (`SessionJournal`).
+    public var agentJournals: URL {
+        url.appendingPathComponent("Journal", isDirectory: true)
+            .appendingPathComponent("Agent", isDirectory: true)
+    }
+
     /// Temporary conversations' folders, which belong to no project.
     public var temporary: URL {
         url.appendingPathComponent("Temporary")

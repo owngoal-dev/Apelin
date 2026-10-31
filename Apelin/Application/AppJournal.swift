@@ -11,6 +11,20 @@ enum AppJournal {
         DataFolder.app.root.appendingPathComponent("Journal", isDirectory: true)
     }
 
+    /// `Journal/Agent/`: the journal each conversation's agent writes
+    /// (apelin-agent's `SessionJournal`), which Settings ▸ Logs lists too.
+    static var agentDirectory: URL {
+        directory.appendingPathComponent("Agent", isDirectory: true)
+    }
+
+    /// What the app's lines never name: credentials, e-mail addresses,
+    /// mobile's home and, on roothide, the install root (`LogRedaction`).
+    /// A journal is shared to report a problem.
+    static let redaction = LogRedaction(
+        home: DataFolder.app.root.deletingLastPathComponent().deletingLastPathComponent().path,
+        installRoot: RoothideRoot.containing(Bundle.main.bundlePath),
+    )
+
     /// Opens this launch's file, once, early in `didFinishLaunching`. In
     /// the data folder the package made, `DataFolder.app`: Dog's default is
     /// `.documentDirectory`, which for an app without a container is
@@ -37,8 +51,8 @@ enum AppJournal {
             Apelin \(version) (\(build)) launched
             System: \(UIDevice.current.systemName) \(UIDevice.current.systemVersion)
             Location:
-                [*] \(Bundle.main.bundleURL.path)
-                [*] \(folder.root.path)
+                [*] \(redaction.redacted(Bundle.main.bundleURL.path))
+                [*] \(redaction.redacted(folder.root.path))
             Environment: uid \(getuid()) gid \(getgid())
             """,
             level: .info,

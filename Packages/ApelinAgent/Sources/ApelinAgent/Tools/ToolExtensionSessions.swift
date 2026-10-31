@@ -94,12 +94,15 @@ actor ToolExtensionSessions {
 /// An extension's error answer, as the call's failed result.
 struct ToolExtensionError: Error, LocalizedError {
     var message: String
+    /// The extension's code: `timeout` when it did not answer in time.
+    var code: String
     var errorDescription: String? {
         message
     }
 
     init(_ tool: ExtensionTool, _ failure: ToolExtensionFailure) {
         message = "\(tool.extensionName) answered \(failure.code): \(failure.message)"
+        code = failure.code
     }
 }
 

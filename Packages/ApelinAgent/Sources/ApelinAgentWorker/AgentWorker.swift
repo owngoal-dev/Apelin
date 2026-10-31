@@ -32,6 +32,10 @@ public enum AgentWorker {
                 }
                 await state.abort()
             }
+        }, onClose: {
+            // the host has gone and the worker exits next: what still runs
+            // never ends, and the journal says so while it can
+            SessionJournal.interruptAll(reason: "the session host closed the worker's channel")
         }) { request, context in
             await handle(request, context: context, state: state)
         }

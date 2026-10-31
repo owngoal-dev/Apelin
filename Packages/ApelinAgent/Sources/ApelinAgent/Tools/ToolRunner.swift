@@ -34,6 +34,9 @@ actor ToolRunner {
     let webFetch: WebFetch
     /// The agent tool extensions' sessions, opened as their tools are called.
     let toolExtensions: ToolExtensionSessions
+    /// Hears how a call was refused, stopped or ran out of time, where that
+    /// is decided, for the session's diagnostic journal.
+    let journal: SessionJournal?
     private var notices = UserNotices()
 
     init(
@@ -49,6 +52,7 @@ actor ToolRunner {
         readOnlyRoots: ReadOnlyRoots = .none,
         record: (@Sendable (AgentSessionEvent) async throws -> Void)? = nil,
         webFetch: WebFetch = .shared,
+        journal: SessionJournal? = nil,
     ) {
         self.sessionID = sessionID
         self.project = project
@@ -62,6 +66,7 @@ actor ToolRunner {
         self.readOnlyRoots = readOnlyRoots
         self.record = record
         self.webFetch = webFetch
+        self.journal = journal
         toolExtensions = ToolExtensionSessions(backend: backend)
     }
 
@@ -159,7 +164,25 @@ actor ToolRunner {
 
     // MARK: - Gate
 
+    /// Runs one call; one that throws is noted in the journal for what it
+    /// came to (`ToolCallOutcome`), unless where it was decided noted it.
     func run(
+        _ tool: InvocationFacts.Tool,
+        toolCallID: String,
+        arguments: JSONValue,
+        cancellation: CancellationHandle?,
+        mcp: (@Sendable (JSONValue) async throws -> AgentToolResult)?,
+    ) async throws -> AgentToolResult {
+        do {
+            return try await gated(tool, toolCallID: toolCallID, arguments: arguments, cancellation: cancellation, mcp: mcp)
+        } catch {
+            let stopped = cancellation?.isCancelled == true || Task.isCancelled
+            journal?.note(ToolCallOutcome.of(error, stopped: stopped), for: toolCallID)
+            throw error
+        }
+    }
+
+    private func gated(
         _ tool: InvocationFacts.Tool,
         toolCallID: String,
         arguments: JSONValue,
@@ -220,6 +243,7 @@ actor ToolRunner {
         case let .allow(allowed):
             evidence = allowed
         case let .deny(reason):
+            journal?.note(ToolCallOutcome(.denied, "the approval policy refused it: \(reason)"), for: toolCallID)
             throw ToolDeniedError(message: "refused: \(reason)\(readOnlyNote(tool))")
         case let .ask(reason, detail):
             evidence = try await ask(reason, detail)
@@ -301,6 +325,10 @@ actor ToolRunner {
         case .approve:
             return .user(requestID: request.id, fingerprint: fingerprint)
         case let .deny(reason):
+            // a stop while it waited is the stop's, as the wrapper notes it
+            if cancellation?.isCancelled != true {
+                journal?.note(ToolCallOutcome(.denied, "the user declined it"), for: toolCallID)
+            }
             throw ToolDeniedError(message: "the user declined this call\(reason.map { ": \($0)" } ?? "")")
         }
     }
@@ -490,13 +518,17 @@ actor ToolRunner {
                 throw ToolArgumentError("shell_run needs argv, command or script")
             }
             let timeout = min(1800, max(1, arguments.argInt("timeout_seconds") ?? 120))
-            return try await json(backend.runCode(RunCodeRequest(
+            let ran = try await backend.runCode(RunCodeRequest(
                 context: context,
                 invocation: invocation,
                 workingDirectory: facts.workingDirectory,
                 timeoutSeconds: timeout,
                 asRoot: facts.runsAsRoot,
-            )))
+            ))
+            if ran.timedOut == true {
+                journal?.note(ToolCallOutcome(.timedOut, "killed after \(timeout) s"), for: context.toolCallID)
+            }
+            return json(ran)
 
         case .projectBuild:
             // A workspace has no build description: its build runs its own

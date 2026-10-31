@@ -1,4 +1,3 @@
-import Dog
 import Then
 import UIKit
 
@@ -13,7 +12,7 @@ extension LogViewerController {
     }
 
     private func createMenu() -> UIMenu {
-        let levelActions = [Dog.DogLevel.verbose, .info, .warning, .error, .critical].map { level in
+        let levelActions = JournalLevel.allCases.map { level in
             UIAction(
                 title: Self.name(of: level),
                 state: selectedLevels.contains(level) ? .on : .off,
@@ -99,7 +98,7 @@ extension LogViewerController {
     }
 
     /// The level as the filter menu and VoiceOver name it.
-    static func name(of level: Dog.DogLevel) -> String {
+    static func name(of level: JournalLevel) -> String {
         switch level {
         case .verbose: String(localized: "Verbose")
         case .info: String(localized: "Info")
@@ -109,7 +108,7 @@ extension LogViewerController {
         }
     }
 
-    private func toggleLevel(_ level: Dog.DogLevel) {
+    private func toggleLevel(_ level: JournalLevel) {
         if selectedLevels.contains(level) {
             selectedLevels.remove(level)
         } else {
@@ -131,7 +130,7 @@ extension LogViewerController {
     /// half a megabyte pasted into a message field.
     private func shareLog() {
         let text = logText()
-        let copy = FileManager.default.temporaryDirectory.appendingPathComponent("apelin-" + file.name.dropFirst(4))
+        let copy = FileManager.default.temporaryDirectory.appendingPathComponent(file.shareName)
         let items: [Any] = if (try? text.write(to: copy, atomically: true, encoding: .utf8)) != nil {
             [copy]
         } else {
@@ -145,7 +144,7 @@ extension LogViewerController {
     /// Hides what the running launch wrote so far; the file keeps it, and
     /// Share sends only what is shown after this.
     private func clearLog() {
-        hiddenPrefixCount = Self.text(of: file.url, hiding: 0).count
+        hiddenPrefixCount = Self.text(of: file, hiding: 0).count
         reload(growing: false)
     }
 

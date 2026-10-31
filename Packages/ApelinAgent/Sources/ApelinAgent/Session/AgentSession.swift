@@ -18,6 +18,8 @@ public actor AgentSession {
 
     public nonisolated let configuration: AgentSessionConfiguration
     public nonisolated let log: SessionEventLog
+    /// The conversation's diagnostic journal, `Journal/Agent/<id>.log`.
+    nonisolated let journal: SessionJournal
 
     private let agent: Agent
     private let gate: ApprovalGate
@@ -113,6 +115,11 @@ public actor AgentSession {
         }
 
         let log = try SessionEventLog(sessionsRoot: configuration.dataRoot.sessions, sessionID: configuration.id)
+        let journal = SessionJournal.open(
+            dataRoot: configuration.dataRoot,
+            sessionID: configuration.id,
+            installRoot: configuration.installRoot,
+        )
         let previous = try await log.readMetadata()
         if previous == nil {
             try await log.writeMetadata(SessionMetadata(
@@ -128,8 +135,22 @@ public actor AgentSession {
         let transcript = try await LegacyToolNames.migrate(log.readTranscript())
         try await Self.closeAbandonedApprovals(log)
 
-        let resolved = try await ProviderResolver.resolve(configuration.provider, credentials: credentials)
-        let gate = ApprovalGate { event in _ = try? await log.append(event) }
+        let resolved: ResolvedProvider
+        do {
+            resolved = try await ProviderResolver.resolve(configuration.provider, credentials: credentials)
+        } catch {
+            journal.sessionOpenFailed(error)
+            throw error
+        }
+        journal.sessionOpened(configuration, model: resolved.model, reopened: previous != nil, historyMessages: transcript.count)
+        journal.closeUnfinishedCalls()
+        for id in log.opened.openApprovals {
+            journal.approvalResolved(id: id, decision: Self.abandonedApproval)
+        }
+        let gate = ApprovalGate { event in
+            journal.record(event)
+            _ = try? await log.append(event)
+        }
         let memory = MemoryStore(root: configuration.dataRoot.url)
         let runner = ToolRunner(
             sessionID: configuration.id,
@@ -143,6 +164,7 @@ public actor AgentSession {
             skills: configuration.dataRoot.skills,
             readOnlyRoots: ReadOnlyRoots(installRoot: configuration.installRoot, dataRoot: configuration.dataRoot),
             record: { _ = try await log.append($0) },
+            journal: journal,
         )
         let (mcpManager, mcpTools) = await MCPBridge.connect(configuration.mcpServers)
         let toolExtensions = ToolExtensionOffer.read(
@@ -167,15 +189,22 @@ public actor AgentSession {
                 tools: runner.agentTools(mcp: mcpTools, extensions: toolExtensions.extensions),
                 messages: transcript,
             ),
-            // a request the network failed waits for it to come back
-            streamFn: NetworkRecovery.stream(path: configuration.network) {
+            // a request the network failed waits for it to come back; each
+            // that failed is journaled
+            streamFn: NetworkRecovery.stream(
+                path: configuration.network,
+                inner: journal.observingRequests { model, context, options in
+                    try await KWWKAI.stream(model: model, context: context, options: options)
+                },
+            ) {
+                journal.waitingForNetwork()
                 _ = try? await log.append(.reconnecting)
             },
             toolExecution: .sequential,
             sessionId: configuration.id,
             cwd: root.path,
             maxTurns: configuration.maxTurns,
-            autoCompact: AgentAutoCompactOptions(config: NativeCompactionFallback.configuration),
+            autoCompact: AgentAutoCompactOptions(config: journal.observingCompaction(NativeCompactionFallback.configuration)),
             authResolver: resolved.authResolver,
         ))
         agent.state.serviceTier = configuration.serviceTier
@@ -187,6 +216,7 @@ public actor AgentSession {
         resolvedFrom = (configuration.provider, resolved.credentials)
         self.configuration = configuration
         self.log = log
+        self.journal = journal
         self.agent = agent
         self.gate = gate
         self.runner = runner
@@ -228,6 +258,7 @@ public actor AgentSession {
         agent.state.serviceTier = serviceTier
         agent.authResolver = resolved.authResolver
         resolvedFrom = (provider, resolved.credentials)
+        journal.modelChanged(to: resolved.model)
     }
 
     // MARK: - Control
@@ -237,6 +268,7 @@ public actor AgentSession {
     /// the system prompt names every mode and none as the one on.
     public func setApprovalMode(_ mode: ApprovalMode) async {
         guard await runner.setMode(mode) else { return }
+        journal.modeChanged(to: mode)
         if var metadata = try? await log.readMetadata() {
             metadata.mode = mode
             try? await log.writeMetadata(metadata)
@@ -380,6 +412,7 @@ public actor AgentSession {
               titleTask == nil, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         let model = agent.state.model
         let authResolver = agent.authResolver
+        let journal = journal
         titleTask = Task { [weak self] in
             let cancellation = CancellationHandle()
             let timeout = Task {
@@ -431,7 +464,11 @@ public actor AgentSession {
                     }
                 }
             } catch {
-                // A title is optional; provider errors must not interrupt the conversation.
+                // A title is optional; provider errors must not interrupt the
+                // conversation. A stop is no failure; a timeout is.
+                if !Task.isCancelled {
+                    journal.titleFailed(error)
+                }
             }
             await self?.titleFinished()
         }
@@ -632,6 +669,12 @@ public actor AgentSession {
         aborted = false
         let agent = agent
         let sessionID = id
+        journal.compactionStarted(
+            .requested,
+            model: agent.state.model,
+            messages: agent.state.messages.count,
+            usage: contextUsage,
+        )
         compaction = Task { [weak self] in
             await self?.record(.compactionStarted)
             let outcome = await Self.runCompaction(agent, sessionID: sessionID)
@@ -658,6 +701,7 @@ public actor AgentSession {
     }
 
     private func compactionEnded(_ outcome: AgentContextCompactionOutcome) async {
+        journal.compactionEnded(outcome, usage: contextUsage, stopped: aborted)
         let result = switch outcome {
         case let .compacted(messagesCompacted, _):
             AgentCompactionResult(
@@ -730,6 +774,7 @@ public actor AgentSession {
         unsubscribe = nil
         await mcpManager?.shutdown()
         await runner.closeToolExtensions()
+        journal.sessionClosed()
         await log.close()
     }
 
@@ -740,6 +785,7 @@ public actor AgentSession {
         case .agentStart:
             // the counter counts each run's output from nothing
             output = OutputTally()
+            journal.runStarted(model: agent.state.model, messages: agent.state.messages.count)
         case let .messageStart(message):
             switch message {
             case .assistant:
@@ -781,6 +827,7 @@ public actor AgentSession {
             await recordOutput(messageEnded: true)
             await record(.messageFinished(text: Self.text(of: assistant.content)))
             if assistant.stopReason == .error {
+                journal.replyFailed(assistant)
                 await record(.error(
                     message: assistant.errorMessage.map(ErrorDescription.localized)
                         ?? "The model provider returned an error. Try again.",
@@ -788,11 +835,16 @@ public actor AgentSession {
             }
         case .streamRewind:
             // kwwk gave up the message it was streaming; the next one replaces it
+            journal.replyDiscarded()
             await record(.messageDiscarded)
-        case .streamRetry:
+        case let .streamRetry(attempt, delayMs, reason):
+            journal.retrying(attempt: attempt, delayMs: delayMs, reason: reason)
             await record(.reconnecting)
+        case let .compactStart(messagesCount, usage):
+            journal.compactionStarted(.automatic, model: agent.state.model, messages: messagesCount, usage: usage)
         case let .compactEnd(outcome):
             // kwwk compacted on its own, as the context filled
+            journal.compactionEnded(outcome, usage: contextUsage, stopped: aborted)
             if case .compacted = outcome {
                 snapshotStale = true
             }
@@ -800,8 +852,10 @@ public actor AgentSession {
             if let tool = AgentToolName(rawValue: name), Self.ownChangeTools.contains(tool) {
                 ownCalls[id] = (tool, args)
             }
+            journal.toolStarted(id: id, name: name, arguments: args)
             await record(.toolCallStarted(ToolCallRecord(id: id, name: name, arguments: args.canonicalJSON)))
         case let .toolExecutionEnd(id, name, result, isError):
+            journal.toolEnded(id: id, name: name, result: result, isError: isError, runStopped: aborted)
             if let call = ownCalls.removeValue(forKey: id), !isError {
                 // the tool's result told the model; no delta repeats it
                 told = PromptState.absorbing(
@@ -891,6 +945,7 @@ public actor AgentSession {
         if aborted {
             return
         }
+        journal.runFailed(error.localizedDescription)
         await record(.error(message: error.localizedDescription))
     }
 
@@ -923,6 +978,7 @@ public actor AgentSession {
             await dropQueued()
         }
         await runner.turnEnded()
+        journal.runEnded(reason)
         await record(.finished(reason: reason))
         // a stop meanwhile dropped them
         runTask = next.isEmpty || aborted ? nil : carryOver(next)
@@ -975,9 +1031,17 @@ public actor AgentSession {
         return joined
     }
 
+    /// What an approval a previous process left waiting is resolved as.
+    private static let abandonedApproval = ApprovalDecision.deny(reason: "the session restarted")
+
     private static func closeAbandonedApprovals(_ log: SessionEventLog) async throws {
         for id in log.opened.openApprovals {
-            try await log.append(.approvalResolved(requestID: id, decision: .deny(reason: "the session restarted")))
+            try await log.append(.approvalResolved(requestID: id, decision: abandonedApproval))
         }
+    }
+
+    /// How full the context is now, as kwwk measures it for compaction.
+    private var contextUsage: AgentContextUsage {
+        AgentContextCompactor.currentUsage(messages: agent.state.messages, model: agent.state.model)
     }
 }

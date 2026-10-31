@@ -70,6 +70,9 @@ public struct RunCodeResponse: Sendable, Hashable, Codable {
     public var stderr: String
     public var truncated: Bool
     public var durationMilliseconds: Int
+    /// The host killed it at the request's timeout; nil, and absent from
+    /// what the model reads, when it was not.
+    public var timedOut: Bool?
 
     public init(
         exitCode: Int32,
@@ -77,11 +80,13 @@ public struct RunCodeResponse: Sendable, Hashable, Codable {
         stderr: String,
         truncated: Bool = false,
         durationMilliseconds: Int = 0,
+        timedOut: Bool = false,
     ) {
         self.exitCode = exitCode
         self.stdout = stdout
         self.stderr = stderr
         self.truncated = truncated
         self.durationMilliseconds = durationMilliseconds
+        self.timedOut = timedOut ? true : nil
     }
 }

@@ -1085,7 +1085,55 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   last number), and a reattach replays from disk outside the log's actor
   while appends go on, so an open answers at once and a send never waits
   behind the history; a line that will not decode stands as an `error` of
-  its number. `agentCompact` (the
+  its number. Beside it the worker keeps the conversation's diagnostic
+  journal (owner, issue #27; `ApelinAgent/Journal/`), which Settings ▸
+  Logs lists under Chats: `Journal/Agent/<session>.log` in the data
+  folder, its levels made as mobile without following a link (Dog's own
+  files stay at the top of `Journal/`), in Dog's line format — a
+  `[Category]` line at each change, `* |<level>| <yyyy-MM-dd_HH-mm-ss>|
+  <message>`, a line break in a message written `\n` so no tool output
+  starts an entry —, appended across reopens, written synchronously under
+  a lock and only while the file is a regular one of mobile's with one
+  link (`DiagnosticJournal`). Past 2 MB it becomes `<session>.old.log`,
+  replacing the one before; each open keeps the 100 journals written last.
+  `SessionJournal` writes, by category: Session (open or reopen with
+  provider, model id, API wire and the endpoint's host, never a key; an
+  open that failed; model and mode changes; close), Model (each run's
+  start and end with its finish reason and tool count, a run's error,
+  every model request that ended on an error with its HTTP status,
+  provider code and request ID — `observingRequests` inside
+  `NetworkRecovery` —, a reply that failed, kwwk's retries, a wait for
+  the network, a partial reply discarded, a title that failed), Tool
+  (`Started call=<id> tool=<name> session=<id> at=<ms>` with the
+  arguments, then `Ended call=… status=…` with start, end, duration, the
+  result and, where it was decided, a `detail`), Approval (asked, with the
+  call and reason; resolved, with the decision and the wait) and
+  Compaction (started — automatic from kwwk's `compactStart`, or
+  requested by `agentCompact` — with the messages, tokens and window and
+  the model; whether the native compaction answered, had no summary or
+  failed with its status, `observingCompaction`; ended with the outcome,
+  `summary=native|local`, the messages compacted and tokens after, or
+  failed with its duration, the HTTP status a request had meanwhile and
+  the error). A call's status is `succeeded`, `failed`, `denied`,
+  `cancelled`, `timed-out` or `interrupted`: the runner notes a refusal,
+  a stop or a timeout where it is decided (`ToolCallOutcome`: the policy's
+  `deny`, the user's decline, the host's `denied`/`timeout`, shell_run's
+  `timedOut`, an extension's `timeout`, apelin_web_fetch's 30 s), kwwk's
+  `toolExecutionEnd` ends the call with it, a call still running at close
+  or when the host closes the worker's channel (`WorkerMain`'s `onClose`)
+  ends `interrupted`, and one the journal shows started and never ended is
+  ended `interrupted` when the conversation opens again, so a crash leaves
+  no call that looks as if it were running. Every line is redacted first
+  (`JournalRedaction` over ApelinCore's `LogRedaction`): tokens and keys
+  by their shapes (`ghp_`, `gho_`, `github_pat_`, `sk-`, `oc_sk_`, AWS,
+  Slack, Google, JWTs, private keys), Bearer and Basic values, fields and
+  headers named like a secret, a password in an address, e-mail
+  addresses, mobile's home (`~`), the install root, roothide's
+  `.jbroot-<id>`, root's home and an app container's ID; arguments keep
+  their shape with each string cut to 256 bytes, and an argument summary
+  or result is cut to 1 KB, an error to 4 KB, each marked
+  `… [truncated from <n> bytes]`. Tested by `SessionJournalTests`,
+  `LogRedactionTests` and `Tests/Journal`. `agentCompact` (the
   app's alone, 2026-10-24) compacts the conversation between runs with
   kwwk's own compactor, as it does when the context fills — natively where
   the provider can —, answers once begun (`conflict` while a run or
@@ -2357,7 +2405,8 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   `AppJournal.start()` calls `Dog.shared.initialization(writableDir:
   DataFolder.app.root)` once, early in `didFinishLaunching`, after making
   `Journal/` with `makeLevels` (so a missing data folder is an NSLog line,
-  never a folder Dog makes), and writes a launch header. `DataFolder.app`,
+  never a folder Dog makes), and writes a launch header, its paths through
+  `AppJournal.redaction` (`~`, `<install root>`). `DataFolder.app`,
   not `DataFolder(home: NSHomeDirectory())`: on roothide `NSHomeDirectory()`
   is the system's `/var/mobile`, not the bootstrap's. Never call it with no
   argument: its default is `.documentDirectory`, which for an app with no
@@ -2369,9 +2418,21 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   Settings ▸ About ▸ Logs (`Apelin/Interface/Settings/Logs/`) reads it
   back: every launch Dog keeps (`JournalFiles`, tested by
   `Tests/Journal`), this one first, each opening Irisin's log page
-  (`LogViewerController`: level and category filters, Errors Only, Share as
+  (`LogViewerController`: level and category filters, Errors Only, a search
+  field over each entry's text — a call ID finds its call —, Share as
   a `.log` file, row Copy; the running launch is followed and can be
-  Cleared from view); an earlier launch's file can be deleted.
+  Cleared from view); an earlier launch's file can be deleted. Under it,
+  Chats lists the agent's journal of each conversation (Agent sessions ▸
+  the diagnostic journal; owner, issue #27), written last first, named by
+  the conversation the runtime has for its session (else by when it was
+  last written), read with its rotated file first and deleted with it.
+  The app's journal itself has one line, category `Conversation`, for each
+  problem it sees arrive in a conversation (`ConversationJournal`): an
+  `error` event, a `compactionFinished` that failed, a Compact… that could
+  not be asked for, with the session, redacted (`LogRedaction`); a
+  reopened session's replay, which `ChatRecord.take` reads past, adds
+  none. The parser is `JournalLines`, Foundation only, which
+  `Tests/Journal` feeds what apelin-agent's `DiagnosticJournal` writes.
 - **Release notes** live in `Documents/Releases/<version>.md`, written before
   the tag.
 - **Before every push, tag or release**, an agent reads the diff, the staged

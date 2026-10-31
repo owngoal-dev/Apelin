@@ -219,7 +219,7 @@ struct WebFetch: Sendable {
             group.addTask(operation: body)
             group.addTask {
                 try await Task.sleep(nanoseconds: UInt64(timeoutSeconds) * 1_000_000_000)
-                throw ToolDeniedError(message: "\(url.absoluteString) did not answer within \(timeoutSeconds) seconds")
+                throw ToolTimeoutError(message: "\(url.absoluteString) did not answer within \(timeoutSeconds) seconds")
             }
             defer { group.cancelAll() }
             guard let first = try await group.next() else { throw CancellationError() }

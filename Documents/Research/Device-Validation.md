@@ -183,6 +183,22 @@ console now goes on after a restart only past a successful respring.
 
 ## Still to run on the owner's devices
 
+- [ ] Each conversation's diagnostic journal (2026-10-31, issue #27,
+      AGENTS.md ▸ Agent sessions; only the Mac's `SessionJournalTests`,
+      `LogRedactionTests` and `Tests/Journal` have run). After `make
+      vphone`, on the iPhone and the iPad vphone: in a project's chat, a
+      call that runs (file_read), one declined under Strict, one stopped
+      while it waits, and Compact…; Settings ▸ About ▸ Logs lists the chat
+      under Chats by its name, its page shows the Session, Model, Tool,
+      Approval and Compaction lines, a call ID typed in the search field
+      finds its `Started` and `Ended` lines (succeeded, denied, cancelled),
+      and Share sends `apelin-agent-<session>.log` with no key, home path
+      or jbroot in it. `kill-host` while a shell_run sleeps, then a message
+      in the same chat: the call's `Ended … status=interrupted` line. On a
+      Copilot GPT model where #26's compaction fails, the Compaction line
+      says `Failed … status=400` with the provider's words, and the app's
+      journal for that launch has the `Conversation` line with the session.
+
 - [ ] A preference bundle's Settings row with its icon (2026-10-30, issue
       #19, `wiki.qaq.apelin.dev.preferences` 0.1.3), on a device where
       PreferenceLoader shows panes (the owner's iOS 17.3.1 iPhone): a new

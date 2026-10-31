@@ -1,29 +1,34 @@
-import Dog
 import SnapKit
 import UIKit
 
-/// One launch's journal read back as rows: Irisin's log page, given a file
-/// (`JournalFile`) in place of Dog's current one.
+/// One journal read back as rows — a launch's, or the one the agent writes
+/// for a conversation: Irisin's log page, given a file (`JournalFile`) in
+/// place of Dog's current one. The search field keeps the entries whose
+/// text has what is typed, so a tool call is found by its ID.
 ///
 /// The file is parsed once into `parsed` and filtered from there, so a filter
 /// change costs a filter rather than a re-parse. The running launch's file is
 /// followed while the screen is up: the poll compares the file's size, and
 /// only a file that actually grew is read again. An earlier launch's file no
 /// longer changes and is read once.
-final class LogViewerController: UIViewController, UITableViewDelegate {
+final class LogViewerController: UIViewController, UITableViewDelegate, UISearchResultsUpdating {
     let tableView = FirstFillTableView(frame: .zero, style: .plain)
     let file: JournalFile
     /// The running launch's: followed, and Clear hides what it holds so far.
     let isCurrent: Bool
     let pacing = ListPacing()
+    /// The page's name: when the launch began, or the conversation's.
+    private let pageTitle: String
 
     /// Every line in the file, filters not yet applied.
-    var parsed: [LogLine] = []
+    var parsed: [JournalLine] = []
     /// What the table is showing.
-    var shown: [LogLine] = []
+    var shown: [JournalLine] = []
 
-    var selectedLevels: Set<Dog.DogLevel> = [.verbose, .info, .warning, .error, .critical]
+    var selectedLevels = Set(JournalLevel.allCases)
     var selectedCategories: Set<String> = []
+    /// What the search field holds; empty keeps every entry.
+    private var searchText = ""
     var allCategories: Set<String> {
         Set(parsed.map(\.category))
     }
@@ -39,15 +44,15 @@ final class LogViewerController: UIViewController, UITableViewDelegate {
     /// in `parsed`.
     var work: Task<Void, Never>?
 
-    init(file: JournalFile, isCurrent: Bool) {
+    init(file: JournalFile, isCurrent: Bool, title: String) {
         self.file = file
         self.isCurrent = isCurrent
+        pageTitle = title
         super.init(nibName: nil, bundle: nil)
         lastReadLength = fileLength
-        let url = file.url
         work = Task { [weak self] in
             let lines = await Task.detached {
-                LogViewerController.parseLogLines(LogViewerController.text(of: url, hiding: 0))
+                JournalLines.parse(LogViewerController.text(of: file, hiding: 0))
             }.value
             guard let self, !Task.isCancelled else { return }
             work = nil
@@ -60,14 +65,14 @@ final class LogViewerController: UIViewController, UITableViewDelegate {
 
     @available(*, unavailable)
     required init?(coder _: NSCoder) {
-        fatalError("Use init(file:isCurrent:)")
+        fatalError("Use init(file:isCurrent:title:)")
     }
 
     /// A line's place in the log is its identity: the same text can be
     /// written twice and both rows have to exist.
     struct Row: Hashable, Sendable {
         let index: Int
-        let line: LogLine
+        let line: JournalLine
     }
 
     lazy var dataSource = UITableViewDiffableDataSource<Int, Row>(tableView: tableView) { tableView, _, row in
@@ -78,33 +83,14 @@ final class LogViewerController: UIViewController, UITableViewDelegate {
         return cell
     }
 
-    /// Unchecked only because `Dog.DogLevel` predates Sendable; it is an
-    /// enum over string raw values and every other field is a `String`.
-    struct LogLine: Hashable, @unchecked Sendable {
-        let timestamp: String
-        let level: Dog.DogLevel
-        let category: String
-        let message: String
-        let fullText: String
-
-        func appending(_ line: String) -> LogLine {
-            LogLine(
-                timestamp: timestamp,
-                level: level,
-                category: category,
-                message: message + "\n" + line,
-                fullText: fullText + "\n" + line,
-            )
-        }
-    }
-
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = LogsController.title(of: file)
+        title = pageTitle
         view.backgroundColor = .pageBackground
         navigationItem.largeTitleDisplayMode = .never
 
         setupNavigationItems()
+        setupSearch()
         setupTableView()
         // rows already parsed go up with the view; otherwise the first
         // parse applies them when it lands
@@ -145,13 +131,33 @@ final class LogViewerController: UIViewController, UITableViewDelegate {
         }
     }
 
+    private func setupSearch() {
+        let search = UISearchController(searchResultsController: nil)
+        search.obscuresBackgroundDuringPresentation = false
+        search.searchResultsUpdater = self
+        search.searchBar.placeholder = String(localized: "Search")
+        search.searchBar.autocapitalizationType = .none
+        search.searchBar.autocorrectionType = .no
+        navigationItem.searchController = search
+        navigationItem.hidesSearchBarWhenScrolling = false
+        definesPresentationContext = true
+    }
+
+    func updateSearchResults(for searchController: UISearchController) {
+        let text = searchController.searchBar.text?.trimmingCharacters(in: .whitespaces) ?? ""
+        guard text != searchText else { return }
+        searchText = text
+        applyFilters(stickToBottom: false)
+    }
+
     /// `growing` for new lines from the file, which may animate in a list
-    /// that sat still (`ListPacing`); a filter or Clear shows other rows and
-    /// never does.
+    /// that sat still (`ListPacing`); a filter, a search or Clear shows
+    /// other rows and never does.
     func applyFilters(stickToBottom: Bool, growing: Bool = false) {
         shown = parsed.filter { line in
             selectedLevels.contains(line.level)
                 && (selectedCategories.isEmpty || selectedCategories.contains(line.category))
+                && (searchText.isEmpty || line.fullText.localizedCaseInsensitiveContains(searchText))
         }
 
         var snapshot = NSDiffableDataSourceSnapshot<Int, Row>()
@@ -193,7 +199,7 @@ final class LogViewerController: UIViewController, UITableViewDelegate {
         tableView.scrollToRow(at: IndexPath(row: shown.count - 1, section: 0), at: .bottom, animated: animated)
     }
 
-    private static func configure(_ cell: UITableViewCell, with logLine: LogLine) {
+    private static func configure(_ cell: UITableViewCell, with logLine: JournalLine) {
         var content = UIListContentConfiguration.subtitleCell()
         let font = UIFont.monospacedSystemFont(
             ofSize: UIFont.preferredFont(forTextStyle: .caption2).pointSize,
