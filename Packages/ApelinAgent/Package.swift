@@ -24,7 +24,7 @@ let package = Package(
         // tag cannot change what is built. Bump deliberately.
         .package(
             url: "https://github.com/EYHN/kwwk.git",
-            revision: "997d9b3dde24cd26d7abc3d9e15abeb7146b3017",
+            revision: "b2c8b4a95f6c314034a2d955023bedda7bb19053",
         ),
         // kwwk's swift-nio, held below 2.104.0. That release made
         // ByteToMessageHandler's decoder `~Copyable`, and an iOS runtime
