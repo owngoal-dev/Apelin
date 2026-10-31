@@ -2662,13 +2662,17 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   apelin_project_set_environment. Only the text changes: the document read
   back is the one the file held, order included, so neither approval digest
   moves (the edit table's "written on one line" and "formatted from one
-  line"); a file the strict reader refuses is left as it is, and one
-  already in the form is the same bytes. Every build puts the manifest
-  into the form before its first step (after the check, before the
-  workspace's script), says so in one line of its log, and writes nothing
-  when it already is: through the opened project folder, never through a
-  link, mode and owner kept, only while it is still the file read
-  (`ProjectManifestFile`, the rename's writer). The one-line files came
+  line") — unless the project takes the manifest as a file of its build or
+  package, whose bytes the packaging digest covers; a file the strict
+  reader refuses is left as it is, and one already in the form is the same
+  bytes. Every build puts the manifest into the form before its first step
+  (after the check of a described project, before a workspace's script),
+  says so in one line of its log, and writes nothing when it already is,
+  when the check digested it as a file (`checkedFiles`), or past 1 MB, the
+  most the other readers take: through the opened project folder, which
+  must itself be no link, never through a link, opened non-blocking until
+  it is known to be a regular file, mode and owner kept, only while it is
+  still the file read (`ProjectManifestFile`, the rename's writer). The one-line files came
   from the rename, which wrote the whole manifest compact
   (`JSONDocument.description`), and from the empty workspace, written
   compact and sorted by `JSONCoding`. `Fixtures/manifest-format.json`

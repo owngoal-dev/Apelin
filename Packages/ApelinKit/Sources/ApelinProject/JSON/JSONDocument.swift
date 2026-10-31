@@ -305,13 +305,19 @@ public enum StrictJSON {
         }
 
         mutating func hex4() throws -> UInt32 {
+            // exactly four hex digits: `UInt32(_:radix:)` alone takes a sign
             guard at + 4 <= bytes.count,
+                  bytes[at ..< at + 4].allSatisfy({ isHexDigit($0) }),
                   let value = UInt32(String(decoding: bytes[at ..< at + 4], as: UTF8.self), radix: 16)
             else {
                 throw fail("bad \\u escape")
             }
             at += 4
             return value
+        }
+
+        private func isHexDigit(_ byte: UInt8) -> Bool {
+            (0x30 ... 0x39).contains(byte) || (0x41 ... 0x46).contains(byte) || (0x61 ... 0x66).contains(byte)
         }
 
         mutating func array(depth: Int) throws -> JSONDocument {

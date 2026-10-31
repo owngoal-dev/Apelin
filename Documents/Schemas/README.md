@@ -367,7 +367,9 @@ form before its first step. The form is Python's
 6. `\n` line ends, and one after the document.
 
 Only the text changes: the document read back is the one the file held,
-member order included, so neither digest moves. A file that breaks a rule of
+member order included, so neither digest moves — unless the project names the
+manifest itself as a file of its build or package, whose bytes the packaging
+digest covers; a build leaves such a manifest as it is. A file that breaks a rule of
 **JSON** above is left as it is. A file already in the form is the same
 bytes and is not written again. The template files themselves are not JSON
 before substitution and keep their own layout. The reference

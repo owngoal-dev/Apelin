@@ -30,20 +30,29 @@ public enum ProjectManifestFormat {
         return text
     }
 
+    /// The largest manifest the other readers of the file take (the agent's
+    /// and the host's): one past it is left as it is.
+    public static let maximumBytes = 1024 * 1024
+
     /// The manifest of the project folder `root` put into the written form
     /// when it reads strictly and is not in it yet: replaced relative to
-    /// the opened folder, never through a link, its mode and owner kept
-    /// (`ProjectManifestFile`; one whose owner cannot be kept is `denied`).
-    /// True when it was rewritten; a file already in the form, or one that
-    /// does not read, is not written.
+    /// the opened folder, never through a link — the folder itself is no
+    /// link (`Projects/<name>` pointing elsewhere is refused) —, its mode
+    /// and owner kept (`ProjectManifestFile`; one whose owner cannot be kept
+    /// is `denied`). True when it was rewritten; a file already in the form,
+    /// one that does not read, or one past `maximumBytes` is not written.
     public static func formatFile(in root: URL) throws -> Bool {
-        guard let path = CanonicalPath.resolve(root.path) else {
+        guard let path = CanonicalPath.resolve(root.path),
+              let parent = CanonicalPath.resolve(root.deletingLastPathComponent().path),
+              path == (parent as NSString).appendingPathComponent(root.lastPathComponent)
+        else {
             throw ApelinError(.notFound, "The project folder is no longer available.")
         }
         ProjectManifestFile.lock.lock()
         defer { ProjectManifestFile.lock.unlock() }
         let file = try ProjectManifestFile(root: path)
-        guard let text = formatted(file.original), text != file.original else { return false }
+        guard file.original.count <= maximumBytes,
+              let text = formatted(file.original), text != file.original else { return false }
         guard try file.replace(with: text, ownerRequired: true) else {
             throw ApelinError(.conflict, "apelin-project.json changed while it was being formatted.")
         }

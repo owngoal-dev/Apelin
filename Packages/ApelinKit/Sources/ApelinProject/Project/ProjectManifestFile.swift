@@ -31,7 +31,9 @@ final class ProjectManifestFile {
                 close(directory)
             }
         }
-        let descriptor = openat(directory, ProjectStore.projectFileName, O_RDONLY | O_NOFOLLOW | O_CLOEXEC)
+        // non-blocking until it is known to be a regular file: a FIFO in
+        // its place would otherwise hold the open, and the lock, forever
+        let descriptor = openat(directory, ProjectStore.projectFileName, O_RDONLY | O_NOFOLLOW | O_CLOEXEC | O_NONBLOCK)
         guard descriptor >= 0 else {
             throw errno == ELOOP
                 ? ApelinError(.badRequest, "The project manifest is not a regular supported file.")
@@ -44,6 +46,7 @@ final class ProjectManifestFile {
         else {
             throw ApelinError(.badRequest, "The project manifest is not a regular supported file.")
         }
+        _ = fcntl(descriptor, F_SETFL, fcntl(descriptor, F_GETFL) & ~O_NONBLOCK)
         original = try handle.readToEnd() ?? Data()
         self.directory = directory
         self.handle = handle
@@ -55,6 +58,12 @@ final class ProjectManifestFile {
         close(directory)
     }
 
+    /// What the last call that failed set `errno` to, so a read-only folder
+    /// or a locked file says so.
+    private static func lastError() -> POSIXError {
+        POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
+    }
+
     /// Puts `data` in the manifest's place, its mode kept, and its owner and
     /// group where this process may set them; with `ownerRequired`, a
     /// manifest whose owner or group could not be kept is not replaced
@@ -64,18 +73,18 @@ final class ProjectManifestFile {
         let mode = identity.st_mode & 0o777
         let temporary = ".apelin-metadata-" + UUID().uuidString
         let output = openat(directory, temporary, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC, mode)
-        guard output >= 0 else { throw POSIXError(.EIO) }
+        guard output >= 0 else { throw Self.lastError() }
         defer { close(output); unlinkat(directory, temporary, 0) }
         var created = stat()
-        guard fstat(output, &created) == 0 else { throw POSIXError(.EIO) }
+        guard fstat(output, &created) == 0 else { throw Self.lastError() }
         if created.st_uid != identity.st_uid || created.st_gid != identity.st_gid,
            fchown(output, identity.st_uid, identity.st_gid) != 0, ownerRequired
         {
             throw ApelinError(.denied, "The project manifest's owner could not be kept.")
         }
-        guard fchmod(output, mode) == 0 else { throw POSIXError(.EIO) }
+        guard fchmod(output, mode) == 0 else { throw Self.lastError() }
         try FileHandle(fileDescriptor: output, closeOnDealloc: false).write(contentsOf: data)
-        guard fsync(output) == 0 else { throw POSIXError(.EIO) }
+        guard fsync(output) == 0 else { throw Self.lastError() }
         var latest = stat()
         try handle.seek(toOffset: 0)
         guard fstatat(directory, ProjectStore.projectFileName, &latest, AT_SYMLINK_NOFOLLOW) == 0,
@@ -85,7 +94,7 @@ final class ProjectManifestFile {
             return false
         }
         guard renameat(directory, temporary, directory, ProjectStore.projectFileName) == 0 else {
-            throw POSIXError(.EIO)
+            throw Self.lastError()
         }
         _ = fsync(directory)
         return true

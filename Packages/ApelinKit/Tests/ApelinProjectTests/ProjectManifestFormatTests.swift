@@ -111,6 +111,44 @@ final class ProjectManifestFormatTests: XCTestCase {
         XCTAssertEqual(try Data(contentsOf: outside), oneLine, "never written through a link")
     }
 
+    /// A project folder that is a link out of `Projects/` is not written
+    /// through, nor is a manifest past the size every other reader takes,
+    /// and a FIFO in the manifest's place neither hangs nor is written.
+    func testFormatFileLeavesWhatItShouldNotTouch() throws {
+        let scratch = try scratchDirectory()
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        let oneLine = Data(#"{"schemaVersion":1,"projectID":"p","kind":"workspace","buildSystem":"external"}"#.utf8)
+        let projects = scratch.appendingPathComponent("Projects")
+        let elsewhere = scratch.appendingPathComponent("elsewhere")
+        try FileManager.default.createDirectory(at: projects, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: elsewhere, withIntermediateDirectories: true)
+        try oneLine.write(to: elsewhere.appendingPathComponent(ProjectStore.projectFileName))
+        let linked = projects.appendingPathComponent("Linked")
+        try FileManager.default.createSymbolicLink(at: linked, withDestinationURL: elsewhere)
+        XCTAssertThrowsError(try ProjectManifestFormat.formatFile(in: linked))
+        XCTAssertEqual(try Data(contentsOf: elsewhere.appendingPathComponent(ProjectStore.projectFileName)), oneLine)
+
+        let large = projects.appendingPathComponent("Large")
+        try FileManager.default.createDirectory(at: large, withIntermediateDirectories: true)
+        let padding = String(repeating: "x", count: ProjectManifestFormat.maximumBytes)
+        let big = Data(#"{"schemaVersion":1,"note":"\#(padding)"}"#.utf8)
+        try big.write(to: large.appendingPathComponent(ProjectStore.projectFileName))
+        XCTAssertFalse(try ProjectManifestFormat.formatFile(in: large))
+        XCTAssertEqual(try Data(contentsOf: large.appendingPathComponent(ProjectStore.projectFileName)), big)
+
+        let piped = projects.appendingPathComponent("Piped")
+        try FileManager.default.createDirectory(at: piped, withIntermediateDirectories: true)
+        XCTAssertEqual(mkfifo(piped.appendingPathComponent(ProjectStore.projectFileName).path, 0o644), 0)
+        XCTAssertThrowsError(try ProjectManifestFormat.formatFile(in: piped), "refused at once, not held open")
+    }
+
+    /// A `\u` escape is four hex digits and no sign, as JSON says.
+    func testAUnicodeEscapeTakesNoSign() {
+        XCTAssertNil(ProjectManifestFormat.formatted(Data(#"{"a":"\u+041"}"#.utf8)))
+        XCTAssertNil(ProjectManifestFormat.formatted(Data(#"{"a":"\u-000"}"#.utf8)))
+        XCTAssertNotNil(ProjectManifestFormat.formatted(Data(#"{"a":"A"}"#.utf8)))
+    }
+
     /// Every writer of the file writes the form: a template project, an
     /// empty workspace, a generated name and a rename.
     func testEveryWriterWritesTheForm() throws {
