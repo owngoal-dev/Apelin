@@ -42,6 +42,7 @@ enum RepositoryImporter {
             ))
         }.value
         var clone: TaskHandle?
+        var projectID = created.projectID
         do {
             try Task.checkCancellation()
             let handle = try await Task {
@@ -52,7 +53,8 @@ enum RepositoryImporter {
                 ))
             }.value
             clone = handle
-            try await follow(handle, update: update)
+            // the repository's own apelin-project.json may bring its own ID
+            projectID = try await follow(handle, update: update) ?? created.projectID
         } catch {
             // a task of its own: the cancel that ended the import must not
             // end the clean-up too
@@ -71,21 +73,27 @@ enum RepositoryImporter {
             name: created.name,
             kind: .workspace,
             displayName: created.name,
-            projectID: created.projectID,
+            projectID: projectID,
         )
     }
 
-    /// The clone's events on the card, to its final `state`.
+    /// The clone's events on the card, to its final `state`: the project's
+    /// ID the clone reported, which is the repository's own when its
+    /// `apelin-project.json` came with it.
     private static func follow(
         _ handle: TaskHandle,
         update: @escaping @MainActor (ProgressCard.Status) -> Void,
-    ) async throws {
+    ) async throws -> String? {
         var progress = EnvironmentTaskProgress(work: .repositoryImport)
         var reason: String?
+        var projectID: String?
         for try await event in ApelinService.app.events(of: handle) {
             progress.apply(event)
             if event.kind == TaskEvent.stateKind {
                 reason = event.payload?["reason"]?.stringValue
+                projectID = event.payload?["result"]?["projectID"]?.stringValue ?? projectID
+            } else if event.kind == "result" {
+                projectID = event.payload?["projectID"]?.stringValue ?? projectID
             }
             update(ProgressCard.Status(
                 subtitle: progress.stage.map(EnvironmentTaskProgress.activeTitle(of:)) ?? "",
@@ -99,6 +107,7 @@ enum RepositoryImporter {
                 reason: reason,
             )
         }
+        return projectID
     }
 
     /// How long a stopped clone may take to end before the workspace is
