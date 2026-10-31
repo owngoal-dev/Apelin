@@ -207,16 +207,21 @@ public struct GitCloneIntoRequest: OperationRequest {
 /// Fetches a remote's branches (nil: `origin`) into its remote-tracking
 /// refs; the worktree and the branches are left alone. A task of kind
 /// `environment`; `progress` {stage: "fetching", …}, then `result` {remote,
-/// updated: [{ref, from?, to}]}.
+/// updated: [{ref, from?, to}]}. With `branch`, a local branch with a
+/// commit, the result also sets it beside the branch of that name the
+/// remote advertised, as `comparison` (`GitBranchComparison`): what a forced
+/// push of it would take off the remote's.
 public struct GitFetchRequest: OperationRequest {
     public typealias Response = TaskHandle
     public static let operation = AppOperation.gitFetch
     public var projectID: String
     public var remote: String?
+    public var branch: String?
 
-    public init(projectID: String, remote: String? = nil) {
+    public init(projectID: String, remote: String? = nil, branch: String? = nil) {
         self.projectID = projectID
         self.remote = remote
+        self.branch = branch
     }
 }
 
@@ -239,14 +244,20 @@ public struct GitPullRequest: OperationRequest {
 
 /// Pushes a local branch (nil: the checked-out one) to the branch of the
 /// same name on a remote (nil: `origin`), and records it as the branch's
-/// upstream. Never forced: a rejected update fails with `conflict`. HTTPS
-/// only, with the credential saved for the remote's host. With `url`, a
-/// remote the repository does not have yet is added first, fetching from
-/// that URL, as `git remote add` does; one it has must already have that
-/// URL, else `conflict` with reason `remoteURLDiffers`. A remote not there
-/// without `url` is `notFound` with reason `noSuchRemote`. A task of kind
+/// upstream. Never forced without `forceWithLease`: a rejected update fails
+/// with `conflict`. With it, the remote's branch is overwritten only as the
+/// lease allows (`GitPushLease`), and a `lease` event {branch,
+/// expectedCommit, localCommit?, found?, held} says what the remote had
+/// when it answered, before anything is sent. HTTPS only, with the
+/// credential saved for the remote's host. With `url`, a remote the
+/// repository does not have yet is added first, fetching from that URL, as
+/// `git remote add` does; one it has must already have that URL, else
+/// `conflict` with reason `remoteURLDiffers`. A remote not there without
+/// `url` is `notFound` with reason `noSuchRemote`. A task of kind
 /// `environment`; `progress` {stage: "pushing", …}, then `result` {remote,
-/// branch, commit}.
+/// branch, commit, from?, forced?}: `from` the commit the remote's branch
+/// was at, absent when the push made it, and `forced` true for a push with
+/// a lease.
 public struct GitPushRequest: OperationRequest {
     public typealias Response = TaskHandle
     public static let operation = AppOperation.gitPush
@@ -255,12 +266,21 @@ public struct GitPushRequest: OperationRequest {
     public var branch: String?
     /// HTTPS, without a user or password.
     public var url: String?
+    /// Absent: an ordinary push, never forced.
+    public var forceWithLease: GitPushLease?
 
-    public init(projectID: String, remote: String? = nil, branch: String? = nil, url: String? = nil) {
+    public init(
+        projectID: String,
+        remote: String? = nil,
+        branch: String? = nil,
+        url: String? = nil,
+        forceWithLease: GitPushLease? = nil,
+    ) {
         self.projectID = projectID
         self.remote = remote
         self.branch = branch
         self.url = url
+        self.forceWithLease = forceWithLease
     }
 }
 
@@ -533,8 +553,8 @@ public extension ApelinService {
         try await send(request)
     }
 
-    func gitFetch(projectID: String, remote: String? = nil) async throws -> TaskHandle {
-        try await send(GitFetchRequest(projectID: projectID, remote: remote))
+    func gitFetch(projectID: String, remote: String? = nil, branch: String? = nil) async throws -> TaskHandle {
+        try await send(GitFetchRequest(projectID: projectID, remote: remote, branch: branch))
     }
 
     func gitPull(projectID: String, remote: String? = nil) async throws -> TaskHandle {

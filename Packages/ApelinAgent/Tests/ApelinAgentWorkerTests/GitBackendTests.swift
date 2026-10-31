@@ -165,7 +165,7 @@ struct GitBackendTests {
             _ = try await fixture.backend.gitPush(GitRemoteToolRequest(context: fixture.context()))
         } throws: { error in
             let message = (error as? GitToolFailure)?.message ?? ""
-            return message.hasPrefix("git push failed: the remote rejected") && message.contains("never force")
+            return message.hasPrefix("git push failed: the remote rejected") && message.contains("never a reason to force")
         }
         await #expect {
             _ = try await fixture.backend.gitCommit(GitCommitToolRequest(context: fixture.context(), message: "x"))

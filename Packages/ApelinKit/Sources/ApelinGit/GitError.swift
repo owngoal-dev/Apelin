@@ -22,6 +22,13 @@ public struct GitError: Error, CustomStringConvertible, Sendable, Equatable {
         /// The remote refused a push: its branch has commits this one does
         /// not, or a hook of its said no.
         case rejected
+        /// A forced push's lease did not hold: the remote's branch is not at
+        /// the commit the push was to replace, or the remote has no such
+        /// branch. Nothing was pushed.
+        case remoteChanged
+        /// A forced push's local branch is not at the commit it was to send.
+        /// Nothing was pushed.
+        case localChanged
         /// The remote asked for a sign-in and had none, or refused the one
         /// it was given.
         case authenticationFailed

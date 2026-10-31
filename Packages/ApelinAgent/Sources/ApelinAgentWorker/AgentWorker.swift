@@ -625,6 +625,10 @@ actor EventRelay {
                 push["branch"] = .string(branch)
             }
             payload["detail"] = .object(["gitPush": .object(push)])
+        // The push and lease the host matches an agent's forced gitPush to
+        // (AgentForcePushRules).
+        case let .forcePush(force):
+            payload["detail"] = .object(["forcePush": (try? ApelinCore.JSONValue(encoding: force)) ?? .null])
         case let .gitSettings(summary):
             payload["detail"] = .object(["gitSettings": .object(["summary": .string(summary)])])
         // What the host matches an agent's setup, import or call into another

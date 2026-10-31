@@ -4,6 +4,7 @@ import enum ApelinCore.MemoryStoreError
 import enum ApelinProtocol.AgentToolName
 import struct ApelinProtocol.ApelinError
 import enum ApelinProtocol.BuildBootstrap
+import struct ApelinProtocol.GitPushLease
 import Foundation
 import KWWKAgent
 import KWWKAI
@@ -342,7 +343,8 @@ actor ToolRunner {
     /// feedback, nor for a repository made on GitHub or an issue opened on
     /// one, nor for a project's deletion, which cannot be undone, nor for
     /// packages published to the user's package repository, nor for a use
-    /// of the screen while Ask Before Using the Screen is on.
+    /// of the screen while Ask Before Using the Screen is on, nor for a
+    /// forced push, which takes commits off the remote's branch.
     static func allowsSessionScope(_ tool: InvocationFacts.Tool, detail: ApprovalDetail) -> Bool {
         switch tool {
         case .local(.packageRemove), .local(.gitPush), .local(.toolchainSetup), .local(.sdkImport),
@@ -355,7 +357,7 @@ actor ToolRunner {
         switch detail {
         case .gitSettings, .descriptionChanged, .toolchainSetup, .sdkImport, .otherProject, .externalBuild, .skillChange,
              .projectRename, .rootCommand, .feedback, .feedbackEdit, .repositoryCreate, .issueCreate, .projectDelete,
-             .packagePublish, .screenControl:
+             .packagePublish, .screenControl, .forcePush:
             return false
         case .none, .command, .packageRemoval, .gitPush:
             return true
@@ -711,12 +713,18 @@ actor ToolRunner {
             return try await json(name == .gitFetch ? backend.gitFetch(request) : backend.gitPull(request))
 
         case .gitPush:
-            return try await json(backend.gitPush(GitRemoteToolRequest(
+            // Forced only with the lease the card named, which the host
+            // holds the request to.
+            let force = facts.forcePush
+            var pushed = try await backend.gitPush(GitRemoteToolRequest(
                 context: context,
                 remote: arguments.argNonEmptyString("remote"),
                 branch: facts.push?.branch,
-                url: facts.push?.url,
-            )))
+                url: force?.url ?? facts.push?.url,
+                lease: force.map { GitPushLease(expectedCommit: $0.expectedCommit, localCommit: $0.localCommit) },
+            ))
+            pushed.note = facts.push?.unforced ?? force.map(Self.forcedPushNote)
+            return json(pushed)
 
         case .gitClone:
             return try await json(backend.gitClone(GitCloneToolRequest(

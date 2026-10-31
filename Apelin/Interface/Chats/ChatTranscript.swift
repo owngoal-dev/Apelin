@@ -234,7 +234,7 @@ struct ChatTranscript {
                 if let approvalID = payload?["approvalID"]?.stringValue {
                     let rowID = Self.rowID(approvalID)
                     approvalIDs[rowID] = approvalID
-                    let title = Self.toolTitle(
+                    let title = ApprovalCardText.title(payload) ?? Self.toolTitle(
                         payload?["tool"]?.stringValue ?? "",
                         arguments: payload?["arguments"]?.stringValue,
                     )

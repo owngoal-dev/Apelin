@@ -1096,3 +1096,5 @@ checkProjectMenuOrder()
 checkChatDeletion()
 
 try checkChatUnread()
+
+checkForcePushCard()

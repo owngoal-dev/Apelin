@@ -71,9 +71,10 @@ final class GitSyncTests: XCTestCase {
         let remote = try remote()
         XCTAssertEqual(remote.seed.localConfigValue("branch.main.remote"), "origin")
         XCTAssertEqual(remote.seed.localConfigValue("branch.main.merge"), "refs/heads/main")
+        let previous = remote.seed.head().commit
         let tip = try commit("two\n", "README", in: remote.seed, message: "Second")
         let result = try remote.seed.push()
-        XCTAssertEqual(result, GitPushResult(remote: "origin", branch: "main", commit: tip))
+        XCTAssertEqual(result, GitPushResult(remote: "origin", branch: "main", commit: tip, from: previous))
         let other = try workspace(remote)
         XCTAssertEqual(other.head().commit, tip)
     }

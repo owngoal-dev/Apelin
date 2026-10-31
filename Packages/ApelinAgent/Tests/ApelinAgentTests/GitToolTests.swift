@@ -64,7 +64,7 @@ struct GitToolTests {
         }
         #expect(Set(properties(.gitCommit).keys) == ["message", "all", "reason"])
         #expect(Set(properties(.gitInit).keys) == ["reason"])
-        #expect(Set(properties(.gitPush).keys) == ["remote", "branch", "url", "reason"])
+        #expect(Set(properties(.gitPush).keys) == ["remote", "branch", "url", "force_with_lease", "reason"])
         #expect(Set(properties(.gitClone).keys) == ["url", "branch", "reason"])
         #expect(Set(properties(.gitDiff).keys) == ["path", "staged", "reason"])
         #expect(required(.gitStage) == ["paths", "reason"])
@@ -272,7 +272,7 @@ struct GitToolTests {
         }
         let tweak = prompt(.apelin)
         #expect(tweak.contains("only through the git_* tools"))
-        #expect(tweak.contains("Never force a push"))
+        #expect(tweak.contains("A refused push is never a reason to force it"))
         #expect(!tweak.contains("# Workspace"))
 
         let workspace = prompt(.external)

@@ -72,6 +72,10 @@ public struct InvocationFacts: Sendable, Hashable {
     public var removedPackage: ListedInstallation?
     /// For git_push: where it pushes, and what.
     public var push: GitPushTarget?
+    /// For git_push with force_with_lease, when the push would take commits
+    /// off the remote's branch: what it overwrites, as the fetch before it
+    /// found the remote. Nil for an ordinary push, which loses nothing.
+    public var forcePush: ForcePushApproval?
     /// For the git settings tools: what they change, in words, without a
     /// token ("the commit author", "the credential for github.com").
     public var gitSettings: String?
@@ -161,11 +165,15 @@ public struct GitPushTarget: Sendable, Hashable {
     /// The address the remote is added at when the project does not have
     /// it yet; the host refuses one that differs from the remote's own.
     public var url: String?
+    /// Why a push asked to be forced goes as an ordinary one: the remote's
+    /// branch loses nothing to it. Told the model with the result.
+    public var unforced: String?
 
-    public init(remote: String, branch: String?, url: String? = nil) {
+    public init(remote: String, branch: String?, url: String? = nil, unforced: String? = nil) {
         self.remote = remote
         self.branch = branch
         self.url = url
+        self.unforced = unforced
     }
 }
 
@@ -200,6 +208,12 @@ public struct ApprovalPolicy: Sendable, Hashable {
         }
         if let screen = evaluateScreen(facts) {
             return screen
+        }
+        // A forced push takes commits off the remote's branch: it asks every
+        // time, in every mode — Full lifts root commands, not this —, the
+        // card naming what is lost, and the host spends that one approval.
+        if case .local(.gitPush) = facts.tool, let force = facts.forcePush {
+            return .ask(reason: Self.forcePushReason(force), detail: .forcePush(force))
         }
         if case .local(.shellRun) = facts.tool, facts.runsAsRoot {
             return evaluateRoot(facts)
@@ -438,8 +452,9 @@ public struct ApprovalPolicy: Sendable, Hashable {
             }
             let branch = target.branch ?? "the checked-out branch"
             let place = target.url.map { "\(target.remote) at \($0)" } ?? target.remote
+            let unforced = target.unforced.map { " \($0)" } ?? ""
             return .ask(
-                reason: "Pushing \(branch) to \(place) publishes its commits. Each push needs your approval.",
+                reason: "Pushing \(branch) to \(place) publishes its commits.\(unforced) Each push needs your approval.",
                 detail: .gitPush(remote: target.remote, branch: target.branch),
             )
 

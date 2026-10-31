@@ -227,6 +227,18 @@ console now goes on after a restart only past a successful respring.
       the page without Apelin installed explains how to get it and copies
       the address.
 
+- [ ] A forced push with a lease (2026-10-31, issue #29; the Mac only so
+      far: `GitLeaseTests`, `GitForcePushServiceTests`, the session host's
+      checks, `ForcePushToolTests`, `ForcePushBackendTests`, the transcript
+      harness's `ForcePushCardCheck`). On a device: `i2-git-remote`'s two
+      new lease refusals; then, with a GitHub account and a scratch
+      repository whose `main` has a commit the project lacks, a chat asked
+      to force-push `main` there shows the Force-push to the remote card in
+      Relaxed and Full as in Strict, naming the commit replaced, the one
+      sent and the commits lost; Approve overwrites `main` on GitHub; a
+      commit pushed to the scratch repository from elsewhere between the
+      card and Approve ends with nothing pushed and the agent asking again;
+      a protected `main` answers in GitHub's words.
 - [ ] A preference bundle's Settings row with its icon (2026-10-30, issue
       #19, `wiki.qaq.apelin.dev.preferences` 0.1.3), on a device where
       PreferenceLoader shows panes (the owner's iOS 17.3.1 iPhone): a new

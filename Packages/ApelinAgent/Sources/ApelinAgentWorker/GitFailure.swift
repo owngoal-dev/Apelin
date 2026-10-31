@@ -23,11 +23,15 @@ enum GitFailure {
         message: String,
         reason: String?,
         host: String?,
+        forced: Bool = false,
     ) -> GitToolFailure {
         let detail = message.isEmpty ? (code?.rawValue ?? "no reason given") : message
-        var text = "\(operation) failed: \(detail)"
+        var text = "\(forced ? "forced " : "")\(operation) failed: \(detail)"
         if !text.hasSuffix(".") {
             text += "."
+        }
+        if forced, let hint = forcedHint(code: code, reason: reason) {
+            return GitToolFailure(message: text + " " + hint)
         }
         if let hint = hint(operation, code: code, message: message, reason: reason, host: host) {
             text += " " + hint
@@ -77,11 +81,25 @@ enum GitFailure {
         case "git pull":
             return "Pull only fast-forwards: the branch has diverged from its upstream, or a local change is in the way. Tell the user; do not force it."
         case "git push":
-            return "The remote has commits this branch does not. Fetch and pull first (pull only fast-forwards); never force the push."
+            return "The remote has commits this branch does not. Fetch and pull first (pull only fast-forwards), then merge or rebase as the user agrees. A refused push is never a reason to force it: force_with_lease is only for a forced push the user explicitly asked for."
         case "git clone":
             return "The workspace already has a repository, or files with the same names as the repository's. Tell the user; do not delete their files to make room."
         default:
             return nil
+        }
+    }
+
+    /// A forced push's refusal: the lease that did not hold, or the
+    /// remote's own no. Nothing was pushed either way.
+    private static func forcedHint(code: ApelinError.Code?, reason: String?) -> String? {
+        switch reason {
+        case ApelinError.Reason.remoteChanged.rawValue:
+            return "The remote's branch changed after the user approved overwriting it, so nothing was pushed. Tell the user what it is at now; to overwrite it still, call git_push with force_with_lease again, which fetches and asks them again with what would be lost now."
+        case ApelinError.Reason.localChanged.rawValue:
+            return "This branch moved after the user approved the forced push, so nothing was pushed. Tell the user; to push it still, call git_push with force_with_lease again, which asks them again with the commit sent now."
+        default:
+            guard code == .conflict else { return nil }
+            return "The remote refused the forced push in its own words above, and nothing was pushed: a protected branch, for one, is the user's to change on the remote. Tell the user what blocks it; never try to get around it."
         }
     }
 }

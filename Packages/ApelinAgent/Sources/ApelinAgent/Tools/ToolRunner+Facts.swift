@@ -87,11 +87,22 @@ extension ToolRunner {
                 )))
                 branch = status?.branch
             }
-            facts.push = GitPushTarget(
+            var target = GitPushTarget(
                 remote: arguments.argNonEmptyString("remote") ?? "origin",
                 branch: branch,
                 url: arguments.argNonEmptyString("url"),
             )
+            // A forced push asks what the remote has first, and is one only
+            // when the remote's branch would lose commits to it.
+            if arguments.argBool("force_with_lease") == true {
+                switch try await forcePush(target) {
+                case let .force(force):
+                    facts.forcePush = force
+                case let .unforced(why):
+                    target.unforced = why
+                }
+            }
+            facts.push = target
         case .gitSetAuthor:
             facts.gitSettings = "the commit author"
         case .gitSaveCredential:

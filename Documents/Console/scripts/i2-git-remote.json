@@ -29,6 +29,10 @@
     {"op": "expect", "request": {"step": "push-elsewhere", "errorCode": "conflict"}},
     {"op": "gitPush", "request": {"projectID": "${workspace.response.projectID}", "remote": "mirror", "url": "http://example.com/mirror.git"}, "label": "push-http", "allowError": true},
     {"op": "expect", "request": {"step": "push-http", "errorCode": "badRequest"}},
+    {"op": "gitPush", "request": {"projectID": "${workspace.response.projectID}", "forceWithLease": {"expectedCommit": "0966a43"}}, "label": "lease-short", "allowError": true},
+    {"op": "expect", "request": {"step": "lease-short", "errorCode": "badRequest"}},
+    {"op": "gitPush", "request": {"projectID": "${workspace.response.projectID}", "forceWithLease": {"expectedCommit": "0966a434eb1a025db6b71485ab63a3bfbea520b6", "localCommit": "0000000000000000000000000000000000000001"}}, "label": "lease-moved", "allowError": true},
+    {"op": "expect", "request": {"step": "lease-moved", "errorCode": "conflict"}},
     {"op": "gitCloneInto", "request": {"projectID": "${workspace.response.projectID}", "url": "https://github.com/libgit2/TestGitRepository.git"}, "label": "again", "allowError": true},
     {"op": "expect", "request": {"step": "again", "errorCode": "conflict"}}
   ]

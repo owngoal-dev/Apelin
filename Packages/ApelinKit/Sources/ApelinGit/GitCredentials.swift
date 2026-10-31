@@ -39,19 +39,36 @@ public enum GitCredentialHost {
 }
 
 /// The libgit2 remote callbacks one fetch or push runs with: progress that
-/// can stop it, the reference updates it made, the updates a push had
-/// refused, and at most one credential.
+/// can stop it, the reference updates it made, the updates a push was about
+/// to make and those it had refused, a forced push's lease, and at most one
+/// credential.
 ///
 /// The credential is offered once per operation. libgit2 asks again when
 /// the remote turns it down, and would go on asking; the second question is
 /// answered with an error, which `failure` reports as an authentication
 /// failure rather than whatever libgit2 says about an aborted callback.
 final class RemoteCallbacks {
+    /// A forced push's lease the remote's answer broke: what its branch was
+    /// at instead, nil when it had none.
+    struct LeaseRefusal {
+        var found: String?
+    }
+
     private let credentials: GitCredentialLookup?
     var fetchProgress: ((GitCloneProgress) -> Bool)?
     var pushProgress: ((GitPushProgress) -> Bool)?
+    /// A forced push's reference and the commit the remote's must be at:
+    /// the push stops before anything is sent unless the remote says so.
+    var lease: (ref: String, expectedCommit: String)?
+    /// Told, for each reference a push is about to update, what the remote
+    /// has it at (nil: it has none), before anything is sent.
+    var remoteCommit: ((String, String?) -> Void)?
     private(set) var updates: [GitRefUpdate] = []
     private(set) var rejections: [(ref: String, status: String)] = []
+    /// The updates a push was about to send, each with the commit the remote
+    /// had: the old value libgit2 sends with it.
+    private(set) var negotiated: [(ref: String, from: String?)] = []
+    private(set) var leaseRefusal: LeaseRefusal?
 
     private var offered = false
     private var refusedBy: String?
@@ -107,6 +124,37 @@ final class RemoteCallbacks {
             RemoteCallbacks.from(payload).rejections.append((String(cString: name), String(cString: status)))
             return 0
         }
+        // libgit2 asks once it has the remote's answer on the connection that
+        // pushes and has worked out the updates, before it sends anything:
+        // each update's `src` is the commit the remote said, which goes to
+        // the remote as the update's old value.
+        callbacks.push_negotiation = { updates, count, payload in
+            guard let payload else { return 0 }
+            var negotiated: [(ref: String, from: String?)] = []
+            for index in 0 ..< count {
+                guard let update = updates?[index], let name = update.pointee.dst_refname else { continue }
+                var old = update.pointee.src
+                negotiated.append((String(cString: name), git_oid_is_zero(&old) != 0 ? nil : GitRepository.hex(&old)))
+            }
+            return RemoteCallbacks.from(payload).negotiate(negotiated) ? 0 : GIT_EUSER.rawValue
+        }
+    }
+
+    /// Records what a push is about to update, and answers whether it may
+    /// go on: with a lease, only when the remote has its branch at the
+    /// commit expected.
+    private func negotiate(_ updates: [(ref: String, from: String?)]) -> Bool {
+        negotiated = updates
+        for update in updates {
+            remoteCommit?(update.ref, update.from)
+        }
+        guard let lease else { return true }
+        let found = updates.first { $0.ref == lease.ref }?.from
+        guard found == lease.expectedCommit else {
+            leaseRefusal = LeaseRefusal(found: found)
+            return false
+        }
+        return true
     }
 
     /// What a failed libgit2 call that ran with these callbacks means.

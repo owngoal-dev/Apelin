@@ -56,6 +56,7 @@ sources=(
     "$root/Apelind/Session/Agent/AgentFeedbackRules.swift"
     "$root/Apelind/Session/Agent/AgentRepositoryCreateRules.swift"
     "$root/Apelind/Session/Agent/AgentIssueCreateRules.swift"
+    "$root/Apelind/Session/Agent/AgentForcePushRules.swift"
     "$root/Apelind/Session/Agent/AgentPublishRules.swift"
     "$root/Apelind/Session/Notice/AgentNotices.swift"
     "$root/Tests/SessionHost/AgentNoticeChecks.swift"

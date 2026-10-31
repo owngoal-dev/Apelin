@@ -232,11 +232,23 @@ public struct GitService: Sendable {
         let repository: GitRepository
         let remote: String
         let branch: String?
+        /// A forced push's: what it may overwrite, and with what.
+        var lease: GitLease?
     }
 
-    /// Validates a fetch before the task is accepted.
+    /// Validates a fetch before the task is accepted: a branch to compare
+    /// must be a local one with a commit.
     public func prepareFetch(_ request: GitFetchRequest) throws -> RemoteTarget {
-        try remoteTarget(open(request.projectID).repository, remote: request.remote ?? "origin", branch: nil)
+        let repository = try open(request.projectID).repository
+        if let branch = request.branch {
+            guard GitRepository.isValidBranchName(branch) else {
+                throw ApelinError(.badRequest, "\(branch.debugDescription) is not a branch name")
+            }
+            guard repository.commit(ofBranch: branch) != nil else {
+                throw ApelinError(.notFound, "There is no branch \(branch) with a commit to compare.")
+            }
+        }
+        return try remoteTarget(repository, remote: request.remote ?? "origin", branch: request.branch)
     }
 
     /// Validates a pull before the task is accepted. With no remote named,
@@ -253,7 +265,9 @@ public struct GitService: Sendable {
 
     /// Validates a push before the task is accepted. With a URL, the remote
     /// is added first when the repository does not have it, and taken away
-    /// again when the push does not pass.
+    /// again when the push does not pass. A lease is checked here as well as
+    /// when it pushes: its commits are full IDs, and the local branch is at
+    /// the one it names.
     public func preparePush(_ request: GitPushRequest) throws -> RemoteTarget {
         let repository = try open(request.projectID).repository
         guard let branch = request.branch ?? repository.head().branch else {
@@ -261,6 +275,19 @@ public struct GitService: Sendable {
         }
         guard GitRepository.isValidBranchName(branch) else {
             throw ApelinError(.badRequest, "\(branch.debugDescription) is not a branch name")
+        }
+        if let lease = request.forceWithLease {
+            if let problem = lease.problem {
+                throw ApelinError(.badRequest, problem)
+            }
+            let commit = repository.commit(ofBranch: branch)
+            if let approved = lease.localCommit, let commit, approved != commit {
+                throw ApelinError(
+                    .conflict,
+                    "\(branch) is at \(commit) now, not \(approved), the commit this push was to send: nothing was pushed.",
+                    reason: .localChanged,
+                )
+            }
         }
         let remote = request.remote ?? "origin"
         let added = try request.url.map { try addRemote(remote, url: $0, to: repository) } ?? false
@@ -270,7 +297,11 @@ public struct GitService: Sendable {
             if let pushURL = repository.remotePushURL(remote) {
                 try checkRemoteURL(pushURL)
             }
-            return try remoteTarget(repository, remote: remote, branch: branch)
+            var target = try remoteTarget(repository, remote: remote, branch: branch)
+            target.lease = request.forceWithLease.map {
+                GitLease(expectedCommit: $0.expectedCommit, localCommit: $0.localCommit)
+            }
+            return target
         } catch {
             if added {
                 try? repository.removeRemote(remote)
@@ -301,12 +332,14 @@ public struct GitService: Sendable {
         return true
     }
 
-    /// `progress` while it fetches, then `{remote, updated: [{ref, from?, to}]}`.
+    /// `progress` while it fetches, then `{remote, updated: [{ref, from?,
+    /// to}], comparison?}`, the comparison for a fetch that names a branch.
     public func fetch(_ target: RemoteTarget, reporter: TaskReporter) throws -> JSONValue {
         reporter.stage("fetching")
         let result = try mapped {
             try target.repository.fetch(
                 remote: target.remote,
+                comparing: target.branch,
                 credentials: credentialLookup,
                 progress: Self.fetchProgress(reporter),
             )
@@ -318,7 +351,25 @@ public struct GitService: Sendable {
             }
             return .object(entry)
         }
-        return .object(["remote": .string(result.remote), "updated": .array(updated)])
+        var payload: [String: JSONValue] = ["remote": .string(result.remote), "updated": .array(updated)]
+        if let compared = result.comparison {
+            // Shown on an approval card: only an address Apelin pushes to,
+            // which carries no credential.
+            let pushURL = target.repository.remotePushURL(target.remote).flatMap { url in
+                (try? checkRemoteURL(url)) == nil ? nil : url
+            }
+            let comparison = GitBranchComparison(
+                branch: compared.branch,
+                local: compared.local,
+                localSubject: compared.localSubject,
+                remote: compared.remote,
+                pushURL: pushURL,
+                remoteOnly: compared.remoteOnly.map { GitCommitSummary(commit: $0.commit, subject: $0.subject) },
+                remoteOnlyCount: compared.remoteOnlyCount,
+            )
+            payload["comparison"] = try? JSONValue(encoding: comparison)
+        }
+        return .object(payload)
     }
 
     /// `progress` while it fetches, then `{branch, from, to, upToDate}`;
@@ -343,7 +394,10 @@ public struct GitService: Sendable {
         return .object(payload)
     }
 
-    /// `progress` {stage: "pushing"} while it uploads, then `{remote, branch, commit}`.
+    /// `progress` {stage: "pushing"} while it uploads, then `{remote, branch,
+    /// commit, from?, forced?}`. A forced push first records its lease's
+    /// outcome as a `lease` event, held or not, once the remote has said
+    /// what its branch is at.
     public func push(_ target: RemoteTarget, reporter: TaskReporter) throws -> JSONValue {
         try reporter.checkCancelled()
         reporter.stage("pushing")
@@ -352,7 +406,12 @@ public struct GitService: Sendable {
             try target.repository.push(
                 remote: target.remote,
                 branch: target.branch,
+                lease: target.lease,
                 credentials: credentialLookup,
+                remoteCommit: { found in
+                    guard let lease = target.lease else { return }
+                    reporter.emit("lease", Self.leaseEvent(lease, branch: target.branch, found: found))
+                },
             ) { progress in
                 if throttle.shouldEmit(force: progress.total > 0 && progress.current == progress.total) {
                     reporter.progress(
@@ -365,11 +424,30 @@ public struct GitService: Sendable {
                 return !reporter.isCancelled
             }
         }
-        return .object([
+        var payload: [String: JSONValue] = [
             "remote": .string(result.remote),
             "branch": .string(result.branch),
             "commit": .string(result.commit),
-        ])
+        ]
+        payload["from"] = result.from.map { .string($0) }
+        if result.forced {
+            payload["forced"] = .bool(true)
+        }
+        return .object(payload)
+    }
+
+    /// `lease` {branch, expectedCommit, localCommit?, found?, held}: what a
+    /// forced push was to replace, what the remote had, and whether it went
+    /// on.
+    static func leaseEvent(_ lease: GitLease, branch: String?, found: String?) -> JSONValue {
+        var event: [String: JSONValue] = [
+            "expectedCommit": .string(lease.expectedCommit),
+            "held": .bool(found == lease.expectedCommit),
+        ]
+        event["branch"] = branch.map { .string($0) }
+        event["localCommit"] = lease.localCommit.map { .string($0) }
+        event["found"] = found.map { .string($0) }
+        return .object(event)
     }
 
     // MARK: Settings and credentials
@@ -643,6 +721,8 @@ public struct GitService: Sendable {
         case .conflict: return ApelinError(.conflict, error.message)
         case .notFastForward: return ApelinError(.conflict, error.message, reason: .notFastForward)
         case .rejected: return ApelinError(.conflict, error.message, reason: .rejected)
+        case .remoteChanged: return ApelinError(.conflict, error.message, reason: .remoteChanged)
+        case .localChanged: return ApelinError(.conflict, error.message, reason: .localChanged)
         case .authenticationFailed: return ApelinError(.denied, error.message, reason: .authenticationRequired)
         case .failed: return ApelinError(.internal, error.message)
         }

@@ -67,7 +67,8 @@ public protocol AgentHostBackend: Sendable {
     func gitFetch(_ request: GitRemoteToolRequest) async throws -> GitTaskToolResponse
     /// Fetch, then fast-forward only, read to the end.
     func gitPull(_ request: GitRemoteToolRequest) async throws -> GitTaskToolResponse
-    /// Push a branch, never forced, read to the end.
+    /// Push a branch, read to the end: never forced without the lease the
+    /// user approved.
     func gitPush(_ request: GitRemoteToolRequest) async throws -> GitTaskToolResponse
     /// Import a repository into the session's own (empty) workspace.
     func gitClone(_ request: GitCloneToolRequest) async throws -> GitTaskToolResponse

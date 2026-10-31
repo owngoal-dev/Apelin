@@ -345,7 +345,9 @@ final class GitRemoteServiceTests: XCTestCase {
         let third = try git.commit(GitCommitRequest(projectID: id, message: "Third", authorName: "A", authorEmail: "a@apelin.invalid"))
         let pushLog = EventLog()
         let pushed = try git.push(git.preparePush(GitPushRequest(projectID: id)), reporter: pushLog.reporter)
-        XCTAssertEqual(pushed, .object(["remote": .string("origin"), "branch": .string("main"), "commit": .string(third.commitID)]))
+        XCTAssertEqual(pushed, .object([
+            "remote": .string("origin"), "branch": .string("main"), "commit": .string(third.commitID), "from": .string(second),
+        ]))
         XCTAssertEqual(pushLog.events.first?.1?["stage"]?.stringValue, "pushing")
         for (kind, payload) in pushLog.events where kind == "progress" {
             XCTAssertEqual(payload?["stage"]?.stringValue, "pushing")

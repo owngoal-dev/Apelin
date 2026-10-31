@@ -565,7 +565,9 @@ public struct ChannelHostBackend: AgentHostBackend {
     }
 
     public func gitFetch(_ request: GitRemoteToolRequest) async throws -> GitTaskToolResponse {
-        try await gitTask("git fetch") { try await service.gitFetch(projectID: project.id, remote: request.remote) }
+        try await gitTask("git fetch") {
+            try await service.gitFetch(projectID: project.id, remote: request.remote, branch: request.branch)
+        }
     }
 
     public func gitPull(_ request: GitRemoteToolRequest) async throws -> GitTaskToolResponse {
@@ -574,12 +576,13 @@ public struct ChannelHostBackend: AgentHostBackend {
 
     public func gitPush(_ request: GitRemoteToolRequest) async throws -> GitTaskToolResponse {
         let host = request.url.flatMap { URLComponents(string: $0)?.host }
-        return try await gitTask("git push", host: host) {
+        return try await gitTask("git push", host: host, forced: request.lease != nil) {
             try await service.gitPush(GitPushRequest(
                 projectID: project.id,
                 remote: request.remote,
                 branch: request.branch,
                 url: request.url,
+                forceWithLease: request.lease,
             ))
         }
     }
@@ -748,7 +751,12 @@ public struct ChannelHostBackend: AgentHostBackend {
 
     /// One git request; a refusal comes back as a `GitToolFailure` that says
     /// what to do about it.
-    private func git<T>(_ operation: String, host: String? = nil, _ body: () async throws -> T) async throws -> T {
+    private func git<T>(
+        _ operation: String,
+        host: String? = nil,
+        forced: Bool = false,
+        _ body: () async throws -> T,
+    ) async throws -> T {
         do {
             return try await body()
         } catch let error as ApelinError {
@@ -758,6 +766,7 @@ public struct ChannelHostBackend: AgentHostBackend {
                 message: error.message,
                 reason: error.reason?.rawValue,
                 host: host,
+                forced: forced,
             )
         }
     }
@@ -767,9 +776,10 @@ public struct ChannelHostBackend: AgentHostBackend {
     private func gitTask(
         _ operation: String,
         host: String? = nil,
+        forced: Bool = false,
         _ start: () async throws -> TaskHandle,
     ) async throws -> GitTaskToolResponse {
-        let handle = try await git(operation, host: host, start)
+        let handle = try await git(operation, host: host, forced: forced, start)
         var result: ApelinCore.JSONValue?
         var reason: String?
         let end = try await read(handle) { event in
@@ -789,7 +799,7 @@ public struct ChannelHostBackend: AgentHostBackend {
             throw GitToolFailure(message: "\(operation) was cut off when the session host stopped; check git_status, then run it again if it is still needed.")
         default:
             let (code, message) = GitFailure.split(end.message)
-            throw GitFailure.describe(operation, code: code, message: message, reason: reason, host: host)
+            throw GitFailure.describe(operation, code: code, message: message, reason: reason, host: host, forced: forced)
         }
     }
 
@@ -806,6 +816,10 @@ public struct ChannelHostBackend: AgentHostBackend {
         if case let .bool(flag)? = json["upToDate"] {
             upToDate = flag
         }
+        var forced: Bool?
+        if case let .bool(flag)? = json["forced"] {
+            forced = flag
+        }
         return GitTaskToolResponse(
             remote: json["remote"]?.stringValue,
             branch: json["branch"]?.stringValue,
@@ -814,6 +828,8 @@ public struct ChannelHostBackend: AgentHostBackend {
             to: json["to"]?.stringValue,
             upToDate: upToDate,
             updated: updates,
+            comparison: try? json["comparison"]?.decode(GitBranchComparison.self),
+            forced: forced,
         )
     }
 

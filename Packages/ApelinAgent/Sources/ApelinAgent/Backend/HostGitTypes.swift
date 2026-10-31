@@ -1,3 +1,5 @@
+import struct ApelinProtocol.GitBranchComparison
+import struct ApelinProtocol.GitPushLease
 import enum ApelinProtocol.GitRepositoryVisibility
 import Foundation
 
@@ -109,19 +111,29 @@ public struct GitCommitToolResponse: Sendable, Hashable, Codable {
     }
 }
 
-/// fetch, pull and push. A nil remote is `origin`; a nil branch (push only)
-/// is the checked-out one; a URL (push only) adds the remote when the
-/// project does not have it yet.
+/// fetch, pull and push. A nil remote is `origin`; a nil branch is, for a
+/// push, the checked-out one, and a branch on a fetch is compared with the
+/// remote's; a URL (push only) adds the remote when the project does not
+/// have it yet; a lease (push only) forces the push as it allows, and only
+/// as the user approved it.
 public struct GitRemoteToolRequest: Sendable, Hashable, Codable {
     public var context: HostCallContext
     public var remote: String?
     public var branch: String?
     public var url: String?
-    public init(context: HostCallContext, remote: String? = nil, branch: String? = nil, url: String? = nil) {
+    public var lease: GitPushLease?
+    public init(
+        context: HostCallContext,
+        remote: String? = nil,
+        branch: String? = nil,
+        url: String? = nil,
+        lease: GitPushLease? = nil,
+    ) {
         self.context = context
         self.remote = remote
         self.branch = branch
         self.url = url
+        self.lease = lease
     }
 }
 
@@ -155,12 +167,20 @@ public struct GitTaskToolResponse: Sendable, Hashable, Codable {
     public var remote: String?
     public var branch: String?
     public var commit: String?
-    /// pull: where the branch was and where it is now.
+    /// pull: where the branch was and where it is now. push: `from` is the
+    /// commit the remote's branch was at, absent when the push made it, and
+    /// `commit` the one it is at now.
     public var from: String?
     public var to: String?
     public var upToDate: Bool?
     /// fetch: the remote-tracking refs it moved.
     public var updated: [GitRefUpdate]?
+    /// fetch with a branch: it beside the remote's.
+    public var comparison: GitBranchComparison?
+    /// push: true when it overwrote the remote's branch, with a lease.
+    public var forced: Bool?
+    /// What the model is told besides, in words.
+    public var note: String?
 
     public init(
         remote: String? = nil,
@@ -170,6 +190,9 @@ public struct GitTaskToolResponse: Sendable, Hashable, Codable {
         to: String? = nil,
         upToDate: Bool? = nil,
         updated: [GitRefUpdate]? = nil,
+        comparison: GitBranchComparison? = nil,
+        forced: Bool? = nil,
+        note: String? = nil,
     ) {
         self.remote = remote
         self.branch = branch
@@ -178,6 +201,9 @@ public struct GitTaskToolResponse: Sendable, Hashable, Codable {
         self.to = to
         self.upToDate = upToDate
         self.updated = updated
+        self.comparison = comparison
+        self.forced = forced
+        self.note = note
     }
 }
 

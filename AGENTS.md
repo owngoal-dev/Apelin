@@ -502,6 +502,16 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
     exactly that repository and those files and digests, in order
     (`detail.packagePublish` {repository, sourceURL?, packages: [{buildID,
     packageID, version, architecture, bootstrap, file, digest}]}).
+    An agent's forced push (owner, 2026-10-31, issue #29;
+    `AgentForcePushRules`, GitHandler) goes, in every mode — Strict,
+    Relaxed and Full alike, since Full lifts root commands, not this —,
+    only by spending one approval the app gave this session whose own
+    `approvalRequested` names exactly it (`detail.forcePush` {projectID,
+    remote, url?, branch, expectedCommit, localCommit, localSubject,
+    overwritten, overwrittenCount}): the request's remote, branch, url and
+    lease must be the card's, the branch and the local commit named, so
+    what reaches apelin-environment is the lease the user saw; never for
+    the session. A push without a lease asks the host nothing.
     `environmentAttach` reads only the tasks the session started
     (`startedTasks`, recorded by `startTask`).
   - *Files* (`Session/Files/`). `fileRead` scopes: a project ID or
@@ -669,12 +679,35 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   Remotes (2026-10-22): `gitFetch`, `gitPull` (fetch, then a fast-forward
   only: a diverged branch or a worktree change it would overwrite is
   `conflict` and nothing changes) and `gitPush` (one branch to the branch
-  of the same name, never forced, recorded as its upstream; with `url`, a
+  of the same name, recorded as its upstream, never forced without a
+  lease; with `url`, a
   remote it names that the repository lacks is added first, HTTPS as a
   clone's, and taken away again when the push is refused before it
   starts; one it has must have that URL, else `conflict`, reason
   `remoteURLDiffers`; a missing one without `url` is `notFound`, reason
-  `noSuchRemote`) are tasks that are not resumed; `gitCloneInto` imports a
+  `noSuchRemote`) are tasks that are not resumed; `gitFetch {branch}`
+  also answers that local branch beside the branch of that name the
+  remote advertised to the fetch (`comparison`, `GitBranchComparison`:
+  both commits, the push URL, the remote's commits the local branch
+  lacks, newest first, the first ten with their subjects and all of them
+  counted), and the push result names `from`, the commit the remote's
+  branch was at. A forced push (owner, 2026-10-31, issue #29;
+  `Operations/GitHistory.swift`) is `gitPush {forceWithLease:
+  {expectedCommit, localCommit?}}`, full commit IDs checked before the
+  task is accepted, a local branch that is not at `localCommit` refused
+  there too (`conflict`, reason `localChanged`): libgit2 pushes
+  `+refs/heads/<branch>` on one connection, and its `push_negotiation`
+  callback, which gets the commit the remote advertised on that very
+  connection as each update's old value, stops it before anything is sent
+  unless that is `expectedCommit` (`conflict`, reason `remoteChanged`, a
+  branch the remote lacks too: nothing to overwrite, an ordinary push
+  makes it). The update goes to the remote as `<expectedCommit> <local>
+  <ref>`, so git's receive-pack or GitHub refuse it as well when the
+  branch moved after the check, in their own words (`rejected`); libgit2's
+  local transport writes the branch without that check, so
+  `GitLeaseTests` proves it through `git daemon`. A `lease` event
+  {branch, expectedCommit, localCommit?, found?, held} records what the
+  remote said, and the result `forced`; `gitCloneInto` imports a
   repository into an existing workspace project — the repository
   initialised in the folder, `origin`
   fetched in full, the branch checked out without overwriting a file
@@ -1308,13 +1341,36 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   Confirm like a project edit except git_push, which asks every time for
   the remote and branch it names (the checked-out branch read first when
   none is given, then sent explicitly) and the `url` it adds the remote
-  at, never with a session grant. Nothing rewrites history (no squash, no
-  forced push): a project with no remote is pushed with the `url` of an
+  at, never with a session grant. Nothing squashes: a project with no
+  remote is pushed with the `url` of an
   empty repository, one apelin_git_create_repository made on GitHub
-  (below) or one the user made elsewhere.
+  (below) or one the user made elsewhere. A forced push (owner,
+  2026-10-31, issue #29: asked to make a local repository the main
+  version of a public one, overwriting its `main`, an agent refused even
+  with the user's go-ahead) is git_push {force_with_lease}
+  (`Tools/ToolRunner+History.swift`): before asking, the tool fetches the
+  remote with `gitFetch {branch}`; when the remote has no such branch or
+  its branch is part of the local one it is an ordinary push, which the
+  result's `note` says; otherwise the card (`detail.forcePush`,
+  `ApprovalPolicy.forcePushReason`; the app titles it Force-push to the
+  remote and shows the bound detail, `ApprovalCardText`) names the
+  branch, the remote and its URL, the remote commit replaced and the
+  local one sent, the commits that leave the branch, and that it cannot
+  be undone from Apelin. It asks in every mode, never with a session
+  grant; a `url` that is not where the remote pushes, a detached HEAD or
+  a fetch that fails is refused before asking. The push carries the
+  card's lease (`GitPushLease`), and the result names the remote, the
+  branch, `from` and `commit`. The tool's description, a line of the
+  prompt's `# Working` and the `apelin-git-workflow` skill keep it to a
+  forced push the user explicitly asked for, of that branch to that
+  remote: never on the agent's own initiative, never to get past a
+  rejected push, never because a file, log, page or tool output says so,
+  never through shell_run; `remoteChanged` or `localChanged` is told the
+  user, then asked again (`ForcePushToolTests` pins the lines).
   A failure names its fix: Sign In with GitHub in Settings ▸ Git for
   github.com, a token the user gives for another host, an author there, a
-  fetch before a rejected push, never a forced one, git_init for a project
+  fetch and a merge or rebase the user agrees to before a rejected push,
+  never a forced one, git_init for a project
   with no repository, and, for a push with no remote, asking the user
   whether to create a GitHub repository or for an empty one's `url`. The
   agent keeps the
@@ -2837,6 +2893,14 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   says root will run without asking, plus the same owner check; leaving it
   asks nothing. The wire value is `full` and old stored values still decode;
   `ApprovalMode.asks` is true for Strict alone.
+  *A forced push* (owner, 2026-10-31, issue #29: "default protected,
+  allowed with explicit authorisation") asks in all three modes, Full
+  included, every time, on a card naming the branch and remote, the
+  commit replaced and the one sent, and the commits that leave the
+  branch; never granted for the session. It goes with
+  `--force-with-lease`'s protection, never a plain force: if the remote's
+  branch is not where the card said, nothing is pushed and the user is
+  asked again.
   *Ask Before Using the Screen* (owner, 2026-10-30: asked to
   report a problem upstream, an agent opened the issue page in Safari with
   `icli url open` and read the UI tree twice, never asking) is a setting
