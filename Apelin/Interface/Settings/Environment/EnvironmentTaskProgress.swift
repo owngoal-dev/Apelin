@@ -23,10 +23,14 @@ struct EnvironmentTaskProgress {
         case distributionCreate
         case distributionLink
         case distributionPublish
+        /// Open in Apelin for a repository: `gitCloneInto` into the
+        /// workspace made for it.
+        case repositoryImport
 
         var includesDownload: Bool {
             switch self {
-            case .toolchainSetup, .sdkImport, .transferImport(.toolchain), .distributionLink, .distributionPublish: true
+            case .toolchainSetup, .sdkImport, .transferImport(.toolchain), .distributionLink, .distributionPublish,
+                 .repositoryImport: true
             default: false
             }
         }
@@ -58,6 +62,8 @@ struct EnvironmentTaskProgress {
                 ["fetching", "preparing", "pushing", "publishing"]
             case .distributionPublish:
                 ["fetching", "preparing", "pushing"]
+            case .repositoryImport:
+                ["fetching"]
             }
         }
     }

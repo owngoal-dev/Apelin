@@ -210,6 +210,23 @@ console now goes on after a restart only past a successful respring.
       the template's digests did not. A new project, a workspace, a
       rename and apelin_project_set_environment each write it formatted.
 
+- [ ] Open in Apelin for a repository (2026-10-31, issue #31; only the
+      Mac harness's `Tests/ApelinLink` and a node run of the landing
+      page's checks have run). After `make vphone` (iPhone and iPad):
+      from a README, `https://owngoal-dev.github.io/Apelin/open/?url=…`
+      shows the repository and Open in Apelin opens the sheet filled in,
+      with the app cold and running; Import makes the project, clones it
+      on the progress card and opens it on a new conversation that sends
+      nothing; Cancel on the sheet makes nothing and Cancel on the card
+      leaves no project; `&branch=` checks that branch out; a private
+      github.com repository without a sign-in offers Settings ▸ Git and
+      leaves no project; a malformed link says it names no repository; a
+      second tap of the same link brings nothing new up and another
+      link's says an import is under way; a repository imported before
+      offers Open; a link during the welcome is shown once it finishes;
+      the page without Apelin installed explains how to get it and copies
+      the address.
+
 - [ ] A preference bundle's Settings row with its icon (2026-10-30, issue
       #19, `wiki.qaq.apelin.dev.preferences` 0.1.3), on a device where
       PreferenceLoader shows panes (the owner's iOS 17.3.1 iPhone): a new

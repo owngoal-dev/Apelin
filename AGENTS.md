@@ -3790,6 +3790,32 @@ fragment. The chat's ListViewKit keeps its own update mechanism.
   nothing: the reader reads it and taps Send, so a link from anywhere can
   only suggest a message (≤ 32 KB, no control character but a line break or
   a tab, else `unknown`; without `prompt` the composer is empty).
+  `apelin://import?url=<address>&branch=<name>` (owner, 2026-10-31, issue
+  #31) is Open in Apelin for a Git repository: a README's button
+  (`Documents/Site/open/badge.svg`) links to
+  `https://owngoal-dev.github.io/Apelin/open/?url=…&branch=…`, a static
+  page (`open.js`, the same checks, no markup from the query) that shows
+  the repository, opens this link, says how to install Apelin and copies
+  the address. `url` starts `https://`, in lower case, with a host and a
+  path, printable ASCII, no user, password, query or fragment, ≤ 2 KB
+  (`isRepositoryAddress`);
+  `branch` is optional and a name `git check-ref-format --branch` takes,
+  no white space or format character (`isBranchName`); each is named at
+  most once, anything else is ignored, and a link that fails is
+  `invalidImport` ("names no HTTPS repository Apelin can import"). The app
+  asks first (`RepositoryImportController`, a form sheet): the address,
+  the branch, any project whose `.git/config` origin is the same
+  repository (`RepositoryImportPlan.comparable`), to open instead, and the
+  name, the repository's own (`suggestedName`), never one a project has.
+  Import is `projectCreate` of the empty workspace, then `gitCloneInto`
+  followed on the progress card (`RepositoryImporter`); success opens the
+  project on a new conversation and sends nothing, and a failure or
+  Cancel takes that project away with `projectDelete`. A private
+  repository's `authenticationRequired` points to Sign In with GitHub for
+  github.com, else to a token given to the agent. One import at a time
+  (`RepositoryImportFlow`): a link for the one open does nothing more,
+  another says an import is under way. An import link waits through the
+  welcome rather than being dropped.
   `apelin://` opens the app as it is. The format is fixed — the agent
   writes these links. `ApelinLink`
   (`Widgets/Shared/ApelinLink.swift`, Foundation only; `Tests/ApelinLink` in

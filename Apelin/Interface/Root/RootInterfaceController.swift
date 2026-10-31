@@ -23,7 +23,8 @@ final class RootInterfaceController: UIViewController {
     private let chatRuntime = ChatRuntime()
     private var restoredChat = false
     private var opensChatAfterWelcome = false
-    /// An `apelin://` link that came before the conversations were read.
+    /// An `apelin://` link that came before the conversations were read,
+    /// or an import that came during the welcome.
     private var pendingLink: ApelinLink?
     /// A link is being looked up: the launch's own restore waits for it.
     private var isResolvingLink = false
@@ -125,7 +126,8 @@ final class RootInterfaceController: UIViewController {
         if let link = pendingLink {
             pendingLink = nil
             open(link)
-            return
+            // an import's sheet goes over the page the launch still restores
+            guard Self.isImport(link) else { return }
         }
         guard !restoredChat else { return }
         if let saved = Self.savedChatID, let summary = chatRuntime.records[saved]?.summary {
@@ -255,6 +257,8 @@ final class RootInterfaceController: UIViewController {
             if let project {
                 restoredChat = true
                 sidebar.openCreatedProject(project)
+                // only an import link held through the welcome is left
+                restoreChatIfReady()
             } else {
                 opensChatAfterWelcome = true
                 restoreChatIfReady()
@@ -447,11 +451,24 @@ final class RootInterfaceController: UIViewController {
     /// conversations are read waits for them, and the launch shows it
     /// instead of the conversation saved; during the welcome it is dropped.
     /// A prompt goes into a new General Chat's composer with the keyboard
-    /// up, and waits there for the reader's Send.
+    /// up, and waits there for the reader's Send. An import is a sheet over
+    /// the page (`RepositoryImportFlow`); one that comes during the welcome
+    /// waits for it to finish rather than being dropped, since a tap on
+    /// Open in Apelin is what opened the app.
     func open(_ link: ApelinLink) {
-        guard link != .app, !WelcomeFlow.shouldPresent else { return }
+        guard link != .app else { return }
+        guard !WelcomeFlow.shouldPresent else {
+            if Self.isImport(link) {
+                pendingLink = link
+            }
+            return
+        }
         guard chatRuntime.isLoaded else {
             pendingLink = link
+            return
+        }
+        guard !Self.isImport(link) else {
+            openImport(link)
             return
         }
         isResolvingLink = true
@@ -481,6 +498,33 @@ final class RootInterfaceController: UIViewController {
                 chatController.restoreDraft(for: summary.id)
                 chatController.beginTyping()
             }
+        }
+    }
+
+    private static func isImport(_ link: ApelinLink) -> Bool {
+        switch link {
+        case .importRepository, .invalidImport: true
+        default: false
+        }
+    }
+
+    /// The import's confirmation; the project it opens, an imported one on
+    /// a new conversation that sends nothing, or one that had the
+    /// repository already as its link would open it.
+    private func openImport(_ link: ApelinLink) {
+        guard case let .importRepository(address, branch) = link else {
+            RepositoryImportFlow.reportUnreadableLink()
+            return
+        }
+        let request = RepositoryImportPlan.Request(address: address, branch: branch)
+        RepositoryImportFlow.open(request, from: self) { [weak self] project, imported in
+            guard let self else { return }
+            guard imported else {
+                open(.project(project.projectID ?? project.name))
+                return
+            }
+            restoredChat = true
+            sidebar.openCreatedProject(project)
         }
     }
 

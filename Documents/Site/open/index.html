@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; img-src 'self'; base-uri 'none'; form-action 'none'">
+<title>Open in Apelin</title>
+<style>
+:root { color-scheme: light; --ink: #1f232b; --page: #f2f2f7; --accent: #007aff; }
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: 24px 16px 48px; background: var(--page); color: var(--ink);
+  display: flex; flex-direction: column; align-items: center; gap: 16px;
+  font: 17px/22px ui-rounded, "SF Pro Rounded", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+}
+.card { width: min(440px, 100%); padding: 32px 24px; background: #fff; border-radius: 24px; }
+.card.lead { text-align: center; }
+img.icon { display: block; width: 64px; height: 64px; margin: 0 auto 16px; border-radius: 15px; }
+h1 { margin: 0 0 16px; font-size: 22px; line-height: 28px; }
+h2 { margin: 0 0 8px; font-size: 17px; }
+p { margin: 0 0 12px; }
+.dim { opacity: 0.5; }
+.small { font-size: 15px; line-height: 20px; }
+dl { margin: 0 0 20px; text-align: left; }
+dt { font-size: 13px; line-height: 18px; opacity: 0.5; }
+dd { margin: 0 0 10px; overflow-wrap: anywhere; font-family: ui-monospace, Menlo, monospace; font-size: 15px; }
+.button {
+  display: block; width: 100%; margin: 0 0 10px; padding: 12px; border: 0; border-radius: 12px;
+  font: inherit; font-weight: 600; text-align: center; text-decoration: none; cursor: pointer;
+  background: #e9e9ef; color: var(--accent);
+}
+.button.primary { background: var(--accent); color: #fff; }
+a { color: var(--accent); }
+pre {
+  margin: 0 0 10px; padding: 12px; background: var(--page); border-radius: 12px;
+  white-space: pre-wrap; overflow-wrap: anywhere; font: 13px/18px ui-monospace, Menlo, monospace;
+}
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main class="card lead">
+<img class="icon" src="../icon.png" alt="">
+<h1>Open in Apelin</h1>
+<div id="about" hidden>
+<p class="small">This page opens a Git repository in Apelin from a button on a README or a web page. Apelin asks before it imports anything.</p>
+</div>
+<div id="repository" hidden>
+<dl>
+<dt>Git Repository</dt>
+<dd id="address"></dd>
+<dt>Branch</dt>
+<dd id="branch"></dd>
+</dl>
+<a class="button primary" id="open">Open in Apelin</a>
+<button class="button" id="copy-address" type="button">Copy Repository Address</button>
+<p class="small" id="status" role="status"></p>
+<p class="small dim">Apelin shows the address, the branch and the new project’s name, and imports nothing until you confirm. Nothing in the repository runs, and nothing is sent to your agent.</p>
+</div>
+<div id="invalid" hidden>
+<p>This link names no repository Apelin can import.</p>
+<p class="small dim">An Open in Apelin link carries the repository’s HTTPS address, with no user name, token, query or fragment in it, and optionally a branch. Ask whoever shared it for a corrected link.</p>
+</div>
+</main>
+<section class="card" id="install">
+<h2>Don’t have Apelin?</h2>
+<p class="small">Apelin is an IDE for iPhone and iPad running custom firmware on iOS and iPadOS 16 or later. It installs from apt.owngoal.dev through Irisin, Apelin’s installer: add the source, install Apelin, then come back and tap Open in Apelin.</p>
+<a class="button" id="add-source" href="irisin://repository/add?url=https%3A%2F%2Fapt.owngoal.dev%2F">Add apt.owngoal.dev in Irisin</a>
+<p class="small">Or add <a href="https://apt.owngoal.dev/">apt.owngoal.dev</a> in your preferred package manager. More about Apelin is on <a href="https://github.com/owngoal-dev/Apelin">GitHub</a>.</p>
+</section>
+<section class="card" id="format">
+<h2>Add this button to a README</h2>
+<p><img src="badge.svg" width="172" height="40" alt="Open in Apelin"></p>
+<pre id="markdown">[![Open in Apelin](https://owngoal-dev.github.io/Apelin/open/badge.svg)](https://owngoal-dev.github.io/Apelin/open/?url=https%3A%2F%2Fgithub.com%2Fowner%2Frepository)</pre>
+<button class="button" id="copy-markdown" type="button">Copy Markdown</button>
+<p class="small" id="markdown-status" role="status"></p>
+<p class="small">The link is <code>https://owngoal-dev.github.io/Apelin/open/?url=</code> and the repository’s HTTPS address, URL-encoded, with <code>&amp;branch=</code> and a branch name to check out one other than the default. It carries nothing else: no command, no message for the agent and no credential. A private repository asks for a sign-in in Apelin.</p>
+</section>
+<script src="open.js"></script>
+</body>
+</html>

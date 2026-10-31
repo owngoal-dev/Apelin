@@ -13,10 +13,11 @@ enum ChatLinkTarget {
     }
 
     /// The conversation or project `link` names, or nil when it names
-    /// nothing the app can open.
+    /// nothing the app can open. An import is a sheet over the page
+    /// (`RepositoryImportFlow`), never a destination.
     static func resolve(_ link: ApelinLink, in runtime: ChatRuntime) async -> Destination? {
         switch link {
-        case .app, .unknown:
+        case .app, .unknown, .importRepository, .invalidImport:
             nil
         case let .conversation(id):
             await conversation(id, in: runtime).map(Destination.chat)
@@ -32,7 +33,7 @@ enum ChatLinkTarget {
         let title = switch link {
         case .conversation: String(localized: "Conversation Not Found")
         case .project: String(localized: "Project Not Found")
-        case .app, .chat, .unknown: String(localized: "Link Not Recognized")
+        case .app, .chat, .importRepository, .invalidImport, .unknown: String(localized: "Link Not Recognized")
         }
         SPIndicator.present(title: title, preset: .error, haptic: .error)
     }

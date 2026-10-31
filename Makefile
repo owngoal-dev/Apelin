@@ -464,6 +464,7 @@ harness:
 	xcrun --sdk macosx swiftc -swift-version 5 \
 		"$(ROOT_DIR)/Widgets/Shared/ApelinLink.swift" \
 		"$(ROOT_DIR)/Widgets/Shared/ChatWidgetSnapshot.swift" \
+		"$(ROOT_DIR)/Apelin/Interface/Projects/RepositoryImport/RepositoryImportPlan.swift" \
 		"$(ROOT_DIR)/Tests/ApelinLink/main.swift" \
 		-o "$$harness_dir/apelin-link" && \
 	"$$harness_dir/apelin-link" && \

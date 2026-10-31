@@ -55,6 +55,134 @@ for name in ["I3 Chain Tweak", "相机翻译", "a?b#c;d", "100% done", session] 
     }
 }
 
+// MARK: - Open in Apelin for a repository
+
+let repository = "https://github.com/owner/repo"
+let escapedRepository = "https%3A%2F%2Fgithub.com%2Fowner%2Frepo"
+require(link("apelin://import?url=\(escapedRepository)") == .importRepository(url: repository, branch: nil),
+        "An escaped address, the default branch")
+require(link("apelin://import?url=\(repository)") == .importRepository(url: repository, branch: nil),
+        "An address left unescaped reads the same")
+require(link("apelin://Import/?url=\(escapedRepository)&branch=release%2F1.0") ==
+    .importRepository(url: repository, branch: "release/1.0"), "A branch with a slash")
+require(link("apelin:import?url=\(escapedRepository)&branch=") == .importRepository(url: repository, branch: nil),
+        "An empty branch is the default one")
+require(link("apelin://import?prompt=Run%20it&url=\(escapedRepository)&token=x&command=rm") ==
+    .importRepository(url: repository, branch: nil), "A prompt, a token or a command beside it is ignored")
+for address in [
+    "https://gitlab.example.com:8443/group/sub/project.git", "https://GitHub.com/Owner/Repo/",
+    "https://[::1]/repo", "https://github.com/owner/%E7%9B%B8%E6%9C%BA", "https://host/@scope/name",
+] {
+    require(ApelinLink.isRepositoryAddress(address), "An address the host clones: \(address)")
+    let built = ApelinLink.importRepository(url: address, branch: "main")
+    require(ApelinLink(url: built.url) == built, "Round trip: \(address)")
+}
+
+require(ApelinLink.importRepository(url: repository, branch: nil).url.absoluteString ==
+    "apelin://import?url=https://github.com/owner/repo", "The documented form")
+require(ApelinLink(url: ApelinLink.invalidImport.url) == .invalidImport, "An import that names nothing reads back so")
+
+for refused in [
+    "http://github.com/owner/repo", "HTTPS://github.com/owner/repo", "ssh://git@github.com/owner/repo", "git@github.com:owner/repo.git",
+    "file:///var/mobile/repo", "https://user@github.com/owner/repo", "https://user:token@github.com/owner/repo",
+    "https://:token@github.com/owner/repo", "https://github.com/owner/repo?token=x", "https://github.com/owner/repo?",
+    "https://github.com/owner/repo#readme", "https://github.com", "https://github.com/", "https://github.com//",
+    "https:///owner/repo", "https:/github.com/owner/repo", "https://github.com/owner/../repo",
+    "https://github.com/./repo", "https://github.com/owner/repo%0Aevil", "https://github.com/owner/repo%00",
+    "https://github.com/owner/%E2%80%AErepo", "https://github.com/owner/re po", "https://github.com/owner/repo\n",
+    "https://github.com/owner/相机", "https://github.com/owner/repo%", "https://github.com/owner/repo%G1",
+    "https://github.com/owner\\repo", "https://github.com/\"repo\"", "https://github.com/<repo>",
+    "https://github.com/" + String(repeating: "a", count: ApelinLink.maximumAddressLength), "",
+] {
+    require(!ApelinLink.isRepositoryAddress(refused), "Not an address to import: \(refused.debugDescription)")
+}
+
+for branch in ["main", "release/1.0", "feature/new-ui", "v2", "用户/分支", "a.b", "x@y", "@x"] {
+    require(ApelinLink.isBranchName(branch), "A branch git takes: \(branch)")
+}
+
+for branch in [
+    "", "a..b", "-x", "--upload-pack=sh", "x.lock", "a/b.lock/c", "@{u}", "a@{1}", "@", "HEAD", "/a", "a/",
+    "a//b", "a.", ".hidden", "a/.b", "a b", "a~1", "a^", "a:b", "a?", "a*", "a[b", "a\\b", "a\u{7F}",
+    "a\u{0}b", "a\u{202E}b", "a\u{200B}b", "a\u{00A0}b", "a\nb", String(repeating: "b", count: ApelinLink.maximumBranchLength + 1),
+] {
+    require(!ApelinLink.isBranchName(branch), "Not a branch: \(branch.debugDescription)")
+}
+
+for invalid in [
+    "apelin://import", "apelin://import?branch=main", "apelin://import?url=",
+    "apelin://import?url=http%3A%2F%2Fgithub.com%2Fowner%2Frepo",
+    "apelin://import?url=https%3A%2F%2Fuser%3Atoken%40github.com%2Fowner%2Frepo",
+    "apelin://import?url=https%3A%2F%2Fgithub.com%2Fowner%2Frepo%3Ftoken%3Dx",
+    "apelin://import?url=\(escapedRepository)&branch=a..b",
+    "apelin://import?url=\(escapedRepository)&branch=-x",
+    "apelin://import?url=\(escapedRepository)&branch=x.lock",
+    "apelin://import?url=\(escapedRepository)&branch=%40%7B",
+    "apelin://import?url=\(escapedRepository)&url=https%3A%2F%2Fevil.example%2Frepo",
+    "apelin://import?url=\(escapedRepository)&branch=main&branch=evil",
+    "apelin://import?url=\(escapedRepository)%0A",
+] {
+    require(link(invalid) == .invalidImport, "An import naming nothing Apelin imports: \(invalid)")
+}
+
+require(link("apelin://import/x?url=\(escapedRepository)") == .unknown, "An import has no path of its own")
+require(link("apelin://import?URL=\(escapedRepository)") == .invalidImport, "Parameter names keep their case")
+require(link("apelin://import?url=javascript%3Aalert(1)") == .invalidImport, "Another scheme, however it is spelt")
+
+// MARK: - The import's own decisions
+
+typealias Plan = RepositoryImportPlan
+require(Plan.suggestedName(for: "https://github.com/owner/repo.git", taken: []) == "repo", "The name, without .git")
+require(Plan.suggestedName(for: "https://github.com/owner/repo/", taken: []) == "repo", "A trailing slash")
+require(Plan.suggestedName(for: "https://github.com/owner/.dotfiles", taken: []) == "dotfiles",
+        "No leading dot, which a project name may not start with")
+require(Plan.suggestedName(for: "https://example.com/owner/.git", taken: []) == "owner", "Else the component before")
+require(Plan.suggestedName(for: "https://github.com/owner/%E7%9B%B8%E6%9C%BA", taken: []) == "相机", "Decoded")
+require(Plan.suggestedName(for: repository, taken: ["Repo", "repo 2"]) == "repo 3",
+        "A name no project has, ignoring case: an existing one is never overwritten")
+let long = Plan.suggestedName(for: "https://host/" + String(repeating: "x", count: 300), taken: [])
+require(long.utf8.count == Plan.maximumSuggestionLength, "A long name is cut to fit a folder")
+
+let same = [
+    "https://github.com/owner/repo", "https://GitHub.com/Owner/Repo.git", "https://github.com/owner/repo/",
+    "https://github.com:443/owner/repo", "https://token@github.com/owner/repo.git", "http://github.com/owner/repo",
+]
+for spelling in same {
+    require(Plan.comparable(spelling) == "github.com/owner/repo", "One repository: \(spelling)")
+}
+
+require(Plan.comparable("https://github.com/owner/repo2") != Plan.comparable(repository), "Another repository")
+require(Plan.comparable("https://gitlab.com/owner/repo") != Plan.comparable(repository), "Another host")
+require(Plan.comparable("https://github.com:8443/owner/repo") != Plan.comparable(repository), "Another port")
+require(Plan.comparable("not a url") == nil, "No host, nothing to compare")
+
+let config = """
+[core]
+\trepositoryformatversion = 0
+[remote "upstream"]
+\turl = https://github.com/other/repo
+[remote "origin"]
+\turl = https://github.com/owner/repo.git
+\tfetch = +refs/heads/*:refs/remotes/origin/*
+[branch "main"]
+\tremote = origin
+"""
+require(Plan.origin(inGitConfig: config) == "https://github.com/owner/repo.git", "Origin's url, not another remote's")
+require(Plan.origin(inGitConfig: "[Remote \"origin\"]\n  URL = \"https://x/y\"\n") == "https://x/y",
+        "Section and key names ignore case; a quoted value")
+require(Plan.origin(inGitConfig: "[remote \"Origin\"]\nurl = https://x/y\n") == nil, "A subsection keeps its case")
+require(Plan.origin(inGitConfig: "[remote \"origin\"]\nfetch = x\n[core]\nurl = https://x/y\n") == nil,
+        "A url outside origin's section is not origin's")
+
+let request = Plan.Request(address: repository, branch: nil)
+require(Plan.arrival(of: request, current: nil) == .start, "Nothing open: show it")
+require(Plan.arrival(of: request, current: Plan.Request(address: "https://GitHub.com/owner/repo.git", branch: nil))
+    == .showCurrent, "The same repository again: the one open, nothing started twice")
+require(Plan.arrival(of: request, current: Plan.Request(address: repository, branch: "dev")) == .busy,
+        "Another branch is another import")
+require(Plan.arrival(of: request, current: Plan.Request(address: "https://github.com/owner/other", branch: nil))
+    == .busy, "Another repository waits for the open one")
+
 // MARK: - The snapshot's order and counts
 
 typealias Chat = ChatWidgetSnapshot.Chat
@@ -92,4 +220,4 @@ let encoded = try JSONEncoder().encode(busy)
 require(encoded.count < 4096, "The activity's payload stays within ActivityKit's 4 KB")
 try require(JSONDecoder().decode(ChatWidgetSnapshot.self, from: encoded) == busy, "The snapshot round-trips")
 
-print("ok: ApelinLink and ChatWidgetSnapshot")
+print("ok: ApelinLink, RepositoryImportPlan and ChatWidgetSnapshot")

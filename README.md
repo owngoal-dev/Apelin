@@ -46,6 +46,16 @@ The development extensions add the project templates and come with Apelin by def
 | `wiki.qaq.apelin.agent-tools.disassembler` | A disassembler for the agent, on Capstone |
 | `wiki.qaq.apelin.agent-tools.assembler` | An assembler for the agent, on Keystone (GPL-2.0; its source is published with each release) |
 
+## Open in Apelin
+
+A repository's README can carry a button that opens the repository in Apelin, which asks before importing it into a new project:
+
+```markdown
+[![Open in Apelin](https://owngoal-dev.github.io/Apelin/open/badge.svg)](https://owngoal-dev.github.io/Apelin/open/?url=https%3A%2F%2Fgithub.com%2Fowner%2Frepo)
+```
+
+`url` is the repository's HTTPS address, URL-encoded. Add `&branch=<name>` to check out a branch other than the default. The link carries nothing else: no command, no message for the agent and no credential. Apelin shows the address, the branch and the new project's name, and imports only once you confirm. Nothing in the repository runs, and nothing is sent to the agent. A private repository needs a sign-in: Sign In with GitHub in Settings ▸ Git for github.com. Without Apelin, the page explains how to install it and lets you copy the address.
+
 ## Report a Problem
 
 Choose Report a Problem in Settings, or [open an issue on GitHub](https://github.com/owngoal-dev/Apelin/issues/new). Search the existing issues first to avoid duplicates.
