@@ -49,10 +49,16 @@ public final class DSYMStore: DSYMLookup, @unchecked Sendable {
         self.directory = directory
         indexURL = directory.appendingPathComponent("index.plist")
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        if let data = try? Data(contentsOf: indexURL),
-           let stored = try? PropertyListDecoder().decode(Index.self, from: data)
-        {
-            index = stored
+        if let data = try? Data(contentsOf: indexURL) {
+            if let stored = try? PropertyListDecoder().decode(Index.self, from: data) {
+                index = stored
+            } else {
+                // Never written over by the next import: kept beside it, and
+                // the store starts afresh (its files are found again by UUID).
+                let aside = indexURL.deletingLastPathComponent()
+                    .appendingPathComponent("index.plist.unreadable-\(Int(Date().timeIntervalSince1970))")
+                try? FileManager.default.moveItem(at: indexURL, to: aside)
+            }
         }
     }
 

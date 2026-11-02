@@ -73,6 +73,7 @@ struct RepositoryCardStyle: Codable, Equatable {
 
     static func load(for repository: DistributionRepository) -> RepositoryCardStyle {
         UserDefaults.standard.data(forKey: key(repository))
+            // persisted-read: one preference, a card's look; its default is harmless
             .flatMap { try? JSONDecoder().decode(Self.self, from: $0) } ?? RepositoryCardStyle()
     }
 

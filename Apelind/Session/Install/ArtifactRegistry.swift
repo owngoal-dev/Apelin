@@ -35,6 +35,9 @@ actor ArtifactRegistry {
 
     private let file: URL
     private var artifacts: [Artifact] = []
+    /// Records this version cannot read, written back as they were
+    /// (`PreservedList`), so one never takes the others with it.
+    private var unreadable: [JSONValue] = []
     private var loaded = false
 
     init(file: URL) {
@@ -109,8 +112,19 @@ actor ArtifactRegistry {
     private func loadIfNeeded() {
         guard !loaded else { return }
         loaded = true
-        if let data = try? Data(contentsOf: file), let list = try? JSONCoding.decode([Artifact].self, from: data) {
-            artifacts = list
+        guard let data = try? Data(contentsOf: file) else { return }
+        do {
+            let list = try JSONCoding.decode(PreservedList<Artifact>.self, from: data)
+            // a build from before roothide renamed its root (issue #34)
+            artifacts = list.items.map { artifact in
+                var current = artifact
+                current.path = BootstrapRootPath.rebased(artifact.path, onto: file.path)
+                return current
+            }
+            unreadable = list.unreadable
+        } catch {
+            // never written over: kept beside, and the registry starts afresh
+            UnreadableFile.setAside(file)
         }
     }
 
@@ -120,7 +134,7 @@ actor ArtifactRegistry {
             withIntermediateDirectories: true,
             attributes: [.posixPermissions: 0o700],
         )
-        try? JSONCoding.encode(artifacts).write(to: file, options: .atomic)
+        try? JSONCoding.encode(PreservedList(artifacts, unreadable: unreadable)).write(to: file, options: .atomic)
     }
 }
 

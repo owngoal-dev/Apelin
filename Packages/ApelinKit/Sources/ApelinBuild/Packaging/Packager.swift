@@ -100,7 +100,10 @@ public struct ArtifactStore: Sendable {
         guard !artifactID.contains("/"), !artifactID.hasPrefix("."), !artifactID.isEmpty else {
             throw ApelinError(.badRequest, "not an artifact ID")
         }
-        return try JSONCoding.decode(ArtifactRecord.self, from: Data(contentsOf: url(of: artifactID)))
+        var record = try JSONCoding.decode(ArtifactRecord.self, from: Data(contentsOf: url(of: artifactID)))
+        // a build from before roothide renamed its root (issue #34)
+        record.path = BootstrapRootPath.rebased(record.path, onto: directory.path)
+        return record
     }
 }
 

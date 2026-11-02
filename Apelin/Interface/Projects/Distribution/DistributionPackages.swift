@@ -151,8 +151,11 @@ enum DistributionPackages {
         let folder = buildsFolder.appendingPathComponent("artifacts", isDirectory: true)
         let names = (try? FileManager.default.contentsOfDirectory(atPath: folder.path)) ?? []
         return names.filter { $0.hasSuffix(".json") && !$0.hasPrefix(".") }.compactMap { name in
-            guard let data = try? Data(contentsOf: folder.appendingPathComponent(name)) else { return nil }
-            return try? JSONCoding.decode(Record.self, from: data)
+            guard let data = try? Data(contentsOf: folder.appendingPathComponent(name)),
+                  var record = try? JSONCoding.decode(Record.self, from: data) else { return nil }
+            // a build from before roothide renamed its root (issue #34)
+            record.path = BootstrapRootPath.rebased(record.path, onto: folder.path)
+            return record
         }
     }
 

@@ -114,6 +114,8 @@ public extension EnvironmentRegistry {
 /// `SDKs/.registry/<id>.json` (one `SDKRecord` each, written last when an
 /// SDK is registered). Their digests are bare hex; a project binds them as
 /// `sha256:<hex>`. A component counts only when its self-check passed.
+/// Paths are taken to the bootstrap root the data folder is under now
+/// (`BootstrapRootPath`), since roothide renames it on a reboot.
 public struct EnvironmentStores: EnvironmentRegistry {
     public let dataFolder: DataFolder
 
@@ -129,8 +131,10 @@ public struct EnvironmentStores: EnvironmentRegistry {
         dataFolder.sdkRegistry
     }
 
+    /// Read one record at a time (`PreservedList`): one this version cannot
+    /// read leaves the others usable.
     private struct ToolchainFile: Decodable {
-        var toolchains: [ToolchainRecord]?
+        var toolchains: PreservedList<ToolchainRecord>?
         var defaultID: String?
     }
 
@@ -144,7 +148,7 @@ public struct EnvironmentStores: EnvironmentRegistry {
     }
 
     public func toolchains() throws -> [RegisteredToolchain] {
-        try (toolchainFile().toolchains ?? []).compactMap { record in
+        try (toolchainFile().toolchains?.items ?? []).compactMap { record in
             guard let path = record.path, let digest = record.contentDigest else { return nil }
             var components: [String] = []
             for component in record.components where component.selfCheckPassed == true {
@@ -158,7 +162,7 @@ public struct EnvironmentStores: EnvironmentRegistry {
                 id: record.id,
                 digest: Self.tagged(digest),
                 version: record.version,
-                path: path,
+                path: BootstrapRootPath.rebased(path, onto: dataFolder.root.path),
                 components: components,
                 newestSDK: record.newestSDK,
                 swiftRequirements: record.swiftRequirements,
@@ -180,7 +184,7 @@ public struct EnvironmentStores: EnvironmentRegistry {
                 id: record.id,
                 digest: Self.tagged(digest),
                 version: record.version,
-                path: record.path,
+                path: BootstrapRootPath.rebased(record.path, onto: dataFolder.root.path),
                 targets: record.targets,
             )
         }
@@ -188,7 +192,7 @@ public struct EnvironmentStores: EnvironmentRegistry {
 
     public func defaultToolchainID() throws -> String? {
         let file = try toolchainFile()
-        return file.defaultID ?? file.toolchains?.first?.id
+        return file.defaultID ?? file.toolchains?.items.first?.id
     }
 
     /// The newest registered SDK.

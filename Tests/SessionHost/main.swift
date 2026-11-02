@@ -4978,6 +4978,15 @@ do {
     let other = "20261022-000000-000-" + BackupStore.key(for: "/x-var/jb/etc/hosts")
     FileManager.default.createFile(atPath: store.folder + "/" + other, contents: Data())
     check(!store.list(for: "/var/jb/etc/hosts").contains(other), "a backup is listed for its own file only")
+
+    // Issue #34: roothide renames its root on a reboot; a file's backups
+    // keep their key, and those made under the whole path are still listed.
+    let before = "/var/containers/Bundle/Application/.jbroot-F1E6FD3C82204430/etc/hosts"
+    let after = "/var/containers/Bundle/Application/.jbroot-809D56B82B2E1CEA/etc/hosts"
+    check(BackupStore.key(for: before) == BackupStore.key(for: after), "a backup's key outlives the root's name")
+    let legacy = "20261022-000000-000-" + BackupStore.legacyKey(for: after)
+    FileManager.default.createFile(atPath: store.folder + "/" + legacy, contents: Data())
+    check(store.list(for: after).contains(legacy), "a backup an earlier version made is still listed")
 }
 
 print("\(checks - failures)/\(checks) session host checks passed")

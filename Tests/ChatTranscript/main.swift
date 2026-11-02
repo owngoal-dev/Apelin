@@ -262,16 +262,16 @@ defer { try? FileManager.default.removeItem(at: storageURL) }
 let storage = ChatStore(folder: DataFolder(root: storageURL))
 let record = ChatRecord(summary: ChatSummary(title: "Deletion regression", lastInteraction: Date()))
 try await storage.save(record, revision: 1)
-let savedRecords = try await storage.load()
+let savedRecords = try await storage.load().records
 precondition(savedRecords.count == 1, "A chat saved through the temporary-directory alias must load")
 try await storage.remove(record.summary.id)
 try await storage.save(record, revision: 2)
-let deletedRecords = try await storage.load()
+let deletedRecords = try await storage.load().records
 precondition(deletedRecords.isEmpty, "A queued save must not resurrect a deleted chat")
 let unsaved = ChatRecord(summary: ChatSummary(title: "Unsaved", lastInteraction: Date()))
 try await storage.remove(unsaved.summary.id)
 try await storage.save(unsaved, revision: 3)
-let unsavedRecords = try await storage.load()
+let unsavedRecords = try await storage.load().records
 precondition(unsavedRecords.isEmpty, "Deleting before the first save must also prevent resurrection")
 let retryURL = storageURL.appendingPathComponent("retry")
 try FileManager.default.createDirectory(at: retryURL, withIntermediateDirectories: false)
@@ -284,9 +284,32 @@ do {
 } catch {}
 try FileManager.default.removeItem(at: obstruction)
 try await retryStore.save(record, revision: 1)
-let retriedRecords = try await retryStore.load()
+let retriedRecords = try await retryStore.load().records
 precondition(retriedRecords.count == 1, "A failed save must allow retrying the same revision")
 print("ok: chat deletion before/after saving, queued-save suppression and failed-save retry")
+
+/// Issue #33: one saved chat that does not decode no longer keeps every
+/// other chat from loading; it is moved aside, not deleted.
+let mixedURL = storageURL.appendingPathComponent("mixed")
+try FileManager.default.createDirectory(at: mixedURL, withIntermediateDirectories: false)
+let mixedStore = ChatStore(folder: DataFolder(root: mixedURL))
+try await mixedStore.save(record, revision: 1)
+let broken = UUID()
+try Data("{\"summary\":".utf8).write(to: mixedURL.appendingPathComponent("Chats/\(broken.uuidString).json"))
+let mixed = try await mixedStore.load()
+precondition(mixed.records.map(\.summary.id) == [record.summary.id], "a readable chat loads beside an unreadable one")
+precondition(mixed.unreadable.map(\.name) == ["\(broken.uuidString).json"], "the unreadable chat is named")
+let aside = try FileManager.default.contentsOfDirectory(atPath: mixedURL.appendingPathComponent("Chats/Unreadable").path)
+precondition(aside.count == 1 && aside[0].hasPrefix(broken.uuidString), "the unreadable chat is kept in Chats/Unreadable")
+let reloaded = try await mixedStore.load()
+precondition(reloaded.unreadable.isEmpty, "a chat set aside is not read again")
+// Read by a version that can (an upgrade back), it comes back.
+let asideName = try FileManager.default.contentsOfDirectory(atPath: mixedURL.appendingPathComponent("Chats/Unreadable").path)[0]
+let readable = ChatRecord(summary: ChatSummary(id: broken, title: "Back", lastInteraction: Date()))
+try JSONEncoder().encode(readable).write(to: mixedURL.appendingPathComponent("Chats/Unreadable/\(asideName)"))
+let restored = try await mixedStore.load()
+precondition(Set(restored.records.map(\.summary.id)) == [record.summary.id, broken], "a chat set aside comes back once it reads")
+print("ok: an unreadable saved chat is set aside and the others load")
 
 func activityTitle(_ seconds: Int?, _ tools: Int) -> String {
     ChatMessage(role: .thinking(seconds: seconds, tools: tools), text: "").activityTitle

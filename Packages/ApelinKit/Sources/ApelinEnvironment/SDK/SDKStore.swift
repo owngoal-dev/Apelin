@@ -27,7 +27,9 @@ public struct SDKStore: Sendable {
             var isDirectory: ObjCBool = false
             guard FileManager.default.fileExists(atPath: tree(record.id).path, isDirectory: &isDirectory),
                   isDirectory.boolValue else { return nil }
-            return record
+            var current = record
+            current.path = BootstrapRootPath.rebased(record.path, onto: layout.sdks.path)
+            return current
         }
     }
 
@@ -108,8 +110,21 @@ public struct SDKStore: Sendable {
     }
 
     /// Trees left by an import that stopped before its record: removed.
+    /// A tree is an orphan only when no file in the registry names it —
+    /// readable or not: a record this version cannot read still holds its
+    /// SDK, which is a large download. When the registry cannot be listed
+    /// (it is there but does not read) nothing is swept.
     public func sweepOrphans() {
-        let registered = Set(list().map(\.id))
+        let registry = layout.sdkRegistry.path
+        let recordNames: [String]
+        if let names = try? FileManager.default.contentsOfDirectory(atPath: registry) {
+            recordNames = names
+        } else if FileManager.default.fileExists(atPath: registry) {
+            return
+        } else {
+            recordNames = []
+        }
+        let registered = Set(recordNames.filter { $0.hasSuffix(".json") && !$0.hasPrefix(".") }.map { String($0.dropLast(5)) })
         guard let names = try? FileManager.default.contentsOfDirectory(atPath: layout.sdks.path) else { return }
         for name in names where !name.hasPrefix(".") && !registered.contains(name) {
             try? FileManager.default.removeItem(at: layout.sdks.appendingPathComponent(name))

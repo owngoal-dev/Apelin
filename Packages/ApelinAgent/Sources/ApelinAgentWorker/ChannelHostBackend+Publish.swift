@@ -115,9 +115,11 @@ extension ChannelHostBackend {
               let packageID = record["packageID"]?.stringValue,
               let version = record["packageVersion"]?.stringValue,
               let architecture = record["architecture"]?.stringValue,
-              let file = record["path"]?.stringValue, file.hasPrefix("/"),
+              let recorded = record["path"]?.stringValue, recorded.hasPrefix("/"),
               let digest = record["digest"]?.stringValue
         else { return nil }
+        // a build from before roothide renamed its root (issue #34)
+        let file = BootstrapRootPath.rebased(recorded, onto: dataFolder.path)
         var metadata = stat()
         let present = lstat(file, &metadata) == 0 && metadata.st_mode & S_IFMT == S_IFREG
         return PackageBuildRecord(

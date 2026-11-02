@@ -9,7 +9,7 @@ import UniformTypeIdentifiers
 final class ChatRuntime {
     /// The window's runtime, which names a conversation's journal in
     /// Settings ▸ Logs however Settings was opened.
-    static weak var active: ChatRuntime?
+    weak static var active: ChatRuntime?
 
     var onChange: (() -> Void)?
     /// The saved conversations could not be read.
@@ -79,9 +79,16 @@ final class ChatRuntime {
 
     /// Reads every saved conversation. An untouched one left by an earlier
     /// launch is dropped, unless it is `selected`, the one to show again.
+    /// A folder that cannot be read leaves no saved conversation, says
+    /// so, and still lets the reader start one: the list is loaded, empty
+    /// (issue #33).
     func load(keeping selected: UUID?) async {
         do {
-            for var record in try await store.load() {
+            let loaded = try await store.load()
+            for (name, error) in loaded.unreadable {
+                ConversationJournal.unreadable(name, error)
+            }
+            for var record in loaded.records {
                 let unsent = record.sending != nil
                 record.reclaimUnsent()
                 records[record.summary.id] = record
@@ -89,38 +96,40 @@ final class ChatRuntime {
                     persist(record.summary.id, urgent: true)
                 }
             }
-            for record in records.values where isUntouched(record) && record.summary.id != selected {
-                try? await removeRecord(record.summary.id)
-                if record.summary.projectName == nil {
-                    // the folder the menu's Open in iGhostVT or Fila made, if
-                    // it was left empty; rmdir takes nothing else
-                    rmdir(DataFolder.app.root.appendingPathComponent("Temporary/" + record.summary.id.uuidString).path)
-                }
+        } catch {
+            onError?(error)
+        }
+        for record in records.values where isUntouched(record) && record.summary.id != selected {
+            try? await removeRecord(record.summary.id)
+            if record.summary.projectName == nil {
+                // the folder the menu's Open in iGhostVT or Fila made, if
+                // it was left empty; rmdir takes nothing else
+                rmdir(DataFolder.app.root.appendingPathComponent("Temporary/" + record.summary.id.uuidString).path)
             }
-            // a project deleted while the app was away
-            await forget(DeletedProjects.gone(from: summaries, listed: DeletedProjects.listing(in: .app)))
-            isLoaded = true
-            onChange?()
-            // A host that does not answer yet is not an error, and runs
-            // nothing this app could follow: every saved row stops working.
-            let live = await (try? ApelinService.app.agentList().sessions) ?? []
-            for record in records.values {
-                if let session = live.first(where: { $0.sessionID == record.sessionID }) {
-                    records[record.summary.id]?.reopen(as: session.task)
-                    follow(record.summary.id, task: session.task)
-                } else if record.summary.isWorking {
-                    records[record.summary.id]?.summary.isWorking = false
-                    changed(record.summary.id)
-                }
+        }
+        // a project deleted while the app was away
+        await forget(DeletedProjects.gone(from: summaries, listed: DeletedProjects.listing(in: .app)))
+        isLoaded = true
+        onChange?()
+        // A host that does not answer yet is not an error, and runs
+        // nothing this app could follow: every saved row stops working.
+        let live = await (try? ApelinService.app.agentList().sessions) ?? []
+        for record in records.values {
+            if let session = live.first(where: { $0.sessionID == record.sessionID }) {
+                records[record.summary.id]?.reopen(as: session.task)
+                follow(record.summary.id, task: session.task)
+            } else if record.summary.isWorking {
+                records[record.summary.id]?.summary.isWorking = false
+                changed(record.summary.id)
             }
-            isReconciled = true
-            onChange?()
-            // What agents opened while the app was not following their
-            // openers; the list is oldest first, so an opener comes first.
-            for session in live {
-                adopt(ChatAdoption.record(session: session, records: Array(records.values)))
-            }
-        } catch { onError?(error) }
+        }
+        isReconciled = true
+        onChange?()
+        // What agents opened while the app was not following their
+        // openers; the list is oldest first, so an opener comes first.
+        for session in live {
+            adopt(ChatAdoption.record(session: session, records: Array(records.values)))
+        }
     }
 
     /// Lists and follows a conversation an agent opened, leaving the
@@ -542,6 +551,7 @@ final class ChatRuntime {
                         }
                     }
                     let dropped = fresh.filter { $0.kind == "queueDropped" }
+                        // persisted-read: one event's field, nothing written back from it
                         .flatMap { (try? $0.payload?["ids"]?.decode([UUID].self)) ?? [] }
                     if !dropped.isEmpty {
                         restoreDropped(Set(dropped), in: id)
@@ -620,6 +630,7 @@ final class ChatRuntime {
         guard let draftID = records[id]?.draft.id,
               let echoed = records[id]?.takeEchoed(by: events) else { return }
         for (draft, event) in echoed {
+            // persisted-read: one event's field, nothing written back from it
             let saved = (try? event.payload?["attachments"]?.decode([AgentAttachment].self)) ?? []
             guard saved.count == draft.attachments.count else { continue }
             for (item, local) in zip(saved, draft.attachments) {

@@ -162,6 +162,29 @@ the same executable in session mode; the workers are its children.
   `@PREFIX@/…`, a system one `@ROOTFS@/…` (the packager writes `/rootfs` for
   roothide, nothing for rootless). `Scripts/check-launchd-paths.py` fails
   `make check` on a bare one; a plist without such keys needs neither.
+- **One saved entry that does not read never costs the others.** A list
+  kept on disk and written back is read one element at a time
+  (`PreservedList` in ApelinCore: what does not decode is kept and written
+  back as it was), a folder of records is read per file, and a file that
+  does not read at all is set aside (`UnreadableFile.setAside`) — never
+  replaced by an empty state the next save makes permanent, and never a
+  reason to delete what the record named (the SDK sweep counts every record
+  file, readable or not). `make check` runs `Scripts/check-persisted-reads.py`,
+  which fails on a bare `try` read inside a `map`/`compactMap`/`flatMap`/
+  `forEach` walk and on a `try?` decode that falls back to `[]`, `[:]` or an
+  empty value; `// persisted-read: <why>` on or above the line passes data
+  that is never written back. Issue #33 lost every chat to one cut-short
+  file; the audit after it found the toolchain registry, the SDK sweep, the
+  artifact registry, the approval ledger, the git credential list, the
+  symbol index and the notice marks the same way.
+- **No absolute path under the bootstrap root outlives the boot.** roothide
+  renames `.jbroot-<id>` on a reboot. A path a record keeps is taken
+  through `BootstrapRootPath.rebased` (only the root's name changes, so two
+  readers get the same string) wherever it is read — toolchain and SDK
+  records, the host's and the build's artifact records —, and a name made
+  from a path (a backup's key) is made from the part below the root
+  (`BootstrapRootPath.belowRoot`). A new record with a path takes the same
+  care, or keeps the path relative (issue #34).
 - **Versions and the deployment target live in `Configuration/*.xcconfig`
   only.** `make check` rejects either in `project.pbxproj`.
 - **No project generators.** `project.pbxproj` is hand-written; `objectVersion`
@@ -2421,7 +2444,7 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   (`ChatDeletion`). Settings and the picker are form
   sheets through Xrash's `presentAsFormSheet` (`Interface/Components/`). The
   list contains only persisted conversations; no sample conversation is injected at launch.
-  `ChatRuntime` owns drafts, session IDs, task cursors and histories; each chat is atomically saved under `Chats/`. A chat is removed from memory only after its session closes (an absent session is already closed) and its file is deleted; later queued saves cannot restore it.
+  `ChatRuntime` owns drafts, session IDs, task cursors and histories; each chat is atomically saved under `Chats/`. A saved chat that does not decode is moved into `Chats/Unreadable/` and named in the journal, never left to stop the others loading, and a `Chats/` that cannot be read still leaves the list loaded, empty, so a new chat starts (issue #33). A chat is removed from memory only after its session closes (an absent session is already closed) and its file is deleted; later queued saves cannot restore it.
   Projects are read from validated project folders, and the picker refreshes them on appearance. Its swipe and context menu can delete a project after confirming its name: close its chat sessions, remove only its real direct-child directory in `Projects/` without following links, then remove its chat histories. A project whose folder goes some other way — an agent's apelin_project_delete, a command, another app — takes its conversations with it the same way (`DeletedProjects`, `ChatRuntime.forgetDeletedProjects`), at launch and on each change `ProjectCatalogMonitor` reports: banners withdrawn, any session the host left open closed, histories removed, and the sidebar on General Chat when it showed that project; a `Projects/` that does not read takes nothing. With nothing picked the detail column shows
   the app's icon (`NothingSelectedController`) beside the sidebar; behind a
   drawer it is always a conversation. The placeholder cross-fades into a
@@ -2733,6 +2756,12 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   passed; tools are `<path>/usr/bin/<tool>` (or the CLT's
   `Library/Developer/CommandLineTools/usr/bin`). A project builds only
   against the toolchain and SDK whose ID *and* digest it is bound to.
+  A record's `path` names the bootstrap root it was registered under,
+  which roothide renames on a reboot (issue #34), so every reader of the
+  records — `ToolchainRegistry.load`, `SDKStore.list`, `EnvironmentStores`,
+  `RegisteredEnvironment.read` — takes it through ApelinCore's
+  `BootstrapRootPath.rebased` onto a path of its own under the current
+  root first; rootless paths are left as they are.
 - **A build** (`ApelinBuild`) has one ID: the host's task ID, which is
   `APELIN_BUILD_ID`, the artifact ID and what `confirmLoaded` takes. Its
   layout comes from the assignment — mobile's home inside the install root

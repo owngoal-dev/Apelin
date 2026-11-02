@@ -217,19 +217,74 @@ actor ChatStore {
         self.folder = folder
     }
 
-    func load() throws -> [ChatRecord] {
+    /// What `load` read, and the files that did not decode: each one moved
+    /// into `Chats/Unreadable/` with why, so one file that does not decode — cut
+    /// short, or written by another version — never takes every other
+    /// conversation with it on each launch (issue #33), and is kept rather
+    /// than overwritten.
+    struct Loaded {
+        var records: [ChatRecord] = []
+        var unreadable: [(name: String, error: any Error)] = []
+    }
+
+    func load() throws -> Loaded {
         let directory = folder.root.appendingPathComponent("Chats")
         try folder.makeLevels(to: directory)
         guard let directoryPath = CanonicalPath.resolve(directory.path) else { throw CocoaError(.fileReadNoSuchFile) }
-        return try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)
-            .filter { $0.pathExtension == "json" }
-            .compactMap { url in
-                guard UUID(uuidString: url.deletingPathExtension().lastPathComponent) != nil,
-                      let path = CanonicalPath.resolve(url.path),
-                      CanonicalPath.isCanonical(path, inside: directoryPath)
-                else { return nil }
-                return try JSONDecoder().decode(ChatRecord.self, from: Data(contentsOf: URL(fileURLWithPath: path)))
+        restoreReadable(in: directory)
+        var loaded = Loaded()
+        for url in try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)
+            where url.pathExtension == "json"
+        {
+            guard UUID(uuidString: url.deletingPathExtension().lastPathComponent) != nil,
+                  let path = CanonicalPath.resolve(url.path),
+                  CanonicalPath.isCanonical(path, inside: directoryPath)
+            else { continue }
+            // A file that cannot be opened now (before the first unlock, say)
+            // is only skipped: it is read again next launch, never moved.
+            guard let data = try? Data(contentsOf: URL(fileURLWithPath: path)) else { continue }
+            do {
+                try loaded.records.append(JSONDecoder().decode(ChatRecord.self, from: data))
+            } catch {
+                loaded.unreadable.append((url.lastPathComponent, error))
+                setAside(url, in: directory)
             }
+        }
+        return loaded
+    }
+
+    /// Puts back a conversation set aside earlier that decodes now — one a
+    /// newer version wrote, back after an upgrade — unless its place has
+    /// been taken since.
+    private func restoreReadable(in directory: URL) {
+        let aside = directory.appendingPathComponent("Unreadable", isDirectory: true)
+        guard let names = try? FileManager.default.contentsOfDirectory(atPath: aside.path) else { return }
+        for name in names where name.hasSuffix(".json") {
+            guard let id = UUID(uuidString: String(name.prefix(36))) else { continue }
+            let source = aside.appendingPathComponent(name)
+            let destination = directory.appendingPathComponent(id.uuidString + ".json")
+            guard !FileManager.default.fileExists(atPath: destination.path),
+                  let data = try? Data(contentsOf: source),
+                  (try? JSONDecoder().decode(ChatRecord.self, from: data)) != nil
+            else { continue }
+            rename(source.path, destination.path)
+        }
+    }
+
+    /// Moves an unreadable conversation out of the way, under a name no
+    /// other file there has. When that fails it stays, and is read past
+    /// again next time.
+    private func setAside(_ url: URL, in directory: URL) {
+        let aside = directory.appendingPathComponent("Unreadable", isDirectory: true)
+        guard (try? folder.makeLevels(to: aside)) != nil else { return }
+        let stem = url.deletingPathExtension().lastPathComponent + "-\(Int(Date().timeIntervalSince1970))"
+        var destination = aside.appendingPathComponent(stem + ".json")
+        var attempt = 1
+        while FileManager.default.fileExists(atPath: destination.path) {
+            attempt += 1
+            destination = aside.appendingPathComponent("\(stem)-\(attempt).json")
+        }
+        rename(url.path, destination.path)
     }
 
     func save(_ record: ChatRecord, revision: Int) throws {

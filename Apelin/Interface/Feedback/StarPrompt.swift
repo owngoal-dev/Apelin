@@ -23,6 +23,7 @@ enum StarPrompt {
     private static var state: StarPromptState {
         get {
             UserDefaults.standard.data(forKey: stateKey)
+                // persisted-read: one preference, the prompt's pacing; its default only asks again
                 .flatMap { try? JSONDecoder().decode(StarPromptState.self, from: $0) } ?? StarPromptState()
         }
         set {

@@ -177,9 +177,23 @@ struct BackupStore: Sendable {
 
     /// `/var/jb/etc/hosts` → `var_jb_etc_hosts-<sha8>`: the flattened stem
     /// alone is shared by `/etc/a_b` and `/etc/a/b`, so the path's SHA-256
-    /// keeps one file's backups from being another's.
+    /// keeps one file's backups from being another's. Under a roothide root
+    /// the key is made from `jbroot/` and the path below it, since the root's
+    /// own name changes on a reboot and would leave every earlier backup
+    /// unlisted and never pruned (issue #34).
     static func key(for path: String) -> String {
-        let components = CanonicalPath.components(path)
+        if let below = BootstrapRootPath.belowRoot(path) {
+            return key(components: ["jbroot"] + CanonicalPath.components(below).map(String.init))
+        }
+        return legacyKey(for: path)
+    }
+
+    /// The key before roothide's root was left out of it: the whole path.
+    static func legacyKey(for path: String) -> String {
+        key(components: CanonicalPath.components(path).map(String.init))
+    }
+
+    private static func key(components: [String]) -> String {
         let flattened = components.joined(separator: "_")
         let safe = flattened.unicodeScalars.map { scalar -> Character in
             let value = scalar.value
@@ -192,11 +206,13 @@ struct BackupStore: Sendable {
         return String(String(safe).suffix(151)) + "-" + digest
     }
 
+    /// Newest first: the file's backups under its key, and those an earlier
+    /// version made under the whole path as it is spelt now.
     func list(for path: String) -> [String] {
-        let key = Self.key(for: path)
+        let keys: Set<Substring> = [Substring(Self.key(for: path)), Substring(Self.legacyKey(for: path))]
         let stamp = Self.stampFormat.count + 1
         let names = (try? FileManager.default.contentsOfDirectory(atPath: folder)) ?? []
-        return names.filter { $0.count > stamp && $0.dropFirst(stamp) == key }.sorted(by: >)
+        return names.filter { $0.count > stamp && keys.contains($0.dropFirst(stamp)) }.sorted(by: >)
     }
 
     /// Copies the file's current contents into a new backup; answers its name.

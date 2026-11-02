@@ -296,8 +296,19 @@ actor AgentNotices {
     init(file: URL, sessions: URL, post: @escaping @Sendable (AgentNotice) -> Void) {
         self.file = file
         self.post = post
-        let saved = (try? Data(contentsOf: file))
-            .flatMap { try? JSONDecoder().decode([String: AgentNoticeMarks].self, from: $0) } ?? [:]
+        // Each session's marks read on their own: one that does not read is
+        // that session's alone, and a file that does not read at all is set
+        // aside rather than written over with none.
+        var saved: [String: AgentNoticeMarks] = [:]
+        if let data = try? Data(contentsOf: file) {
+            if let entries = try? JSONDecoder().decode([String: JSONValue].self, from: data) {
+                for (session, value) in entries {
+                    saved[session] = try? JSONDecoder().decode(AgentNoticeMarks.self, from: JSONCoding.encode(value))
+                }
+            } else {
+                UnreadableFile.setAside(file)
+            }
+        }
         marks = saved.filter { session, _ in
             UUID(uuidString: session) != nil
                 && FileManager.default.fileExists(atPath: sessions.appendingPathComponent(session).path)

@@ -205,8 +205,10 @@ public struct RegisteredEnvironment: Sendable, Equatable {
         self.sdks = sdks.sorted(by: Self.newerFirst)
     }
 
+    /// Read one record at a time (`PreservedList`): one this version cannot
+    /// read leaves the others usable.
     private struct ToolchainFile: Decodable {
-        var toolchains: [ToolchainRecord]?
+        var toolchains: PreservedList<ToolchainRecord>?
         var defaultID: String?
     }
 
@@ -217,7 +219,11 @@ public struct RegisteredEnvironment: Sendable, Equatable {
         if let data = BoundedFile.read(folder.toolchainRegistry.path, inside: root, limit: maximumRegistryBytes),
            let file = try? JSONCoding.decode(ToolchainFile.self, from: data)
         {
-            toolchains = file.toolchains ?? []
+            toolchains = (file.toolchains?.items ?? []).map { record in
+                var current = record
+                current.path = record.path.map { BootstrapRootPath.rebased($0, onto: root) }
+                return current
+            }
             defaultID = file.defaultID
         }
         var sdks: [SDKRecord] = []
@@ -230,7 +236,8 @@ public struct RegisteredEnvironment: Sendable, Equatable {
                 .prefix(maximumSDKRecords)
             for name in names {
                 guard let data = BoundedFile.read(directory + "/" + name, inside: root, limit: maximumRecordBytes),
-                      let record = try? JSONCoding.decode(SDKRecord.self, from: data) else { continue }
+                      var record = try? JSONCoding.decode(SDKRecord.self, from: data) else { continue }
+                record.path = BootstrapRootPath.rebased(record.path, onto: root)
                 sdks.append(record)
             }
         }

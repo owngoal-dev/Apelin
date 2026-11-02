@@ -260,7 +260,15 @@ actor ApprovalLedger {
         }
         let file = try url(project)
         guard let data = try? Data(contentsOf: file) else { return ProjectLedger() }
-        let ledger = (try? JSONCoding.decode(ProjectLedger.self, from: data)) ?? ProjectLedger()
+        let ledger: ProjectLedger
+        do {
+            ledger = try JSONCoding.decode(ProjectLedger.self, from: data)
+        } catch {
+            // Never written over by the next approval: kept beside, and the
+            // project starts with nothing approved, which asks again.
+            UnreadableFile.setAside(file)
+            ledger = ProjectLedger()
+        }
         cache[project] = ledger
         // The file lists each kind oldest first.
         for (kind, digests) in ledger.approved {

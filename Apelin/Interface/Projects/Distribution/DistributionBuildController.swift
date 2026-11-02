@@ -327,6 +327,7 @@ final class DistributionBuildController: TableController {
                         updateRows()
                     }
                 } else if event.kind == "artifact" {
+                    // persisted-read: a live task event, not saved data
                     artifact = try event.payload?.decode(BuildArtifact.self)
                 } else if event.kind == "diagnostic",
                           let finding = try? event.payload?.decode(ProjectDiagnostic.self),

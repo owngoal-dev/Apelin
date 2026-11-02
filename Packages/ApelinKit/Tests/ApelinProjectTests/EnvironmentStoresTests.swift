@@ -82,4 +82,39 @@ final class EnvironmentStoresTests: XCTestCase {
         XCTAssertEqual(try stores.sdks(), [])
         XCTAssertNil(try stores.defaultSDKID())
     }
+
+    /// Issue #34: roothide renamed its root on a reboot; the records still
+    /// name the old one, and the trees are under the new one.
+    func testRecordsMoveToTheRootTheDataFolderIsUnderNow() throws {
+        let scratch = try scratchDirectory()
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        let old = scratch.path + "/.jbroot-F1E6FD3C82204430"
+        let new = scratch.appendingPathComponent(".jbroot-809D56B82B2E1CEA")
+        let data = DataFolder(home: new.appendingPathComponent("var/mobile").path)
+        let toolchainID = "clt-27.0-abcdef01"
+        let sdkID = "iPhoneOS27.0-eeeeeeee"
+        try FileManager.default.createDirectory(at: data.toolchainRegistry.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: data.sdkRegistry, withIntermediateDirectories: true)
+
+        let toolchain = ToolchainRecord(
+            id: toolchainID, version: "27.0", components: [ToolchainComponent(kind: .c, selfCheckPassed: true)],
+            path: old + "/usr/lib/apelin/toolchains/" + toolchainID, contentDigest: String(repeating: "c", count: 64),
+        )
+        struct Registry: Encodable { let toolchains: [ToolchainRecord] }
+        try JSONEncoder().encode(Registry(toolchains: [toolchain])).write(to: data.toolchainRegistry)
+        let sdk = SDKRecord(
+            id: sdkID, canonicalName: "iphoneos27.0", version: "27.0",
+            path: old + "/var/mobile/Documents/wiki.qaq.apelin/SDKs/" + sdkID,
+            targets: ["arm64e-ios"], digest: String(repeating: "e", count: 64),
+        )
+        try JSONCoding.encode(sdk).write(to: data.sdkRegistry.appendingPathComponent(sdkID + ".json"))
+
+        let stores = EnvironmentStores(dataFolder: data)
+        XCTAssertEqual(try stores.toolchains().first?.path, new.path + "/usr/lib/apelin/toolchains/" + toolchainID)
+        XCTAssertEqual(try stores.sdks().first?.path, data.sdks.path + "/" + sdkID)
+
+        let registered = RegisteredEnvironment.read(data)
+        XCTAssertEqual(registered.toolchains.first?.path, new.path + "/usr/lib/apelin/toolchains/" + toolchainID)
+        XCTAssertEqual(registered.sdks.first?.path, data.sdks.path + "/" + sdkID)
+    }
 }

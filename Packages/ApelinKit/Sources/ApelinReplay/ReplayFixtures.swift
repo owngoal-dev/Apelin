@@ -70,6 +70,7 @@ public struct ReplayFixtures: Sendable {
             .sorted()
         let tasks = try names.map { name in
             do {
+                // persisted-read: a test fixture, which must read whole
                 return try JSONCoding.decode(
                     TaskRecording.self,
                     from: Data(contentsOf: taskFolder.appendingPathComponent(name)),

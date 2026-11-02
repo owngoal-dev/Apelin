@@ -44,6 +44,12 @@ enum ConversationJournal {
         write("Compact could not run in session=\(session ?? "-"): \(description)")
     }
 
+    /// A saved conversation that did not read, set aside in
+    /// `Chats/Unreadable/`.
+    static func unreadable(_ name: String, _ error: any Error) {
+        write("Saved chat \(name) could not be read and was moved to Chats/Unreadable: \(error)")
+    }
+
     private static func write(_ message: String) {
         queue.async {
             let line = LogText.oneLine(AppJournal.redaction.text(message, limit: messageBytes))
