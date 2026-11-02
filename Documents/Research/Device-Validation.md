@@ -2745,3 +2745,28 @@ iPhone vphones and the iOS 26.4 iPad vphone:
   `<device id>`: the redaction takes a SHA-1 for an old-style UDID.
 - The vphone's leftover test tweaks (`ApelinHello`, `I3ChainTweak`,
   `DemoTweak`) put their alerts over Apelin at launch; they are not Apelin's.
+
+## A renamed roothide root and an unreadable chat (2026-11-02, 0.3.4)
+
+CI's packages of `6ca0298`, roothide, over 0.3.3 on the iOS 26.4 and 27.0.1
+iPhone vphones and the iOS 26.4 iPad vphone:
+
+- Issue #34, reproduced on 0.3.3 on the iOS 26.4 iPhone: with the toolchain
+  registry's and the SDK record's paths written under another valid
+  `.jbroot-<id>` name than the root the device has, `projectCheck` of a
+  command-line project failed with "toolchain … has no runnable clang"
+  (lipo, dsymutil, strip) and "SDK … is registered at …, which no longer
+  exists". On 0.3.4, with the same records, the check passed and a debug
+  `buildStart` succeeded. The records were put back afterwards.
+- Issue #33, reproduced on 0.3.3 on the iOS 26.4 iPhone and the iPad: one
+  `Chats/<uuid>.json` cut short to `{"summary":` made the next launch show
+  "Unable to Load Chats — The data couldn't be read because it isn't in the
+  correct format." and no chat at all. On 0.3.4 on all three, the file was
+  moved to `Chats/Unreadable/`, the other chats loaded (twelve on the iOS
+  26.4 iPhone, one on the 27.0.1 one), no alert came, and New Chat was
+  there. The test file was removed afterwards.
+- `hello`, `terminal`, `logs`, `diagnostics` and `i3-image-check-refused`
+  passed on all three, and `files` on both iPhones; the iPad has no
+  toolchain or tweak extension for `files`. `i1-smoke` was not run: it
+  needs the harness's fixtures, which `Scripts/device.py` pushes, and the
+  vphones were driven from their hosts, which have no Python.
