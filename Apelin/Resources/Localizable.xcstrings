@@ -1283,7 +1283,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "命令"
+            "value" : "指令"
           }
         }
       }
@@ -1696,7 +1696,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "未授权"
+            "value" : "未批准"
           }
         },
         "zh-Hant" : {
@@ -1779,7 +1779,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "需要 root 授权"
+            "value" : "需要 root 批准"
           }
         },
         "zh-Hant" : {
@@ -2269,7 +2269,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "日誌"
+            "value" : "記錄"
           }
         }
       }
@@ -2601,7 +2601,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Apelin 會保留最近 100 個聊天的日誌。"
+            "value" : "Apelin 會保留最近 100 個聊天的記錄。"
           }
         }
       }
@@ -2684,7 +2684,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "沒有日誌"
+            "value" : "沒有記錄"
           }
         }
       }
@@ -2767,7 +2767,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "無法刪除日誌"
+            "value" : "無法刪除記錄"
           }
         }
       }
@@ -3425,7 +3425,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "复制消息"
+            "value" : "拷贝消息"
           }
         },
         "zh-Hant" : {
@@ -4510,7 +4510,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "此專案需要建置描述才能發佈。請讓代理程式加入一個。"
+            "value" : "此專案需要建置描述才能分發。請讓代理程式加入一個。"
           }
         }
       }
@@ -5832,7 +5832,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "保存 Git 凭据"
+            "value" : "存储 Git 凭据"
           }
         },
         "zh-Hant" : {
@@ -5915,7 +5915,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "删除 Git 凭据"
+            "value" : "移除 Git 凭据"
           }
         },
         "zh-Hant" : {
@@ -6413,7 +6413,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "取消暂存"
+            "value" : "取消暂存改动"
           }
         },
         "zh-Hant" : {
@@ -7409,7 +7409,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "无法保存聊天"
+            "value" : "无法存储聊天"
           }
         },
         "zh-Hant" : {
@@ -7492,7 +7492,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "存储空间不足"
+            "value" : "储存空间几乎已满"
           }
         },
         "zh-Hant" : {
@@ -7824,7 +7824,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "保存"
+            "value" : "存储"
           }
         },
         "zh-Hant" : {
@@ -7907,7 +7907,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "邮箱"
+            "value" : "电子邮件"
           }
         },
         "zh-Hant" : {
@@ -8156,7 +8156,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "已保存"
+            "value" : "已存储"
           }
         },
         "zh-Hant" : {
@@ -8239,7 +8239,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "无法保存作者"
+            "value" : "无法存储作者"
           }
         },
         "zh-Hant" : {
@@ -8903,13 +8903,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "可选。智能体会把这个仓库导入新项目，并弄清楚如何构建它。"
+            "value" : "可选。智能体会将此仓库导入新项目，并确定构建方式。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "選填。代理程式會將此儲存庫匯入新專案，並找出建置方式。"
+            "value" : "選填。代理程式會將此儲存庫匯入新專案，並確定建置方式。"
           }
         }
       }
@@ -8986,7 +8986,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "检查仓库地址"
+            "value" : "请检查仓库地址"
           }
         },
         "zh-Hant" : {
@@ -9484,7 +9484,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "安装工具链"
+            "value" : "配置工具链"
           }
         },
         "zh-Hant" : {
@@ -10563,13 +10563,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "注入 SpringBoard 的 dylib，挂钩 -[SpringBoard applicationDidFinishLaunching:]，并在加载时写入日志。"
+            "value" : "注入 SpringBoard 的 dylib，挂钩 -[SpringBoard applicationDidFinishLaunching:]，并在载入时写入日志。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "注入 SpringBoard 的 dylib，會掛鉤 -[SpringBoard applicationDidFinishLaunching:]，並在載入時寫入日誌。"
+            "value" : "注入 SpringBoard 的 dylib，會掛鉤 -[SpringBoard applicationDidFinishLaunching:]，並在載入時寫入記錄。"
           }
         }
       }
@@ -10901,7 +10901,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "支援 --version 和 --help 的 C 程式，會向引數打招呼，並以 sysexits 結束代碼結束。"
+            "value" : "支援 --version 和 --help 的 C 程式，會向引數打招呼，並以 sysexits 結束代碼退出。"
           }
         }
       }
@@ -11227,7 +11227,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "后台继续"
+            "value" : "在后台继续"
           }
         },
         "zh-Hant" : {
@@ -11316,7 +11316,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "發佈前檢查"
+            "value" : "分發前檢查"
           }
         }
       }
@@ -11393,7 +11393,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "这些只是建议，你仍然可以构建安装包。"
+            "value" : "这些只是建议，你仍然可以构建软件包。"
           }
         },
         "zh-Hant" : {
@@ -11725,7 +11725,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "安装包使用的是占位标识符"
+            "value" : "软件包使用的是占位标识符"
           }
         },
         "zh-Hant" : {
@@ -12050,13 +12050,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "起一个大家在软件包管理器里看到的名字。"
+            "value" : "请填写用户在软件包管理器中看到的名称。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "請取一個使用者會在套件管理器中看到的名稱。"
+            "value" : "請填寫使用者在套件管理器中看到的名稱。"
           }
         }
       }
@@ -12133,7 +12133,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "说明这个安装包的用途。"
+            "value" : "说明这个软件包的用途。"
           }
         },
         "zh-Hant" : {
@@ -12216,13 +12216,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "给第一个正式版本一个自己的版本号。"
+            "value" : "请为第一个正式版本设置专属的版本号。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "請為第一個正式版本指定自己的版本號。"
+            "value" : "請為第一個正式版本設定專屬的版本號。"
           }
         }
       }
@@ -12624,7 +12624,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在其他人安装这个安装包之前，还有一些细节需要处理。"
+            "value" : "在其他人安装这个软件包之前，还有一些细节需要处理。"
           }
         },
         "zh-Hant" : {
@@ -12796,7 +12796,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "建置日誌"
+            "value" : "建置記錄"
           }
         }
       }
@@ -14865,7 +14865,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "无法加载记忆"
+            "value" : "无法载入记忆"
           }
         },
         "zh-Hant" : {
@@ -15446,7 +15446,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "无法保存记忆"
+            "value" : "无法存储记忆"
           }
         },
         "zh-Hant" : {
@@ -15529,7 +15529,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "更改未保存，请重试。"
+            "value" : "改动未存储，请重试。"
           }
         },
         "zh-Hant" : {
@@ -16179,7 +16179,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "校验文件"
+            "value" : "正在检查文件"
           }
         },
         "zh-Hant" : {
@@ -16262,7 +16262,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "校验归档"
+            "value" : "正在校验文件"
           }
         },
         "zh-Hant" : {
@@ -16999,7 +16999,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "暂无兼容版本。你可以稍后在设置中配置构建工具。"
+            "value" : "暂无兼容版本。你可以稍后在“设置”中配置构建工具。"
           }
         },
         "zh-Hant" : {
@@ -17082,7 +17082,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "安装正在进行。请在设置中查看详情。"
+            "value" : "安装正在进行。请在“设置”中查看详情。"
           }
         },
         "zh-Hant" : {
@@ -17663,7 +17663,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "你可以稍后在设置中添加更多服务商。"
+            "value" : "你可以稍后在“设置”中添加更多服务商。"
           }
         },
         "zh-Hant" : {
@@ -17746,7 +17746,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "正在加载模板…"
+            "value" : "正在载入模板…"
           }
         },
         "zh-Hant" : {
@@ -17829,7 +17829,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "允许 Apelin 发送通知。你随时可以在设置中更改权限。"
+            "value" : "允许 Apelin 发送通知。你随时可以在“设置”中更改权限。"
           }
         },
         "zh-Hant" : {
@@ -18327,7 +18327,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "导出安装包"
+            "value" : "导出软件包"
           }
         },
         "zh-Hant" : {
@@ -18416,7 +18416,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "發佈專案"
+            "value" : "分發專案"
           }
         }
       }
@@ -18576,7 +18576,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "安装包已生成，可以导出。"
+            "value" : "软件包已可导出。"
           }
         },
         "zh-Hant" : {
@@ -18665,7 +18665,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "發佈已停止。你可以再試一次。"
+            "value" : "分發已停止。你可以再試一次。"
           }
         }
       }
@@ -18825,7 +18825,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "安装包已不存在。请重新构建。"
+            "value" : "软件包已不存在。请重新构建。"
           }
         },
         "zh-Hant" : {
@@ -18908,7 +18908,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "安装包在构建后发生了变化。请重新构建后再导出。"
+            "value" : "软件包在构建后发生了变化。请重新构建后再导出。"
           }
         },
         "zh-Hant" : {
@@ -19475,7 +19475,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "无法打开应用"
+            "value" : "无法打开 App"
           }
         },
         "zh-Hant" : {
@@ -19558,7 +19558,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "请使用你喜欢的软件包管理器安装或更新所需应用，然后重试。"
+            "value" : "请使用你喜欢的软件包管理器安装或更新所需的 App，然后重试。"
           }
         },
         "zh-Hant" : {
@@ -19724,7 +19724,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "为此设备选择兼容的工具链和 iOS SDK。你也可以稍后在设置中安装。"
+            "value" : "为此设备选择的兼容工具链和 iOS SDK。你也可以稍后在“设置”中安装。"
           }
         },
         "zh-Hant" : {
@@ -19973,7 +19973,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "已有环境任务正在运行。你可以继续，并在设置中查看进度。"
+            "value" : "已有环境任务正在运行。你可以继续，并在“设置”中查看进度。"
           }
         },
         "zh-Hant" : {
@@ -20056,7 +20056,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "构建软件与插件"
+            "value" : "构建 App 与插件"
           }
         },
         "zh-Hant" : {
@@ -21384,7 +21384,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "当前目录没有兼容的组合。你可以在设置中导入构建工具。"
+            "value" : "当前目录没有兼容的组合。你可以在“设置”中导入构建工具。"
           }
         },
         "zh-Hant" : {
@@ -21799,7 +21799,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "暂时无法获取推荐。请重试，或稍后在设置中配置构建工具。"
+            "value" : "暂时无法获取推荐。请重试，或稍后在“设置”中配置构建工具。"
           }
         },
         "zh-Hant" : {
@@ -21971,7 +21971,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "智慧體可能會犯錯。執行或安裝前，請先檢視產生的程式碼和重要變更。"
+            "value" : "代理程式可能會犯錯。執行或安裝前，請先檢視產生的程式碼和重要變更。"
           }
         }
       }
@@ -22220,7 +22220,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "已在 GitHub 上加星號"
+            "value" : "已在 GitHub 上加上星標"
           }
         }
       }
@@ -22297,7 +22297,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "从软件、插件或命令行工具开始。"
+            "value" : "从 App、插件或命令行工具开始。"
           }
         },
         "zh-Hant" : {
@@ -22463,7 +22463,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "此服务商暂不可用。你可以在设置中添加其他服务商。"
+            "value" : "此服务商暂不可用。你可以在“设置”中添加其他服务商。"
           }
         },
         "zh-Hant" : {
@@ -23044,7 +23044,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "正在安装命令行工具 %@…"
+            "value" : "正在安装 Command Line Tools %@…"
           }
         },
         "zh-Hant" : {
@@ -23708,7 +23708,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "修改配置"
+            "value" : "编辑配置"
           }
         },
         "zh-Hant" : {
@@ -23950,7 +23950,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "无法读取配置"
+            "value" : "无法载入配置"
           }
         },
         "zh-Hant" : {
@@ -24027,7 +24027,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "严格：执行命令和敏感更改前询问。宽松：在应用权限范围内直接执行这些操作。每个聊天会在你下次发送消息时使用此设置。"
+            "value" : "严格：执行命令和敏感改动前会先询问。宽松：在 App 权限范围内直接执行这些操作，不会询问。每个聊天会在你下次发送消息时使用此设置。"
           }
         },
         "zh-Hant" : {
@@ -24187,7 +24187,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "智能体可以在应用权限范围内执行命令和进行更改，无需确认。每个聊天会在你下次发送消息时切换。"
+            "value" : "智能体可以在 App 权限范围内执行命令和进行改动，无需确认。每个聊天会在你下次发送消息时切换。"
           }
         },
         "zh-Hant" : {
@@ -24724,7 +24724,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "这会从此设备永久删除“%@”及其文件和聊天记录。"
+            "value" : "这会从此设备永久删除“%@”及其文件和聊天。"
           }
         },
         "zh-Hant" : {
@@ -24961,7 +24961,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "請看看這些圖片和專案筆記。"
+            "value" : "查看這些圖片和專案筆記。"
           }
         }
       }
@@ -25263,7 +25263,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "使用 Objective-C 或 Swift 创建 UIKit 应用。"
+            "value" : "使用 Objective-C 或 Swift 创建 UIKit App。"
           }
         },
         "zh-Hant" : {
@@ -25417,7 +25417,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "自定义应用和 SpringBoard。"
+            "value" : "自定义 App 和 SpringBoard。"
           }
         },
         "zh-Hant" : {
@@ -26235,7 +26235,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "设备上可用的工具链、SDK 和项目模板。"
+            "value" : "此设备上可用的工具链、SDK 和项目模板。"
           }
         },
         "zh-Hant" : {
@@ -26407,7 +26407,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "無法使用專案"
+            "value" : "無法讀取專案"
           }
         }
       }
@@ -26567,7 +26567,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "无法读取聊天"
+            "value" : "无法载入聊天"
           }
         },
         "zh-Hant" : {
@@ -26982,7 +26982,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "思考了 1 秒，调用了 1 次工具"
+            "value" : "思考了 1 秒，调用了 1 个工具"
           }
         },
         "zh-Hant" : {
@@ -27065,7 +27065,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "思考了 1 秒，调用了 %lld 次工具"
+            "value" : "思考了 1 秒，调用了 %lld 个工具"
           }
         },
         "zh-Hant" : {
@@ -27148,7 +27148,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "思考了 %lld 秒，调用了 1 次工具"
+            "value" : "思考了 %lld 秒，调用了 1 个工具"
           }
         },
         "zh-Hant" : {
@@ -27231,7 +27231,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "思考了 %lld 秒，调用了 %lld 次工具"
+            "value" : "思考了 %lld 秒，调用了 %lld 个工具"
           }
         },
         "zh-Hant" : {
@@ -27895,7 +27895,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "查看文件列表"
+            "value" : "列出文件"
           }
         },
         "zh-Hant" : {
@@ -29136,7 +29136,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "讀取日誌"
+            "value" : "讀取記錄"
           }
         }
       }
@@ -29379,7 +29379,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "查看 Sources/TitleView.swift 的更改"
+            "value" : "查看 Sources/TitleView.swift 的改动"
           }
         },
         "zh-Hant" : {
@@ -29794,7 +29794,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "需要授权"
+            "value" : "需要批准"
           }
         },
         "zh-Hant" : {
@@ -30541,7 +30541,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "严格：执行命令和敏感更改前请求确认。宽松：在应用权限范围内直接执行，无需逐次确认。此设置适用于所有对话。"
+            "value" : "严格：执行命令和敏感改动前会先询问。宽松：在 App 权限范围内直接执行这些操作，不会询问。此设置适用于所有聊天。"
           }
         },
         "zh-Hant" : {
@@ -30707,7 +30707,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "模型将能在应用权限范围内直接执行命令和更改，无需请求确认。此设置适用于所有对话。"
+            "value" : "模型将能在 App 权限范围内直接执行命令和进行改动，无需请求确认。此设置适用于所有聊天。"
           }
         },
         "zh-Hant" : {
@@ -31288,7 +31288,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "正在等待所选模型逐一响应…"
+            "value" : "正在等待所选的每个模型响应…"
           }
         },
         "zh-Hant" : {
@@ -31703,7 +31703,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "输入此服务商支持的模型 ID。"
+            "value" : "请输入此服务商支持的模型 ID。"
           }
         },
         "zh-Hant" : {
@@ -31869,13 +31869,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "跳过验证并保存"
+            "value" : "跳过验证并存储"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "不驗證直接儲存"
+            "value" : "略過驗證並儲存"
           }
         }
       }
@@ -35919,7 +35919,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "这是示例对话，消息并非由模型生成。"
+            "value" : "这是示例聊天，消息并非由模型生成。"
           }
         },
         "zh-Hant" : {
@@ -36719,7 +36719,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$@／%2$@"
+            "value" : "%1$@ / %2$@"
           }
         }
       }
@@ -38005,13 +38005,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "使用它的智能体会话将无法工作，直到你重新登录。"
+            "value" : "在你重新登录之前，使用它的聊天将无法继续。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "使用它的代理程式工作階段將無法運作，直到你重新登入。"
+            "value" : "在你重新登入之前，使用它的聊天將無法繼續。"
           }
         }
       }
@@ -39152,7 +39152,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "API 地址"
+            "value" : "基础 URL"
           }
         },
         "zh-Hant" : {
@@ -39380,7 +39380,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "正在构建安装包"
+            "value" : "正在构建软件包"
           }
         },
         "zh-Hant" : {
@@ -40754,7 +40754,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "代碼"
+            "value" : "驗證碼"
           }
         }
       }
@@ -40824,13 +40824,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "验证码已复制"
+            "value" : "验证码已拷贝"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "代碼已拷貝"
+            "value" : "驗證碼已拷貝"
           }
         }
       }
@@ -41128,7 +41128,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "命令行工具"
+            "value" : "Command Line Tools"
           }
         },
         "zh-Hant" : {
@@ -41204,7 +41204,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "命令行工具 %@"
+            "value" : "Command Line Tools %@"
           }
         },
         "zh-Hant" : {
@@ -41591,7 +41591,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "已复制"
+            "value" : "已拷贝"
           }
         },
         "zh-Hant" : {
@@ -41667,13 +41667,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "复制验证码。"
+            "value" : "拷贝验证码。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "拷貝代碼。"
+            "value" : "拷貝驗證碼。"
           }
         }
       }
@@ -41743,7 +41743,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "复制"
+            "value" : "拷贝"
           }
         },
         "zh-Hant" : {
@@ -44568,7 +44568,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "完整日誌"
+            "value" : "完整記錄"
           }
         }
       }
@@ -47091,7 +47091,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "正在加载…"
+            "value" : "正在载入…"
           }
         },
         "zh-Hant" : {
@@ -48935,13 +48935,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "许可证"
+            "value" : "开源许可证"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "許可證"
+            "value" : "開放原始碼授權"
           }
         }
       }
@@ -49702,13 +49702,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "请在 GitHub 上给我们星标，这将让我们走得更远。"
+            "value" : "请在 GitHub 上为我们加星标，这能帮助我们走得更远。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "請在 GitHub 上給我們星號，這將讓我們走得更遠。"
+            "value" : "請在 GitHub 上為我們加上星標，這能幫助我們走得更遠。"
           }
         }
       }
@@ -50324,13 +50324,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "使用此工具链的项目将无法构建，直到你重新下载并配置它。"
+            "value" : "重新下载并配置此工具链之前，使用它的项目将无法构建。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "使用此工具鏈的專案將無法建置，直到你重新下載並設定它。"
+            "value" : "重新下載並設定此工具鏈之前，使用它的專案將無法建置。"
           }
         }
       }
@@ -50932,7 +50932,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "远程仓库"
+            "value" : "远端"
           }
         },
         "zh-Hant" : {
@@ -52859,7 +52859,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "分享日誌"
+            "value" : "分享記錄"
           }
         }
       }
@@ -53461,7 +53461,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "退出 %@ 的登录？"
+            "value" : "退出登录 %@？"
           }
         },
         "zh-Hant" : {
@@ -55057,7 +55057,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "出了点问题，请重试。"
+            "value" : "出现问题，请重试。"
           }
         },
         "zh-Hant" : {
@@ -58883,7 +58883,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "使用登入代碼"
+            "value" : "使用驗證碼登入"
           }
         }
       }
@@ -59415,7 +59415,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "檢視完整日誌"
+            "value" : "檢視完整記錄"
           }
         }
       }
@@ -60549,7 +60549,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "找不到这个项目"
+            "value" : "找不到项目"
           }
         },
         "zh-Hant" : {
@@ -61455,13 +61455,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "导入一个包含 SKILL.md 的文件夹，或一个 Markdown 文件。所有对话都能使用这些技能，任务与某个技能的描述相符时，智能体会读取它。"
+            "value" : "导入一个包含 SKILL.md 的文件夹，或一个 Markdown 文件。所有聊天都能使用这些技能，任务与某个技能的描述相符时，智能体会读取它。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "匯入包含 SKILL.md 的資料夾，或一個 Markdown 檔案。所有對話都能使用這些技能，任務符合某個技能的描述時，代理程式會讀取它。"
+            "value" : "匯入包含 SKILL.md 的檔案夾，或一個 Markdown 檔案。所有聊天都能使用這些技能，任務符合某個技能的描述時，代理程式會讀取它。"
           }
         }
       }
@@ -61627,7 +61627,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "技能資料夾"
+            "value" : "技能檔案夾"
           }
         }
       }
@@ -61870,13 +61870,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "它的文件会从技能文件夹中删除，对话中也不再提供它。"
+            "value" : "它的文件会从技能文件夹中删除，聊天中也不再提供它。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "它的檔案會從技能資料夾中刪除，對話中也不再提供它。"
+            "value" : "它的檔案會從技能檔案夾中刪除，聊天中也不再提供它。"
           }
         }
       }
@@ -62202,13 +62202,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "技能文件夹中这里已经有一个技能。替换会删除它的文件。"
+            "value" : "技能文件夹中已有同名技能。替换会删除它的文件。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "技能資料夾中這裡已經有一個技能。取代會刪除它的檔案。"
+            "value" : "技能檔案夾中已有同名技能。取代會刪除它的檔案。"
           }
         }
       }
@@ -62540,7 +62540,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "請選擇包含 SKILL.md 的資料夾，或一個 Markdown 檔案。"
+            "value" : "請選擇包含 SKILL.md 的檔案夾，或一個 Markdown 檔案。"
           }
         }
       }
@@ -62700,13 +62700,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "此工作区需要构建脚本才能分发。请让智能体声明一个会写出安装包的脚本。"
+            "value" : "此工作区需要构建脚本才能分发。请让智能体声明一个会写出软件包的脚本。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "此工作區需要建置指令碼才能發佈。請讓代理程式宣告一個會寫出套件的指令碼。"
+            "value" : "此工作區需要建置指令碼才能分發。請讓代理程式宣告一個會寫出套件的指令碼。"
           }
         }
       }
@@ -62866,7 +62866,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "构建脚本写出安装包后会再检查它。"
+            "value" : "构建脚本写出软件包后会再检查它。"
           }
         },
         "zh-Hant" : {
@@ -63032,7 +63032,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "两个目标应发布同一个安装包。"
+            "value" : "两个目标应发布同一个软件包。"
           }
         },
         "zh-Hant" : {
@@ -63190,7 +63190,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "壓縮上下文？"
+            "value" : "要壓縮上下文嗎？"
           }
         }
       }
@@ -63494,7 +63494,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "正在摘要先前的訊息…"
+            "value" : "正在總結先前的訊息…"
           }
         }
       }
@@ -63792,13 +63792,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "此聊天仍足够短，智能体可以完整读取。"
+            "value" : "此聊天内容还不长，智能体可以完整读取。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "此聊天仍夠短，代理程式可以完整讀取。"
+            "value" : "此聊天內容還不長，代理程式可以完整讀取。"
           }
         }
       }
@@ -64110,7 +64110,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "检查插件是否已加载"
+            "value" : "检查插件是否已载入"
           }
         },
         "zh-Hant" : {
@@ -64442,7 +64442,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "保存记忆"
+            "value" : "存储记忆"
           }
         },
         "zh-Hant" : {
@@ -64697,7 +64697,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "發佈前檢查"
+            "value" : "分發前檢查"
           }
         }
       }
@@ -64857,7 +64857,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "保存技能"
+            "value" : "存储技能"
           }
         },
         "zh-Hant" : {
@@ -65651,7 +65651,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "建立發佈儲存庫…"
+            "value" : "建立分發儲存庫…"
           }
         }
       }
@@ -65727,7 +65727,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "連結發佈儲存庫…"
+            "value" : "連結分發儲存庫…"
           }
         }
       }
@@ -65803,7 +65803,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "建立發佈儲存庫"
+            "value" : "建立分發儲存庫"
           }
         }
       }
@@ -65879,7 +65879,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "登入後，代理程式可以複製、提取和推送你在 GitHub 上的儲存庫。"
+            "value" : "登入後，代理程式可以複製、拉取和推送你在 GitHub 上的儲存庫。"
           }
         }
       }
@@ -66101,13 +66101,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "软件源仓库是托管在 GitHub Pages 上的 APT 软件源，你的发布构建会发布到这里。你也可以稍后在“设置 ▸ Git”中设置。"
+            "value" : "软件源仓库是托管在 GitHub Pages 上的 APT 软件源，你的正式构建会发布到这里。你也可以稍后在“设置 ▸ Git”中配置。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "套件儲存庫是託管在 GitHub Pages 上的 APT 來源，你的發佈建置會發佈到這裡。你也可以稍後在「設定 ▸ Git」中設定。"
+            "value" : "軟體源儲存庫是託管在 GitHub Pages 上的 APT 軟體源，你的正式建置會發佈到這裡。你也可以稍後在「設定 ▸ Git」中設定。"
           }
         }
       }
@@ -66183,7 +66183,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "發佈到套件儲存庫"
+            "value" : "發佈到軟體源儲存庫"
           }
         }
       }
@@ -66266,7 +66266,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "發佈到套件儲存庫"
+            "value" : "發佈到軟體源儲存庫"
           }
         }
       }
@@ -66418,7 +66418,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "沒有套件儲存庫"
+            "value" : "沒有軟體源儲存庫"
           }
         }
       }
@@ -66494,7 +66494,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "發佈到 %@？"
+            "value" : "要發佈到 %@ 嗎？"
           }
         }
       }
@@ -66944,13 +66944,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "添加文件"
+            "value" : "正在添加文件"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "加入檔案"
+            "value" : "正在加入檔案"
           }
         }
       }
@@ -67020,13 +67020,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "推送"
+            "value" : "正在推送"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "推送"
+            "value" : "正在推送"
           }
         }
       }
@@ -67096,13 +67096,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "开启 GitHub Pages"
+            "value" : "正在开启 GitHub Pages"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "開啟 GitHub Pages"
+            "value" : "正在開啟 GitHub Pages"
           }
         }
       }
@@ -67172,13 +67172,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在你的 GitHub 账户中创建一个公开仓库，通过 GitHub Pages 作为软件源发布。"
+            "value" : "你 GitHub 账户中的公开仓库，通过 GitHub Pages 发布为软件源。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在你的 GitHub 帳號中建立一個公開儲存庫，透過 GitHub Pages 作為套件來源發佈。"
+            "value" : "你 GitHub 帳號中的公開儲存庫，透過 GitHub Pages 發佈為軟體源。"
           }
         }
       }
@@ -67406,7 +67406,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "連結 %@？"
+            "value" : "要連結 %@ 嗎？"
           }
         }
       }
@@ -67710,7 +67710,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "取消連結 %@？"
+            "value" : "要取消連結 %@ 嗎？"
           }
         }
       }
@@ -68021,7 +68021,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "無法為 Apelin 加上星號"
+            "value" : "無法為 Apelin 加上星標"
           }
         }
       }
@@ -68699,13 +68699,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在 GitHub 上拒绝了这次登录。"
+            "value" : "你已在 GitHub 上拒绝此次登录。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在 GitHub 上拒絕了這次登入。"
+            "value" : "你已在 GitHub 上拒絕這次登入。"
           }
         }
       }
@@ -69231,13 +69231,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "退出 GitHub 登录？"
+            "value" : "退出登录 GitHub？"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "登出 GitHub？"
+            "value" : "要登出 GitHub 嗎？"
           }
         }
       }
@@ -69313,7 +69313,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在你重新登入之前，複製、提取和推送 github.com 都將無法進行。套件儲存庫仍保持連結。"
+            "value" : "在你重新登入之前，複製、拉取和推送 github.com 都將無法進行。軟體源儲存庫仍保持連結。"
           }
         }
       }
@@ -69389,7 +69389,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "拷貝來源位址。"
+            "value" : "拷貝軟體源位址。"
           }
         }
       }
@@ -69541,7 +69541,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "拷貝來源位址"
+            "value" : "拷貝軟體源位址"
           }
         }
       }
@@ -69693,7 +69693,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "提交的作者、你的 GitHub 帳號，以及發佈版本所在的套件儲存庫。"
+            "value" : "提交的作者、你的 GitHub 帳號，以及發佈版本所在的軟體源儲存庫。"
           }
         }
       }
@@ -70434,7 +70434,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "无法保存图片"
+            "value" : "无法存储图片"
           }
         },
         "zh-Hant" : {
@@ -70772,7 +70772,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "組織 %@ 中的公開儲存庫，透過 GitHub Pages 發布為軟體源。"
+            "value" : "組織 %@ 中的公開儲存庫，透過 GitHub Pages 發佈為軟體源。"
           }
         }
       }
@@ -70849,7 +70849,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在 Irisin 中添加这个地址。点按即可拷贝。"
+            "value" : "在 Irisin 中添加这个地址。轻点即可拷贝。"
           }
         },
         "zh-Hant" : {
@@ -71187,7 +71187,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "更新 %@？"
+            "value" : "要更新 %@ 嗎？"
           }
         }
       }
@@ -71583,13 +71583,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "软件源仓库是托管在 GitHub Pages 上的 APT 软件源：“分发…”会把项目的发布构建发布到这里。"
+            "value" : "软件源仓库是托管在 GitHub Pages 上的 APT 软件源：“分发…”会把项目的正式构建发布到这里。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "套件儲存庫是託管在 GitHub Pages 上的 APT 來源：「發佈…」會把專案的發佈建置發佈到這裡。"
+            "value" : "軟體源儲存庫是託管在 GitHub Pages 上的 APT 軟體源：「分發…」會把專案的正式建置發佈到這裡。"
           }
         }
       }
@@ -71832,7 +71832,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Apelin 會把它複製為專案，補上套件索引缺少的檔案（一個 GitHub Pages 工作流程和一個索引腳本），不改動既有的任何檔案，然後推送並開啟 GitHub Pages。"
+            "value" : "Apelin 會把它複製為專案，補上套件索引缺少的檔案（一個 GitHub Pages 工作流程和一個索引指令碼），不改動既有的任何檔案，然後推送並開啟 GitHub Pages。"
           }
         }
       }
@@ -71915,7 +71915,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Apelin 會保留最近 100 次啟動的日誌。"
+            "value" : "Apelin 會保留最近 100 次啟動的記錄。"
           }
         }
       }
@@ -72061,13 +72061,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Apelin 的后台服务在 %@内没有响应，请重试。"
+            "value" : "Apelin 的后台服务在 %@ 内没有响应，请重试。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Apelin 的背景服務未在 %@內回應，請再試一次。"
+            "value" : "Apelin 的背景服務未在 %@ 內回應，請再試一次。"
           }
         }
       }
@@ -72365,7 +72365,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Apple 的目录中没有命令行工具。请检查网络连接，然后下拉重试。"
+            "value" : "Apple 的目录中没有 Command Line Tools。请检查网络连接，然后下拉重试。"
           }
         },
         "zh-Hant" : {
@@ -72530,7 +72530,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "將所選套件一起發佈到你的套件儲存庫，或分享其中一個。每個都是建置產生的原始檔案，未經更動。"
+            "value" : "將所選套件一起發佈到你的軟體源儲存庫，或分享其中一個。每個都是建置產生的原始檔案，未經更動。"
           }
         }
       }
@@ -72606,7 +72606,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "複製、提取和推送 github.com 時使用這個帳號。它的權杖只保存在這台裝置的鑰匙圈中，不會同步。"
+            "value" : "複製、拉取和推送 github.com 時使用這個帳號。它的權杖只保存在這台裝置的鑰匙圈中，不會同步。"
           }
         }
       }
@@ -73237,7 +73237,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "GitHub 页面会请你授权 GitHub CLI：Apelin 通过这个应用登录。令牌只保存在这台设备的钥匙串中，用于 github.com 上的远程仓库。"
+            "value" : "GitHub 页面会请你授权 GitHub CLI：Apelin 通过这个 App 登录。令牌只保存在这台设备的钥匙串中，用于 github.com 上的远端仓库。"
           }
         },
         "zh-Hant" : {
@@ -73403,7 +73403,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "安裝 Command Line Tools %@？"
+            "value" : "要安裝 Command Line Tools %@ 嗎？"
           }
         }
       }
@@ -73806,7 +73806,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Apelin 啟動後，日誌會顯示在這裡。"
+            "value" : "Apelin 啟動後，記錄會顯示在這裡。"
           }
         }
       }
@@ -73890,7 +73890,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "MIT 許可證"
+            "value" : "MIT 授權條款"
           }
         }
       }
@@ -74198,7 +74198,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "尚无 SDK"
+            "value" : "暂无 SDK"
           }
         },
         "zh-Hant" : {
@@ -74275,7 +74275,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "还没有工具链"
+            "value" : "暂无工具链"
           }
         },
         "zh-Hant" : {
@@ -74523,13 +74523,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "为分发到 %@ 准备这个项目：运行 apelin_project_check_distribution，修正它列出的所有问题（安装包的名称、描述、作者和版本、各个标识符，以及 App 的图标，如果有的话），然后告诉我你改了什么。先不要构建。"
+            "value" : "为分发到 %@ 准备这个项目：运行 apelin_project_check_distribution，修正它列出的所有问题（软件包的名称、描述、作者和版本、各个标识符，以及 App 的图标，如果有的话），然后告诉我你改了什么。先不要构建。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "為發佈到 %@ 準備這個專案：執行 apelin_project_check_distribution，修正它列出的所有問題（套件的名稱、描述、作者和版本、各個識別碼，以及 App 的圖像，如果有的話），然後告訴我你改了什麼。先不要建置。"
+            "value" : "為分發到 %@ 準備這個專案：執行 apelin_project_check_distribution，修正它列出的所有問題（套件的名稱、描述、作者和版本、各個識別碼，以及 App 的圖像，如果有的話），然後告訴我你改了什麼。先不要建置。"
           }
         }
       }
@@ -74606,13 +74606,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "为分发准备这个项目：运行 apelin_project_check_distribution，修正它列出的所有问题（安装包的名称、描述、作者和版本、各个标识符，以及 App 的图标，如果有的话），然后告诉我你改了什么。先不要构建。"
+            "value" : "为分发准备这个项目：运行 apelin_project_check_distribution，修正它列出的所有问题（软件包的名称、描述、作者和版本、各个标识符，以及 App 的图标，如果有的话），然后告诉我你改了什么。先不要构建。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "為發佈準備這個專案：執行 apelin_project_check_distribution，修正它列出的所有問題（套件的名稱、描述、作者和版本、各個識別碼，以及 App 的圖像，如果有的話），然後告訴我你改了什麼。先不要建置。"
+            "value" : "為分發準備這個專案：執行 apelin_project_check_distribution，修正它列出的所有問題（套件的名稱、描述、作者和版本、各個識別碼，以及 App 的圖像，如果有的話），然後告訴我你改了什麼。先不要建置。"
           }
         }
       }
@@ -74689,13 +74689,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "为分发准备这个工作区：运行 apelin_project_check_distribution，修正它列出的所有问题，并确保在 APELIN_CONFIGURATION 为 release 时，构建脚本会为每个目标写出发布版安装包，使用安装包真实的名称、标识符、作者和新的版本号。然后告诉我你改了什么。先不要构建。"
+            "value" : "为分发准备这个工作区：运行 apelin_project_check_distribution，修正它列出的所有问题，并确保在 APELIN_CONFIGURATION 为 release 时，构建脚本会为每个目标写出正式版软件包，使用软件包真实的名称、标识符、作者和新的版本号。然后告诉我你改了什么。先不要构建。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "為發佈準備這個工作區：執行 apelin_project_check_distribution，修正它列出的所有問題，並確保在 APELIN_CONFIGURATION 為 release 時，建置指令碼會為每個目標寫出發行版套件，使用套件真實的名稱、識別碼、作者和新的版本號。然後告訴我你改了什麼。先不要建置。"
+            "value" : "為分發準備這個工作區：執行 apelin_project_check_distribution，修正它列出的所有問題，並確保在 APELIN_CONFIGURATION 為 release 時，建置指令碼會為每個目標寫出正式版套件，使用套件真實的名稱、識別碼、作者和新的版本號。然後告訴我你改了什麼。先不要建置。"
           }
         }
       }
@@ -74925,7 +74925,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "設為預設？"
+            "value" : "要設為預設嗎？"
           }
         }
       }
@@ -75322,7 +75322,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "严格：执行命令和敏感更改前询问。\n\n宽松：在应用权限范围内直接执行这些操作，但任何以 root 身份运行的命令都会先询问。\n\n完全：以 root 身份运行命令也不再询问。"
+            "value" : "严格：执行命令和敏感改动前询问。\n\n宽松：在 App 权限范围内直接执行这些操作，但任何以 root 身份运行的命令都会先询问。\n\n完全：以 root 身份运行命令也不再询问。"
           }
         },
         "zh-Hant" : {
@@ -75399,13 +75399,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "此设备上不包含 Swift。"
+            "value" : "在这台设备上不会安装 Swift。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "此裝置上不包含 Swift。"
+            "value" : "在此裝置上不會安裝 Swift。"
           }
         }
       }
@@ -75630,13 +75630,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "轻点 “+” 下载 Apple 的命令行工具，或从文件导入工具链。"
+            "value" : "轻点“+”下载 Apple 的 Command Line Tools，或从文件导入工具链。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "點一下 「+」 下載 Apple 的 Command Line Tools，或從檔案匯入工具鏈。"
+            "value" : "點一下「+」下載 Apple 的 Command Line Tools，或從檔案匯入工具鏈。"
           }
         },
         "en" : {
@@ -75961,7 +75961,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "另一个目标的安装包不同"
+            "value" : "另一个目标的软件包不同"
           }
         },
         "zh-Hant" : {
@@ -76044,13 +76044,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "无法构建安装包。请检查构建脚本的日志后重试。"
+            "value" : "无法构建软件包。请检查构建脚本的日志后重试。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "無法建置套件。請檢查建置指令碼的日誌後再試一次。"
+            "value" : "無法建置套件。請檢查建置指令碼的記錄後再試一次。"
           }
         }
       }
@@ -76127,7 +76127,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "无法构建安装包。请检查项目的构建描述后重试。"
+            "value" : "无法构建软件包。请检查项目的构建描述后重试。"
           }
         },
         "zh-Hant" : {
@@ -76209,7 +76209,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@\n\n每個套件會按建置時的原樣放進儲存庫的 debs 資料夾，合為一次提交並推送。加入了 %@ 的裝置幾分鐘內就能看到更新。"
+            "value" : "%@\n\n每個套件會按建置時的原樣放進儲存庫的 debs 檔案夾，合為一次提交並推送。加入了 %@ 的裝置幾分鐘內就能看到更新。"
           }
         }
       }
@@ -76286,7 +76286,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "安装包仍在使用模板作者"
+            "value" : "软件包仍在使用模板作者"
           }
         },
         "zh-Hant" : {
@@ -76369,7 +76369,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "安装包仍在使用模板描述"
+            "value" : "软件包仍在使用模板描述"
           }
         },
         "zh-Hant" : {
@@ -76452,7 +76452,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "安装包仍在使用模板的初始版本号"
+            "value" : "软件包仍在使用模板的初始版本号"
           }
         },
         "zh-Hant" : {
@@ -76535,7 +76535,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "安装包仍在使用模板名称"
+            "value" : "软件包仍在使用模板名称"
           }
         },
         "zh-Hant" : {
@@ -76611,7 +76611,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "此文件包含为你自己的设备适配的 Apple 命令行工具。Apelin 不会上传它。"
+            "value" : "此文件包含为你自己的设备适配的 Apple Command Line Tools。Apelin 不会上传它。"
           }
         },
         "zh-Hant" : {
@@ -76763,13 +76763,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "此操作需要 Apelin 的后台服务，但它没有在这台设备上运行。请用你喜欢的软件包管理器重新安装 Apelin 以重新设置。"
+            "value" : "此操作需要 Apelin 的后台服务，但它没有在这台设备上运行。请使用你喜欢的软件包管理器重新安装 Apelin，以重新配置该服务。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "此操作需要 Apelin 的背景服務，但它未在此裝置上執行。請使用你偏好的套件管理器重新安裝 Apelin 以重新設定。"
+            "value" : "此操作需要 Apelin 的背景服務，但它未在此裝置上執行。請使用你偏好的套件管理器重新安裝 Apelin，以重新設定該服務。"
           }
         }
       }
@@ -76929,7 +76929,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "工具链设置"
+            "value" : "工具链配置"
           }
         },
         "zh-Hant" : {
@@ -77089,7 +77089,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "无法加载推荐。请点按“重试”，或继续并稍后配置。"
+            "value" : "无法载入推荐。请轻点“重试”，或继续并稍后配置。"
           }
         },
         "zh-Hant" : {
@@ -77338,7 +77338,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "希望代理記住什麼？"
+            "value" : "希望代理程式記住什麼？"
           }
         }
       }
@@ -77414,7 +77414,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "「發佈…」將不再發佈到這裡。GitHub 上的儲存庫和它的專案都會保留原樣。"
+            "value" : "「分發…」將不再發佈到這裡。GitHub 上的儲存庫和它的專案都會保留原樣。"
           }
         }
       }
@@ -77574,7 +77574,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "开启后，在任何权限模式下，智能体在打开应用或链接、读取屏幕内容或操作屏幕之前都会先询问你，无论是通过 Apelin 的屏幕工具还是 icli。截屏前始终会在聊天中询问。每个聊天会在你下次发送消息时应用更改。"
+            "value" : "开启后，在任何权限模式下，智能体在打开 App 或链接、读取屏幕内容或操作屏幕之前都会先询问你，无论是通过 Apelin 的屏幕工具还是 icli。截屏前始终会在聊天中询问。每个聊天会在你下次发送消息时应用更改。"
           }
         },
         "zh-Hant" : {
