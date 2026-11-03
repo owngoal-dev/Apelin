@@ -66,7 +66,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld 个待授权"
+            "value" : "%lld 个待批准"
           }
         },
         "zh-Hant" : {
@@ -456,13 +456,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "允许%@"
+            "value" : "批准：%@"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "允許%@"
+            "value" : "核准：%@"
           }
         }
       }
@@ -918,7 +918,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "完成"
+            "value" : "已完成"
           }
         }
       }
@@ -1064,7 +1064,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "出错了"
+            "value" : "失败"
           }
         },
         "zh-Hant" : {
@@ -1368,7 +1368,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "需要授权"
+            "value" : "需要批准"
           }
         },
         "zh-Hant" : {
@@ -1520,7 +1520,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "还没有消息，轻点开始聊天"
+            "value" : "暂无消息。轻点开始聊天。"
           }
         },
         "zh-Hant" : {
@@ -1824,7 +1824,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "卸载"
+            "value" : "移除"
           }
         },
         "zh-Hant" : {
@@ -2052,7 +2052,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "正在工作或等待你授权的聊天。"
+            "value" : "正在工作或等待你批准的聊天。"
           }
         },
         "zh-Hant" : {
@@ -2204,7 +2204,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "保存技能"
+            "value" : "存储技能"
           }
         },
         "zh-Hant" : {
