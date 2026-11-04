@@ -1,4 +1,5 @@
 import AlertController
+import ApelinCore
 import UIKit
 
 /// Not `@main`: `main.swift` clears saved scenes before `UIApplicationMain`.
@@ -19,7 +20,12 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
             })
             Self.presentWhenActive(alert, in: application)
         }
+        // before anything reads the data folder
+        let recovered = DataFolder.container.flatMap { ContainerDataFolder.recover(from: $0, into: .app) }
         AppJournal.start()
+        if let recovered {
+            AppJournal.note(recovered)
+        }
         NetworkAccess.start()
         ConversationNotices.start()
         // the progress card and the alerts carry the app's icon, as Fila's do

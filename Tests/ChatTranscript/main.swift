@@ -1108,6 +1108,8 @@ checkDroppedMessages()
 
 checkDeletedProjects()
 
+checkContainerDataFolder()
+
 checkCompletedBuilds()
 
 checkStarPromptState()

@@ -25,6 +25,15 @@ enum RoothideRoot {
         return "/" + components[...index].joined(separator: "/")
     }
 
+    /// Mobile's home as the package makes it and the session host's workers
+    /// use it, for a process whose own path is `path`: inside the roothide
+    /// root, else the system's. Never the process's own home: on rootless,
+    /// uicache gives an app without `no-container` a data container and
+    /// points HOME and CFFIXED_USER_HOME at it (issue #37).
+    static func mobileHome(for path: String) -> String {
+        (containing(path) ?? "") + "/var/mobile"
+    }
+
     /// libroothide's `is_jbroot_name`: the last byte is the xor of the seven
     /// before it, so `.jbroot`, `.jbroot-test` and a mistyped name are not
     /// roots. Digits only: a sign is a number to `UInt64` and to `strtoull`,

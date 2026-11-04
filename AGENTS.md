@@ -69,10 +69,10 @@ the same executable in session mode; the workers are its children.
   reads as a crash. Quit, and any other exit the app chooses, is
   `QuietExit.run`: leave for the home screen, wait for the animation, run the
   cleanup `exit` would skip, then exit.
-- **The app's data folder is `~/Documents/wiki.qaq.apelin`, and the package
-  makes it.** The app has no container, so its home is mobile's —
-  `<jbroot>/var/mobile` on roothide, `/var/mobile` on rootless — shared with
-  every other app without one. Anything it keeps there goes in a folder named
+- **The app's data folder is `~/Documents/wiki.qaq.apelin` in mobile's
+  home, and the package makes it.** Mobile's home is `<jbroot>/var/mobile`
+  on roothide and `/var/mobile` on rootless, shared with every app without
+  a container. Anything the app keeps there goes in a folder named
   for its bundle id, the isolation a container would give, inside a
   `Documents` mobile owns, which a container would have had too. The postinst
   (dpkg, as root) makes each missing level — home, `Documents`, the folder —
@@ -80,7 +80,31 @@ the same executable in session mode; the workers are its children.
   never follows a symlink. Never `mkdir -p` as root: it leaves every level
   above the last one root's, and Irisin 4.3.4–4.5.25 left a roothide
   bootstrap's `Documents` root's that way, so no other app without a
-  container could make anything there.
+  container could make anything there. The app reckons mobile's home off
+  its own bundle's path, as the session host does off its own
+  (`RoothideRoot.mobileHome`), never from `NSHomeDirectory()`: on roothide
+  that is the system's `/var/mobile`, and on rootless uicache and Irisin's
+  registration (IcliKit's) give an app without `no-container` a data
+  container and make it the app's home. The app's preferences, saved state
+  and `tmp` live in that container; its data never does. 0.3.5 and earlier
+  kept the data folder there on rootless — no project listed, no project
+  link opened, every project's conversations taken at each launch for a
+  deleted project's (#37) — so at launch, before anything reads the data
+  folder, `ContainerDataFolder` moves `<container>/Documents/wiki.qaq.apelin`
+  into mobile's (rootless only, and only while the two differ). Each
+  regular file goes to the same path by a rename, never copied or deleted;
+  where mobile's has a file of that name, the newer by modification time
+  stays there and the older goes aside, by `RENAME_SWAP` when the
+  container's is the newer; memories merge by ID through `MemoryStore`,
+  mobile's text winning. A link on either side, a special file, a clash
+  with a folder or a link, and `console/running/` (it would run again)
+  stay put; a folder is made in mobile's only for a file that lands in it,
+  never through a link. The container's folder is then renamed
+  `wiki.qaq.apelin.migrated` (a stamp after it when that is taken), keeping
+  what stayed and every older copy, so a later launch finds nothing to do;
+  the journal lists each path. Preferences need nothing: they stay in the
+  container, where the app still reads them. Tested by
+  `Tests/ChatTranscript/ContainerDataFolderCheck.swift`.
 - **A cold launch starts with no saved scenes.** `main.swift` deletes this
   bundle's `Library/Saved Application State/<id>.savedState` before
   `UIApplicationMain`. UIKit reads that archive before any scene delegate
@@ -2645,10 +2669,11 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   never a folder Dog makes), and writes a launch header, its paths through
   `AppJournal.redaction` (`~`, `<install root>`). `DataFolder.app`,
   not `DataFolder(home: NSHomeDirectory())`: on roothide `NSHomeDirectory()`
-  is the system's `/var/mobile`, not the bootstrap's. Never call it with no
-  argument: its default is `.documentDirectory`, which for an app with no
-  container is mobile's shared `~/Documents`, and the journal would land in
-  `~/Documents/Journal`. Dog keeps 128 files by default and mirrors every
+  is the system's `/var/mobile`, not the bootstrap's, and on rootless the
+  app's data container. Never call it with no argument: its default is
+  `.documentDirectory`, the app's own home's (mobile's shared `~/Documents`
+  on roothide, the data container's on rootless), and the journal would
+  land in its `Journal`. Dog keeps 128 files by default and mirrors every
   line to the unified log under its own subsystem, `com.lakr233.dog`. It
   is the app's alone: apelind and the workers never link it and keep their
   own logging, and no task, scope or operation reads the journal.
@@ -4116,7 +4141,7 @@ fragment. The chat's ListViewKit keeps its own update mechanism.
   done grey, failed red (a last turn that finished `failed`, or was cut off
   by its task failing or being interrupted); with no conversation, New Chat.
 - **The snapshot.** The extension is sandboxed and cannot read mobile's
-  Documents, and the app has no container, so the app writes
+  Documents, where the app's data is, so the app writes
   `ChatWidgetSnapshot` to `Widgets/chats.json` in the App Group container
   `group.wiki.qaq.apelin`, which both targets carry — the way Fila's save
   action shares Fila's. `make check` and the packager require exactly that
