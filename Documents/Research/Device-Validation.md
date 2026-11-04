@@ -779,6 +779,12 @@ console now goes on after a restart only past a successful respring.
       red line, then the text. The text is covered on the Mac by
       `Tests/ChatTranscript`.
 - [ ] A rootless bootstrap: install, hello, `i1-smoke`, `t1`, `i3-chain`.
+      Then over a 0.3.5 install that kept its data folder in the app's data
+      container (#37): the projects listed and a project link opening,
+      the container's conversations, memories and skills moved into
+      `/var/mobile/Documents/wiki.qaq.apelin`, the container's folder
+      renamed `wiki.qaq.apelin.migrated`, and the journal's list of what
+      moved. Only `ContainerDataFolderCheck` has run (on the Mac).
 - [ ] Real hardware (not a vphone): the same, plus a real respring and
       confirmLoaded. Toolchain setup and removal, SDK import and builds
       run on an iPhone 15 Pro and an A12Z iPad on 2026-10-21 (▸ Real

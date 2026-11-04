@@ -4,9 +4,10 @@ import Foundation
 /// Apelin keeps inside it. The package's postinst makes the folder for
 /// mobile; whatever runs as mobile makes the levels below it.
 ///
-/// `home` is mobile's home as the caller knows it: `NSHomeDirectory()` in
-/// the app, `HOME` in a worker (the session host sets it at spawn). On
-/// roothide that is `<jbroot>/var/mobile`, on rootless `/var/mobile`.
+/// `home` is mobile's home as the caller knows it: `RoothideRoot.mobileHome`
+/// in the app and the session host, `HOME` in a worker (the session host
+/// sets it at spawn). On roothide that is `<jbroot>/var/mobile`, on rootless
+/// `/var/mobile`.
 public struct DataFolder: Sendable, Equatable {
     public static let bundleIdentifier = "wiki.qaq.apelin"
 

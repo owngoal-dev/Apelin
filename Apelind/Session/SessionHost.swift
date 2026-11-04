@@ -42,8 +42,9 @@ final class SessionHost: @unchecked Sendable {
 
     init(installRoot: String, ownPath: String) {
         self.installRoot = installRoot
-        // roothide keeps mobile's home inside the jbroot; rootless uses the system's.
-        home = RoothideRoot.containing(ownPath) != nil ? installRoot + "/var/mobile" : "/var/mobile"
+        // roothide keeps mobile's home inside the jbroot; rootless uses the
+        // system's. The app reckons it the same way, off its own bundle.
+        home = RoothideRoot.mobileHome(for: ownPath)
         stateDirectory = URL(
             fileURLWithPath: installRoot == "/" ? "/var/lib/apelin" : installRoot + "/var/lib/apelin",
             isDirectory: true,

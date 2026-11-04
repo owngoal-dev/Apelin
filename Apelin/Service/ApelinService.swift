@@ -12,21 +12,17 @@ extension ApelinService {
 }
 
 extension DataFolder {
-    /// `~/Documents/wiki.qaq.apelin` as the app sees it: the app has no
-    /// container, so its home is mobile's.
-    static let app = DataFolder(home: mobileHome)
+    /// `~/Documents/wiki.qaq.apelin` as the package made it and the workers
+    /// keep it: in mobile's home as the session host reckons it, off the
+    /// bundle's own path (`RoothideRoot.mobileHome`). Never in
+    /// `NSHomeDirectory()`: on roothide that is the system's `/var/mobile`,
+    /// and on rootless uicache gives the app a data container and makes
+    /// that its home, where the app kept a folder nothing else read (#37).
+    static let app = DataFolder(home: RoothideRoot.mobileHome(for: Bundle.main.bundlePath))
 
-    /// Mobile's home as the session host and the package see it:
-    /// `<jbroot>/var/mobile` on roothide, `/var/mobile` on rootless.
-    /// `NSHomeDirectory()` answers the system's `/var/mobile` on both, and on
-    /// roothide that is a different folder from the one the postinst made and
-    /// the workers write into, so a script dropped in the inbox was never
-    /// seen. The bootstrap is recognised off the bundle's own path, the way
-    /// the session host recognises it off its own.
-    private static var mobileHome: String {
-        if let root = RoothideRoot.containing(Bundle.main.bundlePath) {
-            return root + "/var/mobile"
-        }
-        return NSHomeDirectory()
+    /// Where 0.3.5 and earlier kept it on rootless, in the app's own home
+    /// (`ContainerDataFolder`); nil on roothide, where the app never did.
+    static var container: DataFolder? {
+        RoothideRoot.containing(Bundle.main.bundlePath) == nil ? DataFolder(home: NSHomeDirectory()) : nil
     }
 }

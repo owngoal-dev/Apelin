@@ -25,3 +25,23 @@ for path in [
 ] {
     require(RoothideRoot.containing(path) == nil)
 }
+
+/// Mobile's home, where the package makes the data folder and the session
+/// host's workers keep it. Launched as rootless uicache launches an app with
+/// no `no-container`: HOME and CFFIXED_USER_HOME name its data container, so
+/// the process's own home is not mobile's (issue #37).
+let container = "/private/var/mobile/Containers/Data/Application/0F1E2D3C-0000-4000-8000-000000000000"
+setenv("CFFIXED_USER_HOME", container, 1)
+setenv("HOME", container, 1)
+require(NSHomeDirectory() == container)
+require(RoothideRoot.mobileHome(for: parent + "/.jbroot-0123456789ABCDEF/Applications/Apelin.app")
+    == parent + "/.jbroot-0123456789ABCDEF/var/mobile")
+require(RoothideRoot.mobileHome(for: "/private" + parent + "/.jbroot-0123456789abcdef/usr/libexec/apelind")
+    == "/private" + parent + "/.jbroot-0123456789abcdef/var/mobile")
+for path in [
+    "/var/jb/Applications/Apelin.app",
+    "/private/preboot/hash/dopamine/procursus/Applications/Apelin.app",
+    "/private/preboot/hash/dopamine/procursus/usr/libexec/apelind",
+] {
+    require(RoothideRoot.mobileHome(for: path) == "/var/mobile")
+}

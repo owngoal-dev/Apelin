@@ -69,10 +69,10 @@ the same executable in session mode; the workers are its children.
   reads as a crash. Quit, and any other exit the app chooses, is
   `QuietExit.run`: leave for the home screen, wait for the animation, run the
   cleanup `exit` would skip, then exit.
-- **The app's data folder is `~/Documents/wiki.qaq.apelin`, and the package
-  makes it.** The app has no container, so its home is mobile's —
-  `<jbroot>/var/mobile` on roothide, `/var/mobile` on rootless — shared with
-  every other app without one. Anything it keeps there goes in a folder named
+- **The app's data folder is `~/Documents/wiki.qaq.apelin` in mobile's
+  home, and the package makes it.** Mobile's home is `<jbroot>/var/mobile`
+  on roothide and `/var/mobile` on rootless, shared with every app without
+  a container. Anything the app keeps there goes in a folder named
   for its bundle id, the isolation a container would give, inside a
   `Documents` mobile owns, which a container would have had too. The postinst
   (dpkg, as root) makes each missing level — home, `Documents`, the folder —
@@ -80,7 +80,31 @@ the same executable in session mode; the workers are its children.
   never follows a symlink. Never `mkdir -p` as root: it leaves every level
   above the last one root's, and Irisin 4.3.4–4.5.25 left a roothide
   bootstrap's `Documents` root's that way, so no other app without a
-  container could make anything there.
+  container could make anything there. The app reckons mobile's home off
+  its own bundle's path, as the session host does off its own
+  (`RoothideRoot.mobileHome`), never from `NSHomeDirectory()`: on roothide
+  that is the system's `/var/mobile`, and on rootless uicache and Irisin's
+  registration (IcliKit's) give an app without `no-container` a data
+  container and make it the app's home. The app's preferences, saved state
+  and `tmp` live in that container; its data never does. 0.3.5 and earlier
+  kept the data folder there on rootless — no project listed, no project
+  link opened, every project's conversations taken at each launch for a
+  deleted project's (#37) — so at launch, before anything reads the data
+  folder, `ContainerDataFolder` moves `<container>/Documents/wiki.qaq.apelin`
+  into mobile's (rootless only, and only while the two differ). Each
+  regular file goes to the same path by a rename, never copied or deleted;
+  where mobile's has a file of that name, the newer by modification time
+  stays there and the older goes aside, by `RENAME_SWAP` when the
+  container's is the newer; memories merge by ID through `MemoryStore`,
+  mobile's text winning. A link on either side, a special file, a clash
+  with a folder or a link, and `console/running/` (it would run again)
+  stay put; a folder is made in mobile's only for a file that lands in it,
+  never through a link. The container's folder is then renamed
+  `wiki.qaq.apelin.migrated` (a stamp after it when that is taken), keeping
+  what stayed and every older copy, so a later launch finds nothing to do;
+  the journal lists each path. Preferences need nothing: they stay in the
+  container, where the app still reads them. Tested by
+  `Tests/ChatTranscript/ContainerDataFolderCheck.swift`.
 - **A cold launch starts with no saved scenes.** `main.swift` deletes this
   bundle's `Library/Saved Application State/<id>.savedState` before
   `UIApplicationMain`. UIKit reads that archive before any scene delegate
@@ -2463,7 +2487,7 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   sheets through Xrash's `presentAsFormSheet` (`Interface/Components/`). The
   list contains only persisted conversations; no sample conversation is injected at launch.
   `ChatRuntime` owns drafts, session IDs, task cursors and histories; each chat is atomically saved under `Chats/`. A saved chat that does not decode is moved into `Chats/Unreadable/` and named in the journal, never left to stop the others loading, and a `Chats/` that cannot be read still leaves the list loaded, empty, so a new chat starts (issue #33). A chat is removed from memory only after its session closes (an absent session is already closed) and its file is deleted; later queued saves cannot restore it.
-  Projects are read from validated project folders, and the picker refreshes them on appearance. Its swipe and context menu can delete a project after confirming its name: close its chat sessions, remove only its real direct-child directory in `Projects/` without following links, then remove its chat histories. A project whose folder goes some other way — an agent's apelin_project_delete, a command, another app — takes its conversations with it the same way (`DeletedProjects`, `ChatRuntime.forgetDeletedProjects`), at launch and on each change `ProjectCatalogMonitor` reports: banners withdrawn, any session the host left open closed, histories removed, and the sidebar on General Chat when it showed that project; a `Projects/` that does not read takes nothing. With nothing picked the detail column shows
+  Projects are read from validated project folders, and the picker refreshes them on appearance. Its swipe and context menu can delete a project after confirming its name: close its chat sessions, remove only its real direct-child directory in `Projects/` without following links, then remove its chat histories. A project whose folder goes some other way — an agent's apelin_project_delete, a command, another app — takes its conversations with it the same way (`DeletedProjects`, `ChatRuntime.forgetDeletedProjects`), at launch and on each change `ProjectCatalogMonitor` reports: banners withdrawn, any session the host left open closed, histories removed, and the sidebar on General Chat when it showed that project; a `Projects/` that does not read takes nothing. Only a disappearance the app saw counts (#37): a project listed in an earlier reading of the same `Projects/`, by its device and inode, and missing from this one, the names last read kept beside it in `projects-seen.json` (a name gone stays there while a conversation of it is left, so one not taken away is tried again). A folder the app has not read before has seen nothing and takes nothing: a wrong data folder (0.3.5 on rootless read its data container's empty `Projects/` and took every project's conversations at each launch), a `Projects/` made again after it went, the first reading after an upgrade. With nothing picked the detail column shows
   the app's icon (`NothingSelectedController`) beside the sidebar; behind a
   drawer it is always a conversation. The placeholder cross-fades into a
   selected page, and the first transcript layout jumps to the bottom without
@@ -2663,10 +2687,11 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   never a folder Dog makes), and writes a launch header, its paths through
   `AppJournal.redaction` (`~`, `<install root>`). `DataFolder.app`,
   not `DataFolder(home: NSHomeDirectory())`: on roothide `NSHomeDirectory()`
-  is the system's `/var/mobile`, not the bootstrap's. Never call it with no
-  argument: its default is `.documentDirectory`, which for an app with no
-  container is mobile's shared `~/Documents`, and the journal would land in
-  `~/Documents/Journal`. Dog keeps 128 files by default and mirrors every
+  is the system's `/var/mobile`, not the bootstrap's, and on rootless the
+  app's data container. Never call it with no argument: its default is
+  `.documentDirectory`, the app's own home's (mobile's shared `~/Documents`
+  on roothide, the data container's on rootless), and the journal would
+  land in its `Journal`. Dog keeps 128 files by default and mirrors every
   line to the unified log under its own subsystem, `com.lakr233.dog`. It
   is the app's alone: apelind and the workers never link it and keep their
   own logging, and no task, scope or operation reads the journal.
@@ -3527,7 +3552,9 @@ Delete takes them. It goes by the folder rather than by an event on the
 deleting conversation's task because the app may not be following that
 task (closed, or the host restarted since), and because a folder another
 app or a command removed is just as gone; a folder renamed outside Apelin,
-whose conversations were already unreachable, loses them too. Tested by
+whose conversations were already unreachable, loses them too. Only a
+folder the app listed before in that `Projects/` counts as gone
+(`DeletedProjects`), so a wrong or new `Projects/` takes nothing. Tested by
 `ProjectDeletionTests` (ApelinKit), the session host's checks (the
 temporary folder, the link, another id, the session's own project,
 Strict's spend, the sessions closed), `ProjectDeleteToolTests` and
@@ -4134,7 +4161,7 @@ fragment. The chat's ListViewKit keeps its own update mechanism.
   done grey, failed red (a last turn that finished `failed`, or was cut off
   by its task failing or being interrupted); with no conversation, New Chat.
 - **The snapshot.** The extension is sandboxed and cannot read mobile's
-  Documents, and the app has no container, so the app writes
+  Documents, where the app's data is, so the app writes
   `ChatWidgetSnapshot` to `Widgets/chats.json` in the App Group container
   `group.wiki.qaq.apelin`, which both targets carry — the way Fila's save
   action shares Fila's. `make check` and the packager require exactly that

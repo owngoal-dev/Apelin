@@ -108,7 +108,7 @@ final class ChatRuntime {
             }
         }
         // a project deleted while the app was away
-        await forget(DeletedProjects.gone(from: summaries, listed: DeletedProjects.listing(in: .app)))
+        await forget(DeletedProjects.gone(from: summaries, in: .app))
         isLoaded = true
         onChange?()
         // A host that does not answer yet is not an error, and runs
@@ -226,7 +226,7 @@ final class ChatRuntime {
     @discardableResult
     func forgetDeletedProjects() async -> Set<String> {
         guard isLoaded else { return [] }
-        let gone = DeletedProjects.gone(from: summaries, listed: DeletedProjects.listing(in: .app))
+        let gone = DeletedProjects.gone(from: summaries, in: .app)
         guard !gone.conversations.isEmpty else { return [] }
         await forget(gone)
         onChange?()

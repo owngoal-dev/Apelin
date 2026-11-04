@@ -29,9 +29,10 @@ enum AppJournal {
 
     /// Opens this launch's file, once, early in `didFinishLaunching`. In
     /// the data folder the package made, `DataFolder.app`: Dog's default is
-    /// `.documentDirectory`, which for an app without a container is
-    /// mobile's shared `~/Documents`, and `NSHomeDirectory()` on roothide is
-    /// the system's `/var/mobile`, not the bootstrap's.
+    /// `.documentDirectory`, the app's own home's — mobile's shared
+    /// `~/Documents` with no container, the data container's on rootless —
+    /// and `NSHomeDirectory()` on roothide is the system's `/var/mobile`,
+    /// not the bootstrap's.
     @MainActor
     static func start() {
         let folder = DataFolder.app
@@ -58,6 +59,28 @@ enum AppJournal {
             Environment: uid \(getuid()) gid \(getgid())
             """,
             level: .info,
+        )
+    }
+
+    /// What this launch moved from the data folder an earlier version kept
+    /// in the app's data container (`ContainerDataFolder`), path by path.
+    static func note(_ recovery: ContainerDataFolder.Recovery) {
+        func list(_ title: String, _ paths: [String]) -> String {
+            guard !paths.isEmpty else { return "" }
+            let shown = paths.prefix(200).map { "\n    [*] " + redaction.redacted($0) }.joined()
+            let more = paths.count > 200 ? "\n    … and \(paths.count - 200) more" : ""
+            return "\n\(title) (\(paths.count)):" + shown + more
+        }
+        let aside = recovery.setAside.map { "renamed \($0)" } ?? "not renamed, so the next launch tries again"
+        Dog.shared.join(
+            "App",
+            "Moved the data folder an earlier version kept in the app's data container; that folder was \(aside)"
+                + list("Moved", recovery.moved)
+                + list("Newer than mobile's, which was kept aside", recovery.replaced)
+                + list("Older than mobile's, kept aside", recovery.kept)
+                + list("Left in the container", recovery.left)
+                + "\nMemories: \(recovery.memories) added, \(recovery.memoriesLeft) left in the container",
+            level: recovery.left.isEmpty && recovery.memoriesLeft == 0 && recovery.setAside != nil ? .info : .warning,
         )
     }
 }
