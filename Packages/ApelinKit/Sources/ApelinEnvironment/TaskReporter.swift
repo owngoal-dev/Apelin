@@ -5,15 +5,15 @@ import Foundation
 /// Set once, read from anywhere: whether a task was asked to stop.
 public final class CancellationFlag: @unchecked Sendable {
     private let lock = PthreadLock()
-    private var cancelled = false
+    @objc private dynamic var cancelled = false
 
     public init() {}
 
-    public var isCancelled: Bool {
+    @objc public dynamic var isCancelled: Bool {
         lock.withLock { cancelled }
     }
 
-    public func cancel() {
+    @objc public dynamic func cancel() {
         lock.withLock { cancelled = true }
     }
 }
@@ -77,14 +77,14 @@ public struct TaskReporter: Sendable {
 /// Throttles progress events to a few a second, plus the last one.
 final class ProgressThrottle: @unchecked Sendable {
     private let lock = PthreadLock()
-    private var last = Date.distantPast
+    @objc private dynamic var last = Date.distantPast
     private let interval: TimeInterval
 
     init(interval: TimeInterval = 0.25) {
         self.interval = interval
     }
 
-    func shouldEmit(force: Bool = false) -> Bool {
+    @objc dynamic func shouldEmit(force: Bool = false) -> Bool {
         lock.withLock {
             let now = Date()
             guard force || now.timeIntervalSince(last) >= interval else { return false }

@@ -16,14 +16,14 @@ final class ProjectPickerController: UIViewController {
     var onDelete: ((ProjectSummary) async throws -> Void)?
 
     private var projects: [ProjectSummary]
-    private var current: String?
+    @objc private dynamic var current: String?
 
-    private lazy var collectionView = FirstFillCollectionView(
+    @objc private dynamic lazy var collectionView = FirstFillCollectionView(
         frame: .zero,
         collectionViewLayout: makeLayout(),
     )
 
-    private func makeLayout() -> UICollectionViewLayout {
+    @objc private dynamic func makeLayout() -> UICollectionViewLayout {
         var configuration = UICollectionLayoutListConfiguration(appearance: .insetGrouped)
         configuration.headerMode = .supplementary
         configuration.trailingSwipeActionsConfigurationProvider = { [weak self] indexPath in
@@ -129,7 +129,7 @@ final class ProjectPickerController: UIViewController {
         reloadProjects()
     }
 
-    @objc private func reloadProjects() {
+    @objc private dynamic func reloadProjects() {
         Task { [weak self] in
             guard let self else { return }
             do {
@@ -139,7 +139,7 @@ final class ProjectPickerController: UIViewController {
         }
     }
 
-    private func openNewProject() {
+    @objc private dynamic func openNewProject() {
         let page = NewProjectController()
         page.onCreate = { [weak self] project, firstPrompt in
             if let firstPrompt, let onCreate = self?.onCreate {
@@ -151,7 +151,7 @@ final class ProjectPickerController: UIViewController {
         navigationController?.pushViewController(page, animated: true)
     }
 
-    private func applySnapshot() {
+    @objc private dynamic func applySnapshot() {
         var snapshot = NSDiffableDataSourceSnapshot<String, ProjectSummary>()
         let kinds: [DevelopmentExtensionKind] = [.workspace, .app, .tweak, .commandLineTool, .preferenceBundle]
         for kind in kinds {
@@ -209,7 +209,7 @@ final class ProjectPickerController: UIViewController {
 }
 
 extension ProjectPickerController: UICollectionViewDelegate {
-    func collectionView(
+    @objc dynamic func collectionView(
         _: UICollectionView,
         contextMenuConfigurationForItemAt indexPath: IndexPath,
         point _: CGPoint,
@@ -235,7 +235,7 @@ extension ProjectPickerController: UICollectionViewDelegate {
         }
     }
 
-    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+    @objc dynamic func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         collectionView.deselectItem(at: indexPath, animated: true)
         guard let project = dataSource.itemIdentifier(for: indexPath) else { return }
         dismiss(animated: true) { [onPick] in onPick?(project) }

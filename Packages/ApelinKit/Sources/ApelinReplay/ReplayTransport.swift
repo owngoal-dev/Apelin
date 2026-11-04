@@ -132,7 +132,7 @@ public final class ReplayTransport: ApelinTransport, @unchecked Sendable {
         return recording
     }
 
-    private func approve(session: String) {
+    @objc private dynamic func approve(session: String) {
         let now = clock()
         lock.withLock {
             guard let id = playbacks.first(where: { $0.value.recording.sessionID == session })?.key,

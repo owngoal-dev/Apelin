@@ -4,14 +4,14 @@
 import UIKit
 
 extension ComposerInputView {
-    func textLayoutHeight(_ input: CGFloat) -> CGFloat {
+    @objc dynamic func textLayoutHeight(_ input: CGFloat) -> CGFloat {
         var finalHeight = input
         finalHeight = max(font.lineHeight, finalHeight)
         finalHeight = min(finalHeight, maxTextEditorHeight)
         return ceil(finalHeight)
     }
 
-    func switchToRequiredStatus() {
+    @objc dynamic func switchToRequiredStatus() {
         assert(Thread.isMainThread)
         // avoid flickering animation if set twice
         NSObject.cancelPreviousPerformRequests(
@@ -22,7 +22,7 @@ extension ComposerInputView {
         perform(#selector(switchToRequiredStatusEx), with: nil, afterDelay: 0.1)
     }
 
-    @objc private func switchToRequiredStatusEx() {
+    @objc dynamic private func switchToRequiredStatusEx() {
         doWithAnimation { [self] in
             cameraButton.transform = .identity
             moreButton.transform = .identity
@@ -43,7 +43,7 @@ extension ComposerInputView {
         }
     }
 
-    func layoutAsEditingText() {
+    @objc dynamic func layoutAsEditingText() {
         // textField | sendButton
         sendButton.frame = CGRect(
             x: bounds.width - inset.right - iconSize.width,
@@ -80,7 +80,7 @@ extension ComposerInputView {
         cameraButton.alpha = 0
     }
 
-    func layoutAsPreEditingText() {
+    @objc dynamic func layoutAsPreEditingText() {
         defer { cameraButton.transform = CGAffineTransform(scaleX: 0.5, y: 0.5) }
         defer { sendButton.transform = CGAffineTransform(scaleX: 0.5, y: 0.5) }
 
@@ -121,7 +121,7 @@ extension ComposerInputView {
         sendButton.alpha = 0
     }
 
-    func layoutAsStandard() {
+    @objc dynamic func layoutAsStandard() {
         defer { sendButton.transform = CGAffineTransform(scaleX: 0.5, y: 0.5) }
 
         // captureButton | textField | moreButton

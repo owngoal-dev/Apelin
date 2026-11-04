@@ -130,7 +130,7 @@ public extension GitRepository {
     }
 
     /// The commit of the local `branch`, or nil when it has none.
-    func commit(ofBranch branch: String) -> String? {
+    @objc dynamic func commit(ofBranch branch: String) -> String? {
         var commit = git_oid()
         guard Self.isValidBranchName(branch),
               git_reference_name_to_id(&commit, pointer, "refs/heads/" + branch) == 0
@@ -380,7 +380,7 @@ public extension GitRepository {
 
     /// Adds each pattern not already there to `.git/info/exclude`, the
     /// repository's own ignore list, which is never committed or pushed.
-    func addExcludes(_ patterns: [String]) throws {
+    @objc dynamic func addExcludes(_ patterns: [String]) throws {
         guard !patterns.contains(where: { $0.isEmpty || $0.contains("\n") || $0.utf8.contains(0) }) else {
             throw GitError(.invalid, "bad exclude pattern")
         }
@@ -410,7 +410,7 @@ public extension GitRepository {
 
     /// Makes a bare repository at `url`, whose HEAD names `initialBranch`:
     /// the remote the tests fetch from and push to.
-    internal static func createBare(at url: URL, initialBranch: String = "main") throws {
+    @objc internal static dynamic func createBare(at url: URL, initialBranch: String = "main") throws {
         GitLibrary.ensure()
         var options = git_repository_init_options()
         git_repository_init_options_init(&options, UInt32(GIT_REPOSITORY_INIT_OPTIONS_VERSION))
@@ -427,7 +427,7 @@ public extension GitRepository {
 
     /// Makes the branch `name` at `commit`, for the tests: a branch beside
     /// the checked-out one.
-    internal func createBranch(_ name: String, at commit: String) throws {
+    @objc internal dynamic func createBranch(_ name: String, at commit: String) throws {
         try Self.checkBranchName(name)
         var oid = git_oid()
         try GitError.check(git_oid_fromstr(&oid, commit), "read \(commit)")
@@ -440,7 +440,7 @@ public extension GitRepository {
     }
 
     /// Adds the remote `name` fetching from `url` with git's default refspec.
-    func addRemote(_ name: String, url: String) throws {
+    @objc dynamic func addRemote(_ name: String, url: String) throws {
         guard !name.utf8.contains(0), !url.utf8.contains(0) else { throw GitError(.invalid, "bad remote") }
         var remote: OpaquePointer?
         try GitError.check(git_remote_create(&remote, pointer, name, url), "add the remote \(name)")
@@ -448,7 +448,7 @@ public extension GitRepository {
     }
 
     /// Removes the remote `name`, with its remote-tracking references.
-    func removeRemote(_ name: String) throws {
+    @objc dynamic func removeRemote(_ name: String) throws {
         guard !name.utf8.contains(0) else { throw GitError(.invalid, "\(name.debugDescription) is not a remote name") }
         try GitError.check(git_remote_delete(pointer, name), "remove the remote \(name)")
     }
@@ -472,7 +472,7 @@ public extension GitRepository {
 
     /// Whether libgit2 takes `name` for a branch, and it cannot be read as
     /// an option.
-    static func isValidBranchName(_ name: String) -> Bool {
+    @objc static dynamic func isValidBranchName(_ name: String) -> Bool {
         GitLibrary.ensure()
         var valid: Int32 = 0
         return !name.utf8.contains(0)
@@ -483,12 +483,12 @@ public extension GitRepository {
 
     /// A full commit ID as libgit2 writes one: 40 lowercase hexadecimal
     /// digits, or 64 in a SHA-256 repository.
-    static func isCommitID(_ text: String) -> Bool {
+    @objc static dynamic func isCommitID(_ text: String) -> Bool {
         (text.utf8.count == 40 || text.utf8.count == 64)
             && text.utf8.allSatisfy { (0x30 ... 0x39).contains($0) || (0x61 ... 0x66).contains($0) }
     }
 
-    internal static func checkBranchName(_ name: String) throws {
+    @objc internal static dynamic func checkBranchName(_ name: String) throws {
         guard isValidBranchName(name) else { throw GitError(.invalid, "\(name.debugDescription) is not a branch name") }
     }
 }

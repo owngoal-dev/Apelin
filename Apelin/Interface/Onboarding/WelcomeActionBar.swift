@@ -15,20 +15,20 @@ import UIKit
 final class WelcomeActionBar: UIView {
     private let button = UIButton(type: .system)
     private let rule = UIView().then { $0.backgroundColor = .separator }
-    private var secondary: UIButton?
-    private var action: (() -> Void)?
-    var title: String {
+    @objc private dynamic var secondary: UIButton?
+    @objc private dynamic var action: (() -> Void)?
+    @objc dynamic var title: String {
         get { button.configuration?.title ?? "" }
         set { button.configuration?.title = newValue }
     }
 
-    var isEnabled: Bool {
+    @objc(apelin_isEnabled) dynamic var isEnabled: Bool {
         get { button.isEnabled }
         set { button.isEnabled = newValue }
     }
 
     /// Hidden, the secondary action gives its room back to the page.
-    var isSecondaryHidden = false {
+    @objc dynamic var isSecondaryHidden = false {
         didSet {
             guard isSecondaryHidden != oldValue else { return }
             secondary?.isHidden = isSecondaryHidden
@@ -36,7 +36,7 @@ final class WelcomeActionBar: UIView {
         }
     }
 
-    func activate() {
+    @objc dynamic func activate() {
         action?()
     }
 
@@ -96,7 +96,7 @@ final class WelcomeActionBar: UIView {
 
     /// The rule sits under the secondary action when it shows, at the top
     /// otherwise.
-    private func layoutSecondary() {
+    @objc private dynamic func layoutSecondary() {
         let shows = secondary != nil && !isSecondaryHidden
         rule.snp.remakeConstraints { x in
             x.leading.trailing.equalToSuperview()

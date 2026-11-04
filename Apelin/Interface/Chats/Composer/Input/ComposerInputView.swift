@@ -40,7 +40,7 @@ class ComposerInputView: ComposerSectionView {
 
     weak var delegate: Delegate?
 
-    var hasAttachments = false {
+    @objc dynamic var hasAttachments = false {
         didSet {
             if hasAttachments != oldValue {
                 switchToRequiredStatus()
@@ -48,7 +48,7 @@ class ComposerInputView: ComposerSectionView {
         }
     }
 
-    func showPanelState(_ open: Bool) {
+    @objc dynamic func showPanelState(_ open: Bool) {
         moreButton.change(iconName: open ? "ComposerClose" : "ComposerMore")
         moreButton.accessibilityLabel = open ? String(localized: "Close") : String(localized: "More")
     }
@@ -160,14 +160,14 @@ class ComposerInputView: ComposerSectionView {
         updatePlaceholderAlpha()
     }
 
-    func set(text: String) {
+    @objc dynamic func set(text: String) {
         textView.text = text
         updatePlaceholderAlpha()
         switchToRequiredStatus()
         updateTextHeight()
     }
 
-    @objc func updateReturnKeyType() {
+    @objc dynamic func updateReturnKeyType() {
         switch ComposerBehavior.useConfirmationOnSend {
         case true:
             textView.returnKeyType = .default

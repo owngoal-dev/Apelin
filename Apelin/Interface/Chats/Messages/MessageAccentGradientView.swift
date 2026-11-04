@@ -12,7 +12,7 @@ final class MessageAccentGradientView: UIView {
         CAGradientLayer.self
     }
 
-    private var gradient: CAGradientLayer {
+    @objc dynamic private var gradient: CAGradientLayer {
         layer as! CAGradientLayer
     }
 
@@ -38,7 +38,7 @@ final class MessageAccentGradientView: UIView {
         updateColors()
     }
 
-    private func updateColors() {
+    @objc dynamic private func updateColors() {
         let accent = tintColor.resolvedColor(with: traitCollection)
         gradient.colors = [accent.withAlphaComponent(0.10).cgColor, accent.withAlphaComponent(0.15).cgColor]
     }

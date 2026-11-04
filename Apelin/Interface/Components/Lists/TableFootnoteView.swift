@@ -39,7 +39,7 @@ final class TableFootnoteView: UIView {
 
     /// Its text's height at the table's width and text size. Only a new
     /// size is set: setting a footer lays the table out again.
-    func fit(in tableView: UITableView) {
+    @objc dynamic func fit(in tableView: UITableView) {
         let width = tableView.bounds.width
         guard width > 0, tableView.tableFooterView === self else { return }
         let height = systemLayoutSizeFitting(

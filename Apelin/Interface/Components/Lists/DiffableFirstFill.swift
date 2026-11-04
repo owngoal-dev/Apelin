@@ -11,14 +11,14 @@ import UIKit
 /// The list's first data, waiting for the list's width.
 @MainActor
 final class FirstFill {
-    private var apply: (() -> Void)?
+    @objc private dynamic var apply: (() -> Void)?
     private var completions: [() -> Void] = []
     /// The first data is in; from here on a list applies its changes itself.
-    private(set) var isDone = false
+    @objc private(set) dynamic var isDone = false
 
     /// Keeps `apply` as the list's first data, in place of any still
     /// waiting, and puts it in now if `list` is already at its width.
-    func schedule(_ apply: @escaping () -> Void, completion: (() -> Void)?, in list: UIScrollView) {
+    @objc dynamic func schedule(_ apply: @escaping () -> Void, completion: (() -> Void)?, in list: UIScrollView) {
         self.apply = apply
         completion.map { completions.append($0) }
         list.setNeedsLayout()
@@ -30,7 +30,7 @@ final class FirstFill {
     /// The list's `layoutSubviews`: `layout` runs as it is, unless the first
     /// data is waiting and the list has its width, when the data goes in
     /// first and both run without animation.
-    func layout(_ list: UIScrollView, _ layout: () -> Void) {
+    @objc dynamic func layout(_ list: UIScrollView, _ layout: () -> Void) {
         guard let apply, Self.isReady(list) else {
             layout()
             return
@@ -47,13 +47,13 @@ final class FirstFill {
     }
 
     /// A list that comes into a window is laid out again for its data.
-    func moved(_ list: UIScrollView) {
+    @objc dynamic func moved(_ list: UIScrollView) {
         if apply != nil {
             list.setNeedsLayout()
         }
     }
 
-    private static func isReady(_ list: UIScrollView) -> Bool {
+    @objc private dynamic static func isReady(_ list: UIScrollView) -> Bool {
         list.window != nil && list.bounds.width > 0
     }
 }
@@ -63,7 +63,7 @@ final class FirstFill {
 final class FirstFillTableView: UITableView {
     let firstFill = FirstFill()
 
-    var isFilled: Bool {
+    @objc dynamic var isFilled: Bool {
         firstFill.isDone
     }
 
@@ -81,7 +81,7 @@ final class FirstFillTableView: UITableView {
 final class FirstFillCollectionView: UICollectionView {
     let firstFill = FirstFill()
 
-    var isFilled: Bool {
+    @objc dynamic var isFilled: Bool {
         firstFill.isDone
     }
 

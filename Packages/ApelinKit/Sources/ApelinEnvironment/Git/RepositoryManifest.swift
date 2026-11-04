@@ -29,7 +29,7 @@ final class RepositoryManifest {
     /// the repository is found to have one.
     private(set) var file: GitProjectFile = .project
     /// The ID the project has then.
-    private(set) var projectID: String?
+    @objc private(set) dynamic var projectID: String?
 
     init(ownID: String?, mayTakeTheirs: Bool, root: URL, projects: ProjectLocator) {
         self.ownID = ownID
@@ -60,7 +60,7 @@ final class RepositoryManifest {
     /// when the project may take their ID and nothing else has it, else
     /// with the project's own ID (a fresh one for a project with none) put
     /// in its one quoted place.
-    func settle(_ theirs: Data) throws -> Data {
+    @objc dynamic func settle(_ theirs: Data) throws -> Data {
         guard let theirID = ProjectManifestIdentity.projectID(in: theirs) else {
             throw ApelinError(
                 .badRequest,
@@ -86,7 +86,7 @@ final class RepositoryManifest {
 
     /// Whether `id` is Apelin's shape of ID and nothing on this device has
     /// it: no other project's folder, conversation, build or memory.
-    private func isFree(_ id: String) -> Bool {
+    @objc private dynamic func isFree(_ id: String) -> Bool {
         guard ProjectManifestIdentity.isApelinID(id) else { return false }
         let others = projects.all().filter { $0.root.standardizedFileURL.path != root.standardizedFileURL.path }
         guard !others.contains(where: { $0.projectID == id }) else { return false }

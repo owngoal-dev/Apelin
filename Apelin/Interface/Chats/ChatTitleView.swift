@@ -13,9 +13,9 @@ import UIKit
 /// beside it need, and cut short with an ellipsis when it does not fit.
 final class ChatTitleView: UIView {
     private let label = LTXAnimatableLabel()
-    private(set) var title = ""
+    @objc dynamic private(set) var title = ""
     /// Whether the change waiting for the next layout pass rolls in.
-    private var animatesNextChange = false
+    @objc dynamic private var animatesNextChange = false
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -42,7 +42,7 @@ final class ChatTitleView: UIView {
 
     /// Shows `title`, rolling the old one out when `animated` and the label
     /// is on screen.
-    func setTitle(_ title: String, animated: Bool) {
+    @objc dynamic func setTitle(_ title: String, animated: Bool) {
         guard title != self.title else { return }
         self.title = title
         accessibilityLabel = title
@@ -53,7 +53,7 @@ final class ChatTitleView: UIView {
 
     /// The bar's inline title: headline at the default text size, which the
     /// bar keeps at every size.
-    private static var font: UIFont {
+    @objc dynamic private static var font: UIFont {
         UIFont.preferredFont(
             forTextStyle: .headline,
             compatibleWith: UITraitCollection(preferredContentSizeCategory: .large),
@@ -87,7 +87,7 @@ final class ChatTitleView: UIView {
 
     /// The title, or as much of it as fits with an ellipsis after it, set
     /// in its own direction (`isolated`).
-    private func fittedText(width: CGFloat) -> String {
+    @objc dynamic private func fittedText(width: CGFloat) -> String {
         guard width > 0, Self.width(of: title) > width else { return Self.isolated(title) }
         let characters = Array(title)
         var low = 0
@@ -112,20 +112,20 @@ final class ChatTitleView: UIView {
     /// direction of its own first letter inside the left-to-right line the
     /// indent needs, so an Arabic name reads right to left as a whole and
     /// its ellipsis lands on its left. The marks take no room.
-    private static func isolated(_ text: String) -> String {
+    @objc dynamic private static func isolated(_ text: String) -> String {
         "\u{2068}" + text + "\u{2069}"
     }
 
     /// Where the text starts so that it sits centred on the bar, kept
     /// inside this view.
-    private func leadingIndent(forTextWidth textWidth: CGFloat, in width: CGFloat) -> CGFloat {
+    @objc dynamic private func leadingIndent(forTextWidth textWidth: CGFloat, in width: CGFloat) -> CGFloat {
         let room = max(width - textWidth, 0)
         guard let bar = enclosingNavigationBar else { return room / 2 }
         let barCentre = convert(CGPoint(x: bar.bounds.midX, y: 0), from: bar).x
         return floor(min(max(barCentre - textWidth / 2, 0), room))
     }
 
-    private var enclosingNavigationBar: UINavigationBar? {
+    @objc dynamic private var enclosingNavigationBar: UINavigationBar? {
         var view = superview
         while let current = view {
             if let bar = current as? UINavigationBar {
@@ -137,14 +137,14 @@ final class ChatTitleView: UIView {
     }
 
     /// The width CoreText, which draws the label, gives `text` on one line.
-    private static func width(of text: String) -> CGFloat {
+    @objc dynamic private static func width(of text: String) -> CGFloat {
         let line = CTLineCreateWithAttributedString(
             NSAttributedString(string: text, attributes: attributes(indent: 0)),
         )
         return ceil(CGFloat(CTLineGetTypographicBounds(line, nil, nil, nil)))
     }
 
-    private static func attributes(indent: CGFloat) -> [NSAttributedString.Key: Any] {
+    @objc dynamic private static func attributes(indent: CGFloat) -> [NSAttributedString.Key: Any] {
         let paragraph = NSMutableParagraphStyle()
         // placed from the left whatever the script: the indent is measured
         // from the left edge, and one line in either direction fits it

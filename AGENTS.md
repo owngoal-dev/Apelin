@@ -252,6 +252,43 @@ the same executable in session mode; the workers are its children.
   candidate. Pass every target's sources. `--delete-orphans` is opt-in and is
   for a single-target app only: with a root missing it takes live strings and
   all of their translations out in one commit.
+- **Apelin's own classes are open to hooks** (owner, 2026-11-04). Every
+  `func`, `var` and `subscript` of a class this repository declares, or of an
+  extension of one, is `@objc dynamic`, statics and private ones included,
+  wherever Objective-C can represent it, so a tweak that replaces it with
+  `MSHookMessageEx` or `method_setImplementation` is reached from Swift's own
+  calls too: `@objc` alone lets Swift call the body directly, and only
+  `dynamic` sends those calls through `objc_msgSend`. An override of our own
+  member in a `final` class takes `dynamic` as well; an override of an Apple or
+  third-party method is reached that way already and takes nothing. Left
+  plain: structs, enums, actors, protocols, generic classes, `let`s,
+  initializers, property-wrapped and `@Observable` members, a signature
+  Objective-C cannot represent, an extension of a type we do not own (its
+  category method could take a system selector), an `async` method (Swift
+  calls an `@objc dynamic` one through its completion-handler thunk in a new
+  task, so the caller's cancellation and task-locals stop reaching the body),
+  and a stored buffer grown by appends in place (each access through the
+  runtime copies it). No selector takes a name the runtime, ARC or UIKit calls
+  by itself: `load`, `initialize`, `alloc`, `new`, `copy`, `mutableCopy`,
+  `dealloc`, `retain`, `release`, `autorelease`, `class`, `self`, `hash`,
+  `isEqual:`, `zone`, `description` that is not an override,
+  `respondsToSelector:` and the forwarding and resolving methods; a method or
+  getter in the alloc, new, copy, mutableCopy or init family that is no
+  initializer, which ARC reads as returning a retained object; on a responder,
+  an edit action `UIResponder.h` declares (`cut:`, `copy:`, `paste:`,
+  `delete:`, `select:`, `find:`, `rename:`, …), which UIKit's edit menus would
+  offer and call with the menu as the argument; and a selector, public or
+  private, the Apple superclasses already answer, which Swift catches only when
+  a header declares it. Such a member keeps its Swift name and takes
+  `@objc(apelin_<name>)`; two that would share a selector each name theirs.
+  After adding classes or members, build and run
+  `Scripts/audit-objc-selectors.sh <products folder>` (`$(DERIVED_DATA)/Build/Products/Release-iphoneos`):
+  it reads the selectors of every class of ours in the built app, extension,
+  daemon and workers, compares them with what the Apple superclasses answer
+  at run time (a Mac Catalyst probe), and reports each collision, forbidden
+  name, optional delegate method answered by accident and plain override in a
+  final class; fix them, or list one kept on purpose in its `ACCEPTED` with the
+  reason, before committing.
 
 ## Decisions
 

@@ -58,7 +58,7 @@ public final class ToolReceivedAttachment: @unchecked Sendable {
 
     /// The whole file, read from offset zero; refuses a file larger than
     /// `limit`.
-    public func readAll(limit: Int = .max) throws -> Data {
+    @objc public dynamic func readAll(limit: Int = .max) throws -> Data {
         guard byteCount <= limit else {
             throw ToolAttachmentError.rejected("attachment is \(byteCount) bytes, over \(limit)")
         }
@@ -114,14 +114,14 @@ public final class ToolAttachmentChannel: @unchecked Sendable {
     private let maxAge: TimeInterval = 60
     private let condition = NSCondition()
     private var pending: [String: (descriptor: Int32, size: Int, received: Date)] = [:]
-    private var rejected: [String: String] = [:]
-    private var stopped = false
+    @objc private dynamic var rejected: [String: String] = [:]
+    @objc private dynamic var stopped = false
     /// Whether the receive loop is running. One woken by `stop()` closes the
     /// socket and the wake pipe; one that ended on its own leaves them to
     /// `stop()`, so no number still in use here is reused before then.
-    private var receiving = false
-    private var wakeRead: Int32 = -1
-    private var wakeWrite: Int32 = -1
+    @objc private dynamic var receiving = false
+    @objc private dynamic var wakeRead: Int32 = -1
+    @objc private dynamic var wakeWrite: Int32 = -1
 
     /// Takes ownership of `socket`.
     public init(socket: Int32, maxAttachmentBytes: Int, maxPending: Int) {
@@ -146,7 +146,7 @@ public final class ToolAttachmentChannel: @unchecked Sendable {
     }
 
     /// Starts the thread that receives descriptors.
-    public func start() {
+    @objc public dynamic func start() {
         var pipeFDs: [Int32] = [-1, -1]
         guard pipe(&pipeFDs) == 0 else { return }
         for fd in pipeFDs {
@@ -162,7 +162,7 @@ public final class ToolAttachmentChannel: @unchecked Sendable {
 
     /// Stops receiving and closes every descriptor still unclaimed, and the
     /// socket.
-    public func stop() {
+    @objc public dynamic func stop() {
         condition.lock()
         if stopped {
             condition.unlock()
@@ -186,7 +186,7 @@ public final class ToolAttachmentChannel: @unchecked Sendable {
     }
 
     /// Sends one descriptor under `id`. The descriptor stays the caller's.
-    public func send(id: String, descriptor: Int32) throws {
+    @objc public dynamic func send(id: String, descriptor: Int32) throws {
         guard ToolFrame.isValidRequestID(id) else { throw ToolAttachmentError.rejected("invalid attachment id") }
         var payload = Array(id.utf8)
         let controlLength = Self.controlSpace(descriptors: 1)
@@ -271,7 +271,7 @@ public final class ToolAttachmentChannel: @unchecked Sendable {
 
     /// Closes whatever arrived under `ids` without anyone claiming it: the
     /// attachments of a call that was abandoned.
-    public func discard(ids: [String]) {
+    @objc public dynamic func discard(ids: [String]) {
         condition.lock()
         for id in ids {
             if let entry = pending.removeValue(forKey: id) {
@@ -282,7 +282,7 @@ public final class ToolAttachmentChannel: @unchecked Sendable {
         condition.unlock()
     }
 
-    private func receiveLoop() {
+    @objc private dynamic func receiveLoop() {
         defer {
             condition.lock()
             receiving = false
@@ -358,7 +358,7 @@ public final class ToolAttachmentChannel: @unchecked Sendable {
         }
     }
 
-    private func closeDescriptors() {
+    @objc private dynamic func closeDescriptors() {
         close(socket)
         if wakeRead >= 0 {
             close(wakeRead)
@@ -368,7 +368,7 @@ public final class ToolAttachmentChannel: @unchecked Sendable {
         }
     }
 
-    private func accept(id: String, descriptor: Int32) {
+    @objc private dynamic func accept(id: String, descriptor: Int32) {
         var info = stat()
         var reason: String?
         if fstat(descriptor, &info) != 0 {
@@ -409,23 +409,23 @@ public final class ToolAttachmentChannel: @unchecked Sendable {
 
     /// CMSG_* are macros Swift does not import. Darwin aligns control data to
     /// 32 bits (__DARWIN_ALIGN32).
-    private static func align(_ length: Int) -> Int {
+    @objc private static dynamic func align(_ length: Int) -> Int {
         (length + 3) & ~3
     }
 
-    private static var headerSpace: Int {
+    @objc private static dynamic var headerSpace: Int {
         align(MemoryLayout<cmsghdr>.size)
     }
 
-    private static func controlLength(descriptors: Int) -> Int {
+    @objc private static dynamic func controlLength(descriptors: Int) -> Int {
         headerSpace + descriptors * MemoryLayout<Int32>.size
     }
 
-    private static func controlSpace(descriptors: Int) -> Int {
+    @objc private static dynamic func controlSpace(descriptors: Int) -> Int {
         headerSpace + align(descriptors * MemoryLayout<Int32>.size)
     }
 
-    private static func descriptors(in control: [UInt8]) -> [Int32] {
+    @objc private static dynamic func descriptors(in control: [UInt8]) -> [Int32] {
         var result: [Int32] = []
         control.withUnsafeBytes { raw in
             var offset = 0

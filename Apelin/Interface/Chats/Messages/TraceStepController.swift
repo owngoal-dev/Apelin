@@ -74,7 +74,7 @@ final class TraceStepController: UIViewController {
 }
 
 extension TraceStepController: TextLabelViewDelegate {
-    func textLabelView(
+    @objc dynamic func textLabelView(
         _ label: TextLabelView,
         editMenuForSelection selection: NSRange,
         suggestedActions: [UIMenuElement],

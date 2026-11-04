@@ -44,7 +44,7 @@ final class ProjectDistributionController: TableController {
     /// Asks the project's conversation to prepare the package; nil where
     /// the page was not opened from one.
     private let onPrepare: ((String) -> Void)?
-    private var displayName: String?
+    @objc private dynamic var displayName: String?
     private var selectedTarget: BuildBootstrap? = .roothide
     /// Nil until the manifest is read; one that cannot build takes the
     /// targets away.
@@ -52,20 +52,20 @@ final class ProjectDistributionController: TableController {
     /// The check's errors: the build would stop at them.
     private var blockers: [ProjectDiagnostic] = []
     private var issues: [ProjectDiagnostic] = []
-    private var checking = true
-    private var showsChecking = false
-    private var hasCheckResult = false
+    @objc private dynamic var checking = true
+    @objc private dynamic var showsChecking = false
+    @objc private dynamic var hasCheckResult = false
     private var loadingDelay: Task<Void, Never>?
-    private var checkFailure: String?
+    @objc private dynamic var checkFailure: String?
     private var check: Task<Void, Never>?
     /// The release packages builds left, per target, read again each time
     /// the page appears; the ones picked to publish, by artifact.
     private var packages: [BuildBootstrap: DistributionPackage] = [:]
-    private var selectedPackages: Set<String> = []
+    @objc private dynamic var selectedPackages: Set<String> = []
     private var packageReader: Task<Void, Never>?
     /// While a package is read back to be shared or published.
-    private var isPreparingPackage = false
-    private var hasAppeared = false
+    @objc private dynamic var isPreparingPackage = false
+    @objc private dynamic var hasAppeared = false
     private var dataSource: TableDataSource<Section, Row, RowContent>!
 
     init(projectName: String, onPrepare: ((String) -> Void)? = nil) {
@@ -244,7 +244,7 @@ final class ProjectDistributionController: TableController {
         return button
     }
 
-    private func updateRows() {
+    @objc private dynamic func updateRows() {
         let canBuild = method?.canBuild ?? true
         var readiness: [RowContent]
         if let blocker = method?.blocker {
@@ -315,7 +315,7 @@ final class ProjectDistributionController: TableController {
 
     /// The distribution check for the chosen target (any, before one is
     /// chosen); a newer one replaces a check still running.
-    private func refreshCheck() {
+    @objc private dynamic func refreshCheck() {
         check?.cancel()
         loadingDelay?.cancel()
         checking = true
@@ -374,7 +374,7 @@ final class ProjectDistributionController: TableController {
 
     /// The release packages of the version the manifest names now, and
     /// whether the linked repository holds each.
-    private func refreshPackages() {
+    @objc private dynamic func refreshPackages() {
         packageReader?.cancel()
         dataSource.beginLoad()
         packageReader = Task { [weak self] in
@@ -421,7 +421,7 @@ final class ProjectDistributionController: TableController {
     }
 
     /// The selected packages, roothide's first, in one publish.
-    private func publish() {
+    @objc private dynamic func publish() {
         let chosen = BuildBootstrap.allCases.compactMap { packages[$0] }.filter { selectedPackages.contains($0.artifactID) }
         guard !chosen.isEmpty, !isPreparingPackage else { return }
         isPreparingPackage = true
@@ -436,7 +436,7 @@ final class ProjectDistributionController: TableController {
 
     // MARK: - Actions
 
-    private func build() {
+    @objc private dynamic func build() {
         guard !checking, checkFailure == nil, let target = selectedTarget, let method, method.canBuild, blockers.isEmpty else { return }
         let open = { [weak self] in
             guard let self else { return }
@@ -459,7 +459,7 @@ final class ProjectDistributionController: TableController {
         )
     }
 
-    private func prepare() {
+    @objc private dynamic func prepare() {
         guard !checking, let onPrepare else { return }
         let prompt = if method == .script {
             String(localized: "Prepare this workspace for distribution: run apelin_project_check_distribution and fix everything it lists, and make sure its build script writes a release package for each target when APELIN_CONFIGURATION is release, with the package’s real name, identifier, author and a new version. Then tell me what you changed. Do not build yet.")

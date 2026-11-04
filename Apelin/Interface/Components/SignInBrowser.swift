@@ -10,16 +10,16 @@ import UIKit
 /// `onClosedByUser`; the sign-in goes on waiting. With no in-app browser to
 /// be had the page opens in Safari.
 final class SignInBrowser: NSObject {
-    var onClosedByUser: (() -> Void)?
-    private weak var anchor: UIView?
-    private var session: ASWebAuthenticationSession?
+    @objc dynamic var onClosedByUser: (() -> Void)?
+    @objc private dynamic weak var anchor: UIView?
+    @objc private dynamic var session: ASWebAuthenticationSession?
 
     /// Presents over `anchor`'s window.
     init(anchor: UIView) {
         self.anchor = anchor
     }
 
-    func open(_ page: URL) {
+    @objc dynamic func open(_ page: URL) {
         close()
         var session: ASWebAuthenticationSession?
         session = ASWebAuthenticationSession(url: page, callbackURLScheme: "apelin-sign-in") { [weak self] _, _ in
@@ -40,7 +40,7 @@ final class SignInBrowser: NSObject {
 
     /// Let go first, then cancel: the session's own completion then knows
     /// it was closed from here.
-    func close() {
+    @objc dynamic func close() {
         let session = session
         self.session = nil
         session?.cancel()
@@ -48,7 +48,7 @@ final class SignInBrowser: NSObject {
 }
 
 extension SignInBrowser: ASWebAuthenticationPresentationContextProviding {
-    func presentationAnchor(for _: ASWebAuthenticationSession) -> ASPresentationAnchor {
+    @objc dynamic func presentationAnchor(for _: ASWebAuthenticationSession) -> ASPresentationAnchor {
         anchor?.window ?? ASPresentationAnchor()
     }
 }

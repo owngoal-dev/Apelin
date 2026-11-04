@@ -145,7 +145,7 @@ public final class MemoryGitCredentialStore: GitCredentialStore, @unchecked Send
         lock.withLock { items[host] = credential }
     }
 
-    public func remove(host: String) throws {
+    @objc public dynamic func remove(host: String) throws {
         lock.withLock { items[host] = nil }
     }
 }

@@ -7,7 +7,7 @@ import Foundation
 /// error, never silently passed.
 public final class SchemaValidator: @unchecked Sendable {
     private let root: JSONDocument
-    private var patterns: [String: NSRegularExpression] = [:]
+    @objc private dynamic var patterns: [String: NSRegularExpression] = [:]
     private let lock = NSLock()
 
     private static let annotations: Set<String> = [
@@ -35,7 +35,7 @@ public final class SchemaValidator: @unchecked Sendable {
         return node
     }
 
-    private func at(_ where: String) -> String {
+    @objc private dynamic func at(_ where: String) -> String {
         `where`.isEmpty ? "/" : `where`
     }
 
@@ -211,7 +211,7 @@ public final class SchemaValidator: @unchecked Sendable {
     }
 
     /// The first error of the shortest list, as `min(results, key=len)[0]`.
-    private static func shortest(_ results: [[String]]) -> String {
+    @objc private static dynamic func shortest(_ results: [[String]]) -> String {
         var best: [String]?
         for result in results where best == nil || result.count < best!.count {
             best = result
@@ -229,7 +229,7 @@ public final class SchemaValidator: @unchecked Sendable {
     }
 
     /// `re.search`: unanchored unless the pattern anchors itself.
-    private func search(_ pattern: String, _ text: String) -> Bool {
+    @objc private dynamic func search(_ pattern: String, _ text: String) -> Bool {
         lock.lock()
         let expression: NSRegularExpression
         if let cached = patterns[pattern] {
@@ -246,7 +246,7 @@ public final class SchemaValidator: @unchecked Sendable {
     /// `_pattern_matches` spells it: ICU's `$` also matches before a final
     /// line terminator, so "x\n" would pass `^[a-z]+$`. An anchor `$` (not
     /// escaped, not in a character class) becomes `\z`.
-    private static func endAnchored(_ pattern: String) -> String {
+    @objc private static dynamic func endAnchored(_ pattern: String) -> String {
         var translated = ""
         var escaped = false
         var inClass = false

@@ -8,30 +8,30 @@ import UIKit
 final class ThinkingStatusLabel: LTXAnimatableLabel {
     private static let minimumInterval: TimeInterval = 1
 
-    var font = UIFont.preferredFont(forTextStyle: .body) {
+    @objc dynamic var font = UIFont.preferredFont(forTextStyle: .body) {
         didSet { updateText(animated: false) }
     }
 
-    var text: String? {
+    @objc dynamic var text: String? {
         didSet { requestText() }
     }
 
     /// Called whenever what is drawn changes, and whether it animates: what
     /// sits after the text moves with it.
-    var onShownTextChange: ((_ animated: Bool) -> Void)?
+    @objc dynamic var onShownTextChange: ((_ animated: Bool) -> Void)?
 
     /// How wide the drawn text is.
-    var shownTextWidth: CGFloat {
+    @objc dynamic var shownTextWidth: CGFloat {
         ceil(NSAttributedString(string: shown ?? "", attributes: [.font: font]).size().width)
     }
 
     /// What is drawn, which trails `text` while a change waits its turn.
-    private var shown: String?
-    private var shownIdentity: AnyHashable?
-    private var lastChange: Date = .distantPast
+    @objc dynamic private var shown: String?
+    @objc dynamic private var shownIdentity: AnyHashable?
+    @objc dynamic private var lastChange: Date = .distantPast
     private var pending: DispatchWorkItem?
 
-    var isThinking = false {
+    @objc dynamic var isThinking = false {
         didSet {
             if isThinking != oldValue {
                 updateShimmer()
@@ -61,7 +61,7 @@ final class ThinkingStatusLabel: LTXAnimatableLabel {
     }
 
     /// Another row's text, or a label off screen, takes the text at once.
-    private func requestText() {
+    @objc dynamic private func requestText() {
         guard text != shown || pending != nil else { return }
         pending?.cancel()
         pending = nil
@@ -83,7 +83,7 @@ final class ThinkingStatusLabel: LTXAnimatableLabel {
         DispatchQueue.main.asyncAfter(deadline: .now() + wait, execute: item)
     }
 
-    private func show(animated: Bool) {
+    @objc dynamic private func show(animated: Bool) {
         shownIdentity = animationIdentity
         guard text != shown else { return }
         shown = text
@@ -96,7 +96,7 @@ final class ThinkingStatusLabel: LTXAnimatableLabel {
     /// While thinking the text is opaque and the shimmer's resting half
     /// alpha dims it to the same 50% a finished header is drawn in. Right
     /// to left it is set against the right edge, where the shimmer is.
-    private func updateText(animated: Bool) {
+    @objc dynamic private func updateText(animated: Bool) {
         let color = layer.mask == nil ? UIColor.label.withAlphaComponent(0.5) : .label
         var attributes: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: color]
         if laysOutRightToLeft {
@@ -125,7 +125,7 @@ final class ThinkingStatusLabel: LTXAnimatableLabel {
         updateShimmer()
     }
 
-    @objc private func updateShimmer() {
+    @objc dynamic private func updateShimmer() {
         shimmer.stop()
         let shimmers = isThinking && window != nil && !UIAccessibility.isReduceMotionEnabled
         if shimmers != (layer.mask != nil) {

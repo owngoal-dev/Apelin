@@ -13,7 +13,7 @@ final class DetailNavigator: UINavigationController {
     }
 
     /// Puts `page` at the root of the column.
-    func show(_ page: UIViewController) {
+    @objc dynamic func show(_ page: UIViewController) {
         guard topViewController !== page else { return }
         // one step: a pop followed by a push lands on a stack two screens
         // deep only after the next touch

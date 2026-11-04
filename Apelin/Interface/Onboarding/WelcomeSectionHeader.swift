@@ -37,10 +37,10 @@ final class WelcomeSectionHeader: UITableViewHeaderFooterView {
         $0.configuration = configuration
     }
 
-    var onAddAll: (() -> Void)?
+    @objc dynamic var onAddAll: (() -> Void)?
 
     /// Off once every source under the header is registered.
-    var showsButton = true {
+    @objc dynamic var showsButton = true {
         didSet { button.isHidden = !showsButton }
     }
 
@@ -73,7 +73,7 @@ final class WelcomeSectionHeader: UITableViewHeaderFooterView {
         fatalError()
     }
 
-    func configure(title: String, showsButton: Bool) {
+    @objc dynamic func configure(title: String, showsButton: Bool) {
         label.text = switch Self.style.textProperties.transform {
         case .uppercase: title.localizedUppercase
         case .lowercase: title.localizedLowercase
@@ -84,7 +84,7 @@ final class WelcomeSectionHeader: UITableViewHeaderFooterView {
     }
 
     @objc
-    private func tapped() {
+    private dynamic func tapped() {
         onAddAll?()
     }
 }

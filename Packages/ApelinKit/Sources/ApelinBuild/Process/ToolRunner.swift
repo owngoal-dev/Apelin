@@ -52,18 +52,18 @@ public struct ToolResult: Sendable, Equatable {
 /// after a grace period. A tool started after the cancel is not started.
 public final class BuildCancellation: @unchecked Sendable {
     private let lock = NSLock()
-    private var cancelled = false
-    private var groups: Set<pid_t> = []
+    @objc private dynamic var cancelled = false
+    @objc private dynamic var groups: Set<pid_t> = []
 
     public init() {}
 
-    public var isCancelled: Bool {
+    @objc public dynamic var isCancelled: Bool {
         lock.lock()
         defer { lock.unlock() }
         return cancelled
     }
 
-    public func cancel() {
+    @objc public dynamic func cancel() {
         lock.lock()
         cancelled = true
         let running = groups
@@ -83,7 +83,7 @@ public final class BuildCancellation: @unchecked Sendable {
 
     /// Kills the tools at once, for a worker about to exit: the host that
     /// ran this build is gone, and a resumed build starts over in its folder.
-    public func kill() {
+    @objc public dynamic func kill() {
         lock.lock()
         cancelled = true
         let running = groups
@@ -93,7 +93,7 @@ public final class BuildCancellation: @unchecked Sendable {
         }
     }
 
-    func register(_ pid: pid_t) -> Bool {
+    @objc dynamic func register(_ pid: pid_t) -> Bool {
         lock.lock()
         defer { lock.unlock() }
         guard !cancelled else { return false }
@@ -101,7 +101,7 @@ public final class BuildCancellation: @unchecked Sendable {
         return true
     }
 
-    func unregister(_ pid: pid_t) {
+    @objc dynamic func unregister(_ pid: pid_t) {
         lock.lock()
         groups.remove(pid)
         lock.unlock()

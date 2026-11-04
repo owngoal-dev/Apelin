@@ -23,7 +23,7 @@ final class TextMeasurement {
         textContainer.lineFragmentPadding = 0
     }
 
-    func measureSize(
+    @objc dynamic func measureSize(
         of attributedString: NSAttributedString,
         usingWidth width: CGFloat,
         lineLimit: Int = 0,

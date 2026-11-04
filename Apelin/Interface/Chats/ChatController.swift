@@ -21,7 +21,7 @@ final class ChatController: UIViewController {
     var runtime: ChatRuntime!
     /// Delete Conversation… in the `…` menu: the sidebar asks and deletes,
     /// as its own Delete does.
-    var onDelete: ((UUID) -> Void)?
+    @objc dynamic var onDelete: ((UUID) -> Void)?
     private let titleView = ChatTitleView()
     private var messageList = ListView<ChatMessage>()
     private let composer = ComposerView()
@@ -31,7 +31,7 @@ final class ChatController: UIViewController {
     private let composerSeparator = UIView()
     private let topBlur = ChatTopBlurView()
     private let latestMessageButton = UIButton(type: .system)
-    private weak var tracePage: TraceController?
+    @objc dynamic private weak var tracePage: TraceController?
     /// Builds the rows again once a running turn has gone quiet.
     private let quietWatch = ChatQuietWatch()
 
@@ -39,11 +39,11 @@ final class ChatController: UIViewController {
     private var messages: [ChatMessage] = []
     /// The message the shown conversation's latest turn started with; a
     /// different one starts a new turn.
-    private var turnMessage: UUID?
+    @objc dynamic private var turnMessage: UUID?
     /// The turn whose output the list follows (`TurnFollowing`): nil once
     /// a fast reply has brought its message to the top of the visible area,
     /// or the reader dragged, until the next turn.
-    private var followedTurn: UUID?
+    @objc dynamic private var followedTurn: UUID?
     /// How fast the followed turn's reply streams.
     private var turnPace = TurnFollowing.Pace()
     /// The request the composer shows in place of the input, and the
@@ -53,43 +53,43 @@ final class ChatController: UIViewController {
     private var shownApproval: ChatMessage?
     /// A root request whose owner check is on screen: a second tap on
     /// Approve does not ask again.
-    private var checkingOwner: UUID?
-    private var stoppableChat: UUID?
+    @objc dynamic private var checkingOwner: UUID?
+    @objc dynamic private var stoppableChat: UUID?
     /// While `use(_:)` swaps another conversation in: nothing animates, and
     /// the list's opening scroll waits for its rows.
-    private var isSwitchingChat = false
+    @objc dynamic private var isSwitchingChat = false
     /// The keyboard waits for the page to be on screen (`beginTyping`).
-    private var typesOnAppear = false
+    @objc dynamic private var typesOnAppear = false
     /// Conversations whose queued messages went back to the composer, said
     /// once the reader sees them (`sayUnsent`).
     private var unsent: [UUID: (messages: Int, attachmentsLeftOut: Int)] = [:]
-    private var needsInitialScroll = false
+    @objc dynamic private var needsInitialScroll = false
     /// Whether the reader was at the latest message when the page last
     /// changed width — the sidebar opening or closing. The rows wrap again
     /// and the content's height changes under the list, so the list is put
     /// back at its end, and kept there as the rows above are measured again,
     /// until the reader drags it.
-    private var holdsLatestMessage = false
+    @objc dynamic private var holdsLatestMessage = false
     /// Where a reader elsewhere in the conversation was when the page last
     /// changed width: the row at the top of what they saw, under the bar,
     /// and how far into it. The rows wrap again, and a long reply grows or
     /// shrinks around the line the reader was on, so the list is put back
     /// at the same point in that row rather than at the same offset.
     private var readingPlace: (row: ChatMessage.ID, fraction: CGFloat)?
-    private var lastLayoutWidth: CGFloat = 0
+    @objc dynamic private var lastLayoutWidth: CGFloat = 0
     private var modelLoader: Task<Void, Never>?
     private var selectionCheck: Task<Void, Never>?
-    private var attachmentImport: ComposerAttachmentImport?
-    private var modelButton: UIButton {
+    @objc dynamic private var attachmentImport: ComposerAttachmentImport?
+    @objc dynamic private var modelButton: UIButton {
         composer.modelBar.button
     }
 
-    private var attachmentHeightLimit: CGFloat {
+    @objc dynamic private var attachmentHeightLimit: CGFloat {
         (view.window?.bounds.height ?? view.bounds.height) * 0.3
     }
 
     /// The scale a message row measures and lays out its images at.
-    private var displayScale: CGFloat {
+    @objc dynamic private var displayScale: CGFloat {
         (view.window ?? view).traitCollection.displayScale
     }
 
@@ -231,7 +231,7 @@ final class ChatController: UIViewController {
         }
     }
 
-    private func replaceMessageList() {
+    @objc dynamic private func replaceMessageList() {
         let contentInset = messageList.contentInset
         let indicatorInset = messageList.verticalScrollIndicatorInsets
         messageList.delegate = nil
@@ -319,7 +319,7 @@ final class ChatController: UIViewController {
 
     /// Where the constraints put the list: the page, less the safe area's
     /// sides.
-    private var messageListFrame: CGRect {
+    @objc dynamic private var messageListFrame: CGRect {
         let insets = view.safeAreaInsets
         return view.bounds.inset(by: UIEdgeInsets(top: 0, left: insets.left, bottom: 0, right: insets.right))
     }
@@ -363,7 +363,7 @@ final class ChatController: UIViewController {
 
     /// Puts the reader back on the line `readingPlace` kept, now that the
     /// rows have their new width.
-    private func restoreReadingPlace() {
+    @objc dynamic private func restoreReadingPlace() {
         guard let place = readingPlace else { return }
         readingPlace = nil
         guard !messageList.isTracking, !messageList.isDecelerating else { return }
@@ -470,12 +470,12 @@ final class ChatController: UIViewController {
 
     /// Back in front with this conversation on screen: its banners have
     /// said what they had to.
-    @objc private func withdrawNotifications() {
+    @objc dynamic private func withdrawNotifications() {
         guard let chat, view.window != nil else { return }
         ConversationNotices.shared.withdraw(session: runtime.records[chat.id]?.sessionID)
     }
 
-    func refreshRuntime() {
+    @objc dynamic func refreshRuntime() {
         guard let chat else { return }
         if let summary = runtime.records[chat.id]?.summary {
             self.chat = summary
@@ -572,7 +572,7 @@ final class ChatController: UIViewController {
     /// followed until the turn's message reaches the top of the visible
     /// area, under the bar's blur, and the list then holds still for the
     /// rest of the turn.
-    private func followTurn() {
+    @objc dynamic private func followTurn() {
         guard let followed = followedTurn, !messageList.isTracking, !messageList.isDecelerating else { return }
         let animated = !isSwitchingChat && !needsInitialScroll && !UIAccessibility.isReduceMotionEnabled
         let move = TurnFollowing.move(
@@ -592,7 +592,7 @@ final class ChatController: UIViewController {
     }
 
     /// Shows the newest content, once: the turn is not followed again.
-    private func revealLatestMessage() {
+    @objc dynamic private func revealLatestMessage() {
         messageList.scrollToBottom(animated: !UIAccessibility.isReduceMotionEnabled)
         updateLatestMessageButton()
     }
@@ -607,7 +607,7 @@ final class ChatController: UIViewController {
         showApproval(chat?.isWorking == true ? items.first { $0.role.needsApproval } : nil)
     }
 
-    @objc private func updateModelSelection() {
+    @objc dynamic private func updateModelSelection() {
         let selection = ComposerModelSelection.current
         composer.modelBar.setModelName(selection?.model)
         composer.modelBar.setEfforts(selection?.supportedEfforts ?? [], selected: selection?.effort)
@@ -615,12 +615,12 @@ final class ChatController: UIViewController {
     }
 
     /// A model disabled in Settings stops being the one the next message uses.
-    @objc private func enabledModelsChanged() {
+    @objc dynamic private func enabledModelsChanged() {
         ensureModelSelection()
     }
 
     /// The list scrolls clear of the composer, and of the keyboard under it.
-    private func updateMessageListInsets() {
+    @objc dynamic private func updateMessageListInsets() {
         let covered = max(view.bounds.height - composerBackground.frame.minY, 0)
         let bottom = max(covered - view.safeAreaInsets.bottom, 0)
         if messageList.contentInset.bottom != bottom + 16 {
@@ -648,7 +648,7 @@ final class ChatController: UIViewController {
     }
 
     /// The menu re-reads enabled accounts each time, including after setup.
-    private func loadModelMenu(completion: @escaping ([UIMenuElement]) -> Void) {
+    @objc dynamic private func loadModelMenu(completion: @escaping ([UIMenuElement]) -> Void) {
         guard let chat else { completion([]); return }
         modelLoader?.cancel()
         modelLoader = Task { [weak self] in
@@ -701,7 +701,7 @@ extension ChatController {
     /// still enabled takes the catalog's efforts and tiers again. A
     /// signed-in account whose sign-in did not read this time lists no
     /// models; its model is kept rather than swapped for another's.
-    func ensureModelSelection() {
+    @objc dynamic func ensureModelSelection() {
         selectionCheck?.cancel()
         selectionCheck = Task {
             guard let listed = try? await ApelinService.app.agentAccountList().accounts,
@@ -729,7 +729,7 @@ extension ChatController {
 
     /// The runtime put `id`'s draft back, or emptied it: a message its run
     /// never took, a send that failed, or a returned one the host had taken.
-    func restoreDraft(for id: UUID) {
+    @objc dynamic func restoreDraft(for id: UUID) {
         guard chat?.id == id, let draft = runtime.records[id]?.draft else { return }
         composer.restore(draft: draft)
     }
@@ -744,7 +744,7 @@ extension ChatController {
 
     /// Says what went back to the composer of the conversation on screen,
     /// spoken too: nothing else marks it.
-    @objc private func sayUnsent() {
+    @objc dynamic private func sayUnsent() {
         guard let chat, view.window != nil, UIApplication.shared.applicationState == .active,
               let returned = unsent.removeValue(forKey: chat.id)
         else { return }
@@ -758,7 +758,7 @@ extension ChatController {
 
     /// The keyboard up in the composer, now if the page is on screen, else
     /// once it is: a link's prompt waits there for the reader's Send.
-    func beginTyping() {
+    @objc dynamic func beginTyping() {
         guard view.window != nil else {
             typesOnAppear = true
             return
@@ -768,7 +768,7 @@ extension ChatController {
 
     /// `text` as the reader's next message, as if typed and sent; during a
     /// reply, the run takes it at its next step.
-    func sendPrompt(_ text: String) {
+    @objc dynamic func sendPrompt(_ text: String) {
         guard chat != nil else { return }
         onComposerSubmit(draft: ComposerDraft(text: text)) {}
     }
@@ -797,7 +797,7 @@ extension ChatController: ComposerView.Delegate {
         }
     }
 
-    func onComposerBeginEditing() {
+    @objc dynamic func onComposerBeginEditing() {
         ensureModelSelection()
     }
 
@@ -806,35 +806,35 @@ extension ChatController: ComposerView.Delegate {
         runtime.saveDraft(draft, for: chat.id)
     }
 
-    func onComposerCameraTapped() {
+    @objc dynamic func onComposerCameraTapped() {
         importer()?.camera()
     }
 
-    func onComposerPhotoTapped() {
+    @objc dynamic func onComposerPhotoTapped() {
         importer()?.photos()
     }
 
-    func onComposerFileTapped() {
+    @objc dynamic func onComposerFileTapped() {
         importer()?.files()
     }
 
-    func onComposerWebTapped() {
+    @objc dynamic func onComposerWebTapped() {
         importer()?.web()
     }
 
-    func onComposerPasteAsAttachmentTapped() {
+    @objc dynamic func onComposerPasteAsAttachmentTapped() {
         importer()?.paste()
     }
 
-    func onComposerPastedLongText(_ text: String) {
+    @objc dynamic func onComposerPastedLongText(_ text: String) {
         importer()?.importText(text)
     }
 
-    func onComposerPastedImage(_ image: UIImage) {
+    @objc dynamic func onComposerPastedImage(_ image: UIImage) {
         importer()?.importImage(image)
     }
 
-    func onComposerDropped(_ providers: [NSItemProvider]) {
+    @objc dynamic func onComposerDropped(_ providers: [NSItemProvider]) {
         importer()?.drop(providers)
     }
 
@@ -843,7 +843,7 @@ extension ChatController: ComposerView.Delegate {
         catch { presentNotice(title: "Unable to Preview Attachment", message: error.readableMessage) }
     }
 
-    private func importer() -> ComposerAttachmentImport? {
+    @objc dynamic private func importer() -> ComposerAttachmentImport? {
         guard let chat, presentedViewController == nil else { return nil }
         let draftID = composer.draft.id
         let importer = ComposerAttachmentImport(presenter: self) { [weak self] item in
@@ -861,21 +861,21 @@ extension ChatController: ComposerView.Delegate {
 }
 
 extension ChatController: UIScrollViewDelegate {
-    func scrollViewWillBeginDragging(_: UIScrollView) {
+    @objc dynamic func scrollViewWillBeginDragging(_: UIScrollView) {
         holdsLatestMessage = false
         readingPlace = nil
         // The reader has the list: only the next turn is followed again.
         followedTurn = nil
     }
 
-    func scrollViewDidScroll(_ scrollView: UIScrollView) {
+    @objc dynamic func scrollViewDidScroll(_ scrollView: UIScrollView) {
         if !scrollView.isTracking, !scrollView.isDecelerating {
             holdLatestMessage()
         }
         updateLatestMessageButton()
     }
 
-    private func holdLatestMessage() {
+    @objc dynamic private func holdLatestMessage() {
         guard holdsLatestMessage, !messageList.isTracking, !messageList.isDecelerating,
               distanceFromLatestMessage > 0.5 else { return }
         if UIView.inheritedAnimationDuration > 0 {
@@ -887,11 +887,11 @@ extension ChatController: UIScrollViewDelegate {
         }
     }
 
-    private var distanceFromLatestMessage: CGFloat {
+    @objc dynamic private var distanceFromLatestMessage: CGFloat {
         max(0, messageList.maximumContentOffset.y - messageList.contentOffset.y)
     }
 
-    private func updateLatestMessageButton() {
+    @objc dynamic private func updateLatestMessageButton() {
         let alpha: CGFloat = followedTurn == nil && distanceFromLatestMessage > 2 ? 1 : 0
         guard latestMessageButton.alpha != alpha else { return }
         if alpha > 0 {

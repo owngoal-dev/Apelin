@@ -11,8 +11,8 @@ final class WorkerProcess: @unchecked Sendable {
     let key: String?
     let channel: WorkerChannel
     private let lock = PthreadLock()
-    private var inFlight = 0
-    private var idleSince = Date()
+    @objc dynamic private var inFlight = 0
+    @objc dynamic private var idleSince = Date()
 
     init(role: WorkerRole, key: String?, channel: WorkerChannel) {
         self.role = role
@@ -33,7 +33,7 @@ final class WorkerProcess: @unchecked Sendable {
         return try await channel.call(request, descriptors: descriptors, taskID: taskID, resumed: resumed)
     }
 
-    func idleFor() -> TimeInterval {
+    @objc dynamic func idleFor() -> TimeInterval {
         lock.withLock { inFlight > 0 ? 0 : Date().timeIntervalSince(idleSince) }
     }
 }
@@ -208,7 +208,7 @@ actor WorkerSupervisor {
 private final class ReadySignal: @unchecked Sendable {
     private let semaphore = DispatchSemaphore(value: 0)
 
-    func fire() {
+    @objc dynamic func fire() {
         semaphore.signal()
     }
 

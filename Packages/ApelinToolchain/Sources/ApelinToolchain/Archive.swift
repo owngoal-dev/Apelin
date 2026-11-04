@@ -264,17 +264,17 @@ protocol ByteReader { func read(_ count: Int) throws -> Data }
 final class BinaryReader: ByteReader {
     let file: FileHandle
     let size: UInt64
-    var offset: UInt64 = 0
+    @objc dynamic var offset: UInt64 = 0
     init(_ url: URL) throws {
         file = try FileHandle(forReadingFrom: url); size = try file.seekToEnd(); try file.seek(toOffset: 0)
     }
 
     deinit { try? file.close() }
-    func seek(_ offset: UInt64) throws {
+    @objc dynamic func seek(_ offset: UInt64) throws {
         guard offset <= size else { throw ToolchainFailure("The package points beyond the end of the file.") }; try file.seek(toOffset: offset); self.offset = offset
     }
 
-    func read(_ count: Int) throws -> Data {
+    @objc dynamic func read(_ count: Int) throws -> Data {
         guard count >= 0, UInt64(count) <= size - offset else { throw ToolchainFailure("The package is incomplete.") }
         let data = try autoreleasepool { try file.read(upToCount: count) } ?? Data()
         guard data.count == count else { throw ToolchainFailure("The package is incomplete.") }
@@ -292,8 +292,8 @@ final class BinaryReader: ByteReader {
 final class PBZXReader: ByteReader {
     let reader: BinaryReader, end: UInt64
     let window: Int
-    var buffer = Data(), cursor = 0
-    private var decoded: [Data] = []
+    @objc dynamic var buffer = Data(), cursor = 0
+    @objc private dynamic var decoded: [Data] = []
     init(reader: BinaryReader, end: UInt64, window: Int = PBZXReader.defaultWindow) throws {
         self.reader = reader; self.end = end; self.window = max(1, window)
         guard try reader.read(4) == Data("pbzx".utf8) else {
@@ -305,7 +305,7 @@ final class PBZXReader: ByteReader {
         }
     }
 
-    func read(_ count: Int) throws -> Data {
+    @objc dynamic func read(_ count: Int) throws -> Data {
         var result = Data(); result.reserveCapacity(count)
         while result.count < count {
             if cursor == buffer.count {
@@ -319,11 +319,11 @@ final class PBZXReader: ByteReader {
 
     /// Four decodes at once at most, and never more than the cores: past
     /// four the reads and the cpio writer, which stay serial, set the pace.
-    static var defaultWindow: Int {
+    @objc static dynamic var defaultWindow: Int {
         min(4, max(1, ProcessInfo.processInfo.activeProcessorCount))
     }
 
-    private func nextChunk() throws {
+    @objc private dynamic func nextChunk() throws {
         try Task.checkCancellation()
         if decoded.isEmpty {
             try fill()
@@ -334,7 +334,7 @@ final class PBZXReader: ByteReader {
 
     /// Reads the next chunks (up to `window`, stopping at the stream's end
     /// only when the cpio reader still wants bytes) and decodes them side by side.
-    private func fill() throws {
+    @objc private dynamic func fill() throws {
         var chunks: [(expanded: Int, input: Data)] = []
         repeat {
             guard reader.offset <= end, end - reader.offset >= 16 else {
@@ -364,7 +364,7 @@ final class PBZXReader: ByteReader {
         }
     }
 
-    static func decode(_ input: Data, expanded: Int) throws -> Data {
+    @objc static dynamic func decode(_ input: Data, expanded: Int) throws -> Data {
         if input.count == expanded {
             return input
         }
@@ -387,8 +387,8 @@ final class PBZXReader: ByteReader {
 private final class XarTOC: NSObject, XMLParserDelegate {
     struct Payload { let offset: Int64; let length: Int64; let checksum: String; let algorithm: String }
     var payload: Payload?
-    private var stack: [String] = [], text = "", fields: [String: String] = [:], fileDepth = 0
-    func parser(
+    @objc private dynamic var stack: [String] = [], text = "", fields: [String: String] = [:], fileDepth = 0
+    @objc dynamic func parser(
         _: XMLParser,
         didStartElement elementName: String,
         namespaceURI _: String?,
@@ -406,11 +406,11 @@ private final class XarTOC: NSObject, XMLParserDelegate {
         }
     }
 
-    func parser(_: XMLParser, foundCharacters string: String) {
+    @objc dynamic func parser(_: XMLParser, foundCharacters string: String) {
         text += string
     }
 
-    func parser(
+    @objc dynamic func parser(
         _: XMLParser,
         didEndElement elementName: String,
         namespaceURI _: String?,

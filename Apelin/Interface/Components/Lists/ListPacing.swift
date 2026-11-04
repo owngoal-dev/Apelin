@@ -14,20 +14,20 @@ final class ListPacing {
     static let quietInterval: CFTimeInterval = 0.2
 
     private var startedAt: CFTimeInterval?
-    private var hasLoaded = false
+    @objc private dynamic var hasLoaded = false
     /// The first load began and nothing has answered it past the quiet
     /// interval yet.
-    private var awaitsFirstAnswer = false
+    @objc private dynamic var awaitsFirstAnswer = false
 
     /// Starts the quiet interval now: the list is about to show other data
     /// (another project, a search), or its first fill went up.
-    func begin() {
+    @objc dynamic func begin() {
         startedAt = CACurrentMediaTime()
     }
 
     /// A load for the list starts now: `begin()`, and the first one's
     /// answer appears without animation whenever it comes.
-    func beginLoad() {
+    @objc dynamic func beginLoad() {
         begin()
         if !hasLoaded {
             hasLoaded = true
@@ -36,7 +36,7 @@ final class ListPacing {
     }
 
     /// Records a change applied to `view` now and answers whether it animates.
-    func animatesChange(in view: UIView) -> Bool {
+    @objc dynamic func animatesChange(in view: UIView) -> Bool {
         let now = CACurrentMediaTime()
         defer { startedAt = now }
         guard let startedAt, now - startedAt > Self.quietInterval else { return false }

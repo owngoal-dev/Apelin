@@ -15,9 +15,9 @@ final class ComposerModelBar: ComposerSectionView {
     )
     var onEffortChanged: ((AgentReasoningEffort) -> Void)?
     var onTierChanged: ((AgentServiceTier?) -> Void)?
-    private var cancelOutput: (() -> Void)?
+    @objc dynamic private var cancelOutput: (() -> Void)?
 
-    override func initializeViews() {
+    @objc override dynamic func initializeViews() {
         super.initializeViews()
         for control in [button, effortButton, tierButton, stopButton] {
             addSubview(control)
@@ -35,7 +35,7 @@ final class ComposerModelBar: ComposerSectionView {
         setVisible(true)
     }
 
-    func setModelName(_ name: String?) {
+    @objc dynamic func setModelName(_ name: String?) {
         updateControls { [self] in
             button.setText(name ?? String(localized: "Select Model"))
             button.accessibilityLabel = String(localized: "Select Model")
@@ -44,7 +44,7 @@ final class ComposerModelBar: ComposerSectionView {
     }
 
     /// The import panel takes this row's place, so the row hands over to it.
-    func setVisible(_ visible: Bool) {
+    @objc dynamic func setVisible(_ visible: Bool) {
         handOver(visible: visible)
         updateControls { [self] in
             isUserInteractionEnabled = visible
@@ -86,18 +86,18 @@ final class ComposerModelBar: ComposerSectionView {
     }
 
     /// The owner supplies its live run's cancellation; absent means no output to stop.
-    func setOutputCancellation(_ cancel: (() -> Void)?) {
+    @objc dynamic func setOutputCancellation(_ cancel: (() -> Void)?) {
         cancelOutput = cancel
         updateControls { [self] in setControl(stopButton, visible: cancel != nil) }
     }
 
-    private func setControl(_ control: UIButton, visible: Bool) {
+    @objc dynamic private func setControl(_ control: UIButton, visible: Bool) {
         control.alpha = visible ? 1 : 0
         control.isUserInteractionEnabled = visible
         control.accessibilityElementsHidden = !visible
     }
 
-    private func updateControls(_ changes: @escaping () -> Void) {
+    @objc dynamic private func updateControls(_ changes: @escaping () -> Void) {
         let update = { [self] in
             changes()
             setNeedsLayout()

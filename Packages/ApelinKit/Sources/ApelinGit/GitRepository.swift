@@ -149,7 +149,7 @@ public final class GitRepository: @unchecked Sendable {
         return items
     }
 
-    private static func indexLetter(_ flags: UInt32) -> String {
+    @objc private static dynamic func indexLetter(_ flags: UInt32) -> String {
         if flags & GIT_STATUS_CONFLICTED.rawValue != 0 {
             return "U"
         }
@@ -174,7 +174,7 @@ public final class GitRepository: @unchecked Sendable {
         return " "
     }
 
-    private static func worktreeLetter(_ flags: UInt32) -> String {
+    @objc private static dynamic func worktreeLetter(_ flags: UInt32) -> String {
         if flags & GIT_STATUS_CONFLICTED.rawValue != 0 {
             return "U"
         }
@@ -202,7 +202,7 @@ public final class GitRepository: @unchecked Sendable {
     /// included, with their content), or with `staged` the index against
     /// HEAD. `path` limits it to one path, matched literally. Longer than
     /// `limit` bytes, the text is cut and says so on its last line.
-    public func diff(path: String? = nil, staged: Bool = false, limit: Int = 8 << 20) throws -> String {
+    @objc public dynamic func diff(path: String? = nil, staged: Bool = false, limit: Int = 8 << 20) throws -> String {
         var options = git_diff_options()
         git_diff_options_init(&options, UInt32(GIT_DIFF_OPTIONS_VERSION))
         options.flags = GIT_DIFF_DISABLE_PATHSPEC_MATCH.rawValue
@@ -237,7 +237,7 @@ public final class GitRepository: @unchecked Sendable {
 
     /// Adds each path's work-tree state to the index: its content when the
     /// file is there, its removal when it is not.
-    public func stage(_ paths: [String]) throws {
+    @objc public dynamic func stage(_ paths: [String]) throws {
         let paths = try Self.checked(paths)
         var index: OpaquePointer?
         try GitError.check(git_repository_index(&index, pointer), "open the index")
@@ -256,7 +256,7 @@ public final class GitRepository: @unchecked Sendable {
     /// Stages every change in the work tree, as `git add --all` does: new
     /// and changed files no ignore rule names (`.gitignore`,
     /// `.git/info/exclude`), and the removal of deleted ones.
-    public func stageAll() throws {
+    @objc public dynamic func stageAll() throws {
         var index: OpaquePointer?
         try GitError.check(git_repository_index(&index, pointer), "open the index")
         defer { git_index_free(index) }
@@ -270,7 +270,7 @@ public final class GitRepository: @unchecked Sendable {
 
     /// Whether the repository is as a new project's was made: HEAD on a
     /// branch with no commit, no reference, no remote and nothing staged.
-    public var isUntouched: Bool {
+    @objc public dynamic var isUntouched: Bool {
         guard git_repository_head_unborn(pointer) == 1 else { return false }
         var references = git_strarray()
         defer { git_strarray_dispose(&references) }
@@ -286,7 +286,7 @@ public final class GitRepository: @unchecked Sendable {
 
     /// Puts each path's index entry back to HEAD's (or drops it, before the
     /// first commit). The work tree is not touched.
-    public func unstage(_ paths: [String]) throws {
+    @objc public dynamic func unstage(_ paths: [String]) throws {
         let paths = try Self.checked(paths)
         let commit = try headCommit()
         defer { git_commit_free(commit) }
@@ -364,7 +364,7 @@ public final class GitRepository: @unchecked Sendable {
 
     /// The URL the remote `name` fetches from, or nil when there is no such
     /// remote.
-    public func remoteURL(_ name: String = "origin") -> String? {
+    @objc public dynamic func remoteURL(_ name: String = "origin") -> String? {
         var remote: OpaquePointer?
         guard !name.utf8.contains(0), git_remote_lookup(&remote, pointer, name) == 0, let remote else { return nil }
         defer { git_remote_free(remote) }
@@ -374,7 +374,7 @@ public final class GitRepository: @unchecked Sendable {
     /// The URL a push to the remote `name` goes to — its `pushurl`, else its
     /// URL, with `insteadOf` and `pushInsteadOf` applied as libgit2 applies
     /// them — or nil when there is no such remote.
-    public func remotePushURL(_ name: String = "origin") -> String? {
+    @objc public dynamic func remotePushURL(_ name: String = "origin") -> String? {
         var remote: OpaquePointer?
         guard !name.utf8.contains(0), git_remote_lookup(&remote, pointer, name) == 0, let remote else { return nil }
         defer { git_remote_free(remote) }
@@ -383,7 +383,7 @@ public final class GitRepository: @unchecked Sendable {
 
     /// `key` from this repository's own `.git/config`, never one it
     /// inherits, or nil when it is not set there.
-    public func localConfigValue(_ key: String) -> String? {
+    @objc public dynamic func localConfigValue(_ key: String) -> String? {
         guard !key.utf8.contains(0), let local = try? localConfig() else { return nil }
         defer { git_config_free(local) }
         var buffer = git_buf()
@@ -393,7 +393,7 @@ public final class GitRepository: @unchecked Sendable {
     }
 
     /// Sets `key` in this repository's own `.git/config`.
-    public func setLocalConfigValue(_ value: String, for key: String) throws {
+    @objc public dynamic func setLocalConfigValue(_ value: String, for key: String) throws {
         guard !key.utf8.contains(0), !value.utf8.contains(0) else { throw GitError(.invalid, "bad configuration") }
         let local = try localConfig()
         defer { git_config_free(local) }
@@ -441,7 +441,7 @@ public final class GitRepository: @unchecked Sendable {
 
     /// Refuses an absolute path, `..`, NUL, an empty path and anything inside
     /// `.git`; strips a leading `./`.
-    static func checked(_ paths: [String]) throws -> [String] {
+    @objc static dynamic func checked(_ paths: [String]) throws -> [String] {
         try paths.map { path in
             guard CanonicalPath.isPlainRelative(path) else {
                 throw GitError(.invalid, "\(path.debugDescription) is not a path inside the project")
@@ -466,7 +466,7 @@ public final class GitRepository: @unchecked Sendable {
         }
     }
 
-    static func hex(_ oid: UnsafePointer<git_oid>) -> String {
+    @objc static dynamic func hex(_ oid: UnsafePointer<git_oid>) -> String {
         var characters = [CChar](repeating: 0, count: Int(GIT_OID_MAX_HEXSIZE) + 1)
         git_oid_tostr(&characters, characters.count, oid)
         return String(cString: characters)

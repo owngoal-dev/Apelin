@@ -1,9 +1,10 @@
 import Darwin
+import Foundation
 
 /// A file descriptor this process owns and closes once, when the last
 /// reference goes or `take()` hands it on.
 public final class OwnedDescriptor: @unchecked Sendable {
-    private var descriptor: Int32
+    @objc private dynamic var descriptor: Int32
     private let lock = PthreadLock()
 
     /// Takes ownership of `descriptor`.
@@ -18,12 +19,12 @@ public final class OwnedDescriptor: @unchecked Sendable {
     }
 
     /// The descriptor, still owned here; -1 once taken or closed.
-    public var rawValue: Int32 {
+    @objc public dynamic var rawValue: Int32 {
         lock.withLock { descriptor }
     }
 
     /// Hands the descriptor on: the caller closes it from now on.
-    public func take() -> Int32 {
+    @objc public dynamic func take() -> Int32 {
         lock.withLock {
             let value = descriptor
             descriptor = -1
@@ -31,7 +32,7 @@ public final class OwnedDescriptor: @unchecked Sendable {
         }
     }
 
-    public func close() {
+    @objc public dynamic func close() {
         let value = take()
         if value >= 0 {
             Darwin.close(value)

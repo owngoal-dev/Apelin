@@ -11,7 +11,7 @@ final class ChatQuietWatch {
 
     /// Runs `action` at `deadline`, in place of whatever was set before;
     /// nil only cancels.
-    func wake(at deadline: Date?, _ action: @escaping () -> Void) {
+    @objc dynamic func wake(at deadline: Date?, _ action: @escaping () -> Void) {
         pending?.cancel()
         pending = nil
         guard let deadline else { return }

@@ -56,7 +56,7 @@ final class ChatTopBlurView: UIView {
         updateFrost()
     }
 
-    private func updateFrost() {
+    @objc dynamic private func updateFrost() {
         let color = UIColor.pageBackground.resolvedColor(with: traitCollection)
         frost.colors = [color.withAlphaComponent(1).cgColor, color.withAlphaComponent(0).cgColor]
     }

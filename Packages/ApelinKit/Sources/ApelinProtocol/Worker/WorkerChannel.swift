@@ -97,14 +97,14 @@ public final class WorkerChannel: @unchecked Sendable {
     private let socket: Int32
     private let writeLock = PthreadLock()
     private let stateLock = PthreadLock()
-    private var nextID: UInt64 = 1
+    @objc private dynamic var nextID: UInt64 = 1
     private var pending: [UInt64: CheckedContinuation<ChannelFrame, Error>] = [:]
-    private var closed = false
+    @objc private dynamic var closed = false
 
     private var requestHandler: RequestHandler?
     private var eventHandler: FrameHandler?
     private var controlHandler: FrameHandler?
-    private var closeHandler: (@Sendable () -> Void)?
+    @objc private dynamic var closeHandler: (@Sendable () -> Void)?
 
     /// Takes ownership of one end of a socketpair.
     public init(adopting socket: Int32) {
@@ -138,17 +138,17 @@ public final class WorkerChannel: @unchecked Sendable {
         stateLock.withLock { controlHandler = handler }
     }
 
-    public func onClose(_ handler: @escaping @Sendable () -> Void) {
+    @objc public dynamic func onClose(_ handler: @escaping @Sendable () -> Void) {
         stateLock.withLock { closeHandler = handler }
     }
 
-    public func start() {
+    @objc public dynamic func start() {
         let thread = Thread { [self] in readLoop() }
         thread.name = "wiki.qaq.apelin.channel"
         thread.start()
     }
 
-    public var isClosed: Bool {
+    @objc public dynamic var isClosed: Bool {
         stateLock.withLock { closed }
     }
 
@@ -257,7 +257,7 @@ public final class WorkerChannel: @unchecked Sendable {
     }
 
     /// Closes the socket; pending calls fail with `.unavailable`.
-    public func close() {
+    @objc public dynamic func close() {
         let waiting: [CheckedContinuation<ChannelFrame, Error>] = stateLock.withLock {
             guard !closed else { return [] }
             closed = true
@@ -272,7 +272,7 @@ public final class WorkerChannel: @unchecked Sendable {
 
     // MARK: Reading
 
-    private func readLoop() {
+    @objc private dynamic func readLoop() {
         var buffer = Data()
         var receivedDescriptors: [OwnedDescriptor] = []
         var chunk = [UInt8](repeating: 0, count: 64 << 10)
@@ -296,7 +296,7 @@ public final class WorkerChannel: @unchecked Sendable {
         finish()
     }
 
-    private func finish() {
+    @objc private dynamic func finish() {
         close()
         writeLock.withLock { _ = Darwin.close(socket) }
         let handler = stateLock.withLock { closeHandler }
@@ -389,15 +389,15 @@ public final class WorkerChannel: @unchecked Sendable {
     // MARK: sendmsg / recvmsg
 
     /// `CMSG_ALIGN` on Darwin: 4-byte alignment.
-    private static func align(_ length: Int) -> Int {
+    @objc private static dynamic func align(_ length: Int) -> Int {
         (length + 3) & ~3
     }
 
-    private static var headerSpace: Int {
+    @objc private static dynamic var headerSpace: Int {
         align(MemoryLayout<cmsghdr>.size)
     }
 
-    private static func sendChunk(
+    @objc private static dynamic func sendChunk(
         _ socket: Int32,
         _ base: UnsafeRawPointer,
         _ length: Int,

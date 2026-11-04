@@ -52,7 +52,7 @@ public final class SessionJournal: @unchecked Sendable {
     private var outcomes: [String: ToolCallOutcome] = [:]
     /// Approvals asked and not answered, by approval ID.
     private var approvals: [String: (call: String, tool: String, asked: Date)] = [:]
-    private var runs = 0
+    @objc private dynamic var runs = 0
     private var run: (number: Int, started: Date, calls: Int)?
     private var compaction: Compaction?
 
@@ -111,7 +111,7 @@ public final class SessionJournal: @unchecked Sendable {
     }
 
     /// `flush`, blocking: for the worker's last moment and the tests.
-    func drain() {
+    @objc dynamic func drain() {
         queue.sync {}
     }
 
@@ -137,7 +137,7 @@ public final class SessionJournal: @unchecked Sendable {
 
     /// The model could not be resolved: no sign-in, or one that would not
     /// refresh. Nothing else of the session runs.
-    func sessionOpenFailed(_ error: any Error) {
+    @objc dynamic func sessionOpenFailed(_ error: any Error) {
         let message = error.localizedDescription
         perform { journal in
             journal.write(.session, "Could not open session=\(journal.sessionID): \(journal.errorText(message))", level: .error)
@@ -154,7 +154,7 @@ public final class SessionJournal: @unchecked Sendable {
 
     /// The session closes: calls still running are interrupted. `flush`
     /// waits for the lines.
-    func sessionClosed() {
+    @objc dynamic func sessionClosed() {
         let now = Date()
         perform { journal in
             journal.interruptCalls(reason: "the conversation closed while it ran", at: now)
@@ -187,7 +187,7 @@ public final class SessionJournal: @unchecked Sendable {
         }
     }
 
-    func runFailed(_ message: String) {
+    @objc dynamic func runFailed(_ message: String) {
         perform { journal in
             let number = journal.run.map { " \($0.number)" } ?? ""
             journal.write(.model, "Run\(number) failed: \(journal.errorText(message))", level: .error)
@@ -204,7 +204,7 @@ public final class SessionJournal: @unchecked Sendable {
         }
     }
 
-    func retrying(attempt: Int, delayMs: UInt64, reason: String) {
+    @objc dynamic func retrying(attempt: Int, delayMs: UInt64, reason: String) {
         perform { journal in
             journal.write(
                 .model,
@@ -214,15 +214,15 @@ public final class SessionJournal: @unchecked Sendable {
         }
     }
 
-    func waitingForNetwork() {
+    @objc dynamic func waitingForNetwork() {
         perform { $0.write(.model, "Waiting for the network before the request goes again", level: .warning) }
     }
 
-    func replyDiscarded() {
+    @objc dynamic func replyDiscarded() {
         perform { $0.write(.model, "Discarded a partial reply; the request goes again") }
     }
 
-    func titleFailed(_ error: any Error) {
+    @objc dynamic func titleFailed(_ error: any Error) {
         let message = error.localizedDescription
         perform { $0.write(.model, "Title request failed: \($0.errorText(message))", level: .warning) }
     }
@@ -319,12 +319,12 @@ public final class SessionJournal: @unchecked Sendable {
     }
 
     /// Every call still running ends `interrupted`, for `reason`.
-    func interruptOpenCalls(reason: String) {
+    @objc dynamic func interruptOpenCalls(reason: String) {
         let now = Date()
         perform { $0.interruptCalls(reason: reason, at: now) }
     }
 
-    private func interruptCalls(reason: String, at now: Date) {
+    @objc private dynamic func interruptCalls(reason: String, at now: Date) {
         let open = calls.flatMap { id, calls in calls.map { (id: id, tool: $0.tool, started: $0.started) } }
             .sorted { $0.started < $1.started }
         calls.removeAll()
@@ -343,7 +343,7 @@ public final class SessionJournal: @unchecked Sendable {
     /// `interrupted`, so a crash leaves no call that looks as if it were
     /// still going. Only the journal's end is read (`unfinishedTailBytes`),
     /// on the queue.
-    func closeUnfinishedCalls() {
+    @objc dynamic func closeUnfinishedCalls() {
         guard let file else { return }
         perform { journal in
             for call in Self.unfinishedCalls(in: file.tail(bytes: Self.unfinishedTailBytes), session: journal.sessionID) {
@@ -543,17 +543,17 @@ public final class SessionJournal: @unchecked Sendable {
         file?.write(category.rawValue, redaction.redacted(message), level: level, date: date)
     }
 
-    private func errorText(_ text: String) -> String {
+    @objc private dynamic func errorText(_ text: String) -> String {
         "\"" + redaction.text(text, limit: JournalRedaction.errorBytes) + "\""
     }
 
-    private func time(_ date: Date) -> String {
+    @objc private dynamic func time(_ date: Date) -> String {
         clock.string(from: date)
     }
 
     /// An ID as one word of a line: a provider's call IDs have no spaces,
     /// but nothing promises it.
-    static func token(_ id: String) -> String {
+    @objc static dynamic func token(_ id: String) -> String {
         id.isEmpty ? "-" : String(id.map { $0.isWhitespace || $0.isNewline || $0 == "|" ? "_" : $0 })
     }
 
@@ -584,7 +584,7 @@ public final class SessionJournal: @unchecked Sendable {
     }
 
     /// `1.607s`: from `start` to `end`.
-    static func seconds(since start: Date, to end: Date = Date()) -> String {
+    @objc static dynamic func seconds(since start: Date, to end: Date = Date()) -> String {
         String(format: "%.3fs", max(0, end.timeIntervalSince(start)))
     }
 
@@ -593,7 +593,7 @@ public final class SessionJournal: @unchecked Sendable {
     /// Every journal open in this process ends its running calls
     /// `interrupted`, and returns once that is written: the session host
     /// closed the worker's channel, and the worker exits next.
-    public static func interruptAll(reason: String) {
+    @objc public static dynamic func interruptAll(reason: String) {
         for journal in live.all {
             journal.interruptOpenCalls(reason: reason)
             journal.drain()

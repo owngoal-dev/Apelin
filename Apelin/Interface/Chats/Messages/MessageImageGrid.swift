@@ -3,7 +3,7 @@ import UIKit
 /// Previewable attachments share one aspect-aware album in either message role.
 final class MessageImageGrid: UIView {
     var onPreview: ((ComposerAttachment) -> Void)?
-    var maximumSize: CGSize = .zero {
+    @objc dynamic var maximumSize: CGSize = .zero {
         didSet {
             if maximumSize != oldValue {
                 setNeedsLayout()
@@ -12,7 +12,7 @@ final class MessageImageGrid: UIView {
     }
 
     /// The screen's, as the row was measured with (`size(for:…)`).
-    var displayScale: CGFloat = 0 {
+    @objc dynamic var displayScale: CGFloat = 0 {
         didSet {
             if displayScale != oldValue {
                 setNeedsLayout()
@@ -21,8 +21,8 @@ final class MessageImageGrid: UIView {
     }
 
     private var attachments: [ComposerAttachment] = []
-    private var tiles: [UIButton] = []
-    private var aspectRatios: [CGFloat] = []
+    @objc dynamic private var tiles: [UIButton] = []
+    @objc dynamic private var aspectRatios: [CGFloat] = []
     private var pixelSizes: [CGSize?] = []
     private let background = MessageAccentGradientView()
     private let content = UIView()

@@ -17,9 +17,9 @@ final class ChatWidgetPublisher {
 
     private weak var runtime: ChatRuntime?
     /// Folder name to display name, read from the projects' manifests.
-    private var projectNames: [String: String] = [:]
-    private var isScheduled = false
-    private var lastLook = Date.distantPast
+    @objc private dynamic var projectNames: [String: String] = [:]
+    @objc private dynamic var isScheduled = false
+    @objc private dynamic var lastLook = Date.distantPast
     private var written: ChatWidgetSnapshot?
     private var shownActivity: ChatWidgetSnapshot?
     /// Activity requests and updates, one after another, so two quick
@@ -27,7 +27,7 @@ final class ChatWidgetPublisher {
     private var activityWork: Task<Void, Never>?
     /// Set once a quit has ended the activity: a change queued behind the
     /// quit must not bring one back.
-    private static var isClosedForQuit = false
+    @objc private dynamic static var isClosedForQuit = false
     private let writer = DispatchQueue(label: "wiki.qaq.apelin.widgets.writer", qos: .utility)
     private let log = Logger(subsystem: "wiki.qaq.apelin", category: "widgets")
 
@@ -52,7 +52,7 @@ final class ChatWidgetPublisher {
     }
 
     /// Something in the runtime changed: looks again within a second.
-    func chatsChanged() {
+    @objc dynamic func chatsChanged() {
         guard !isScheduled else { return }
         isScheduled = true
         let delay = max(0, Self.interval - Date().timeIntervalSince(lastLook))
@@ -64,7 +64,7 @@ final class ChatWidgetPublisher {
         }
     }
 
-    private func reloadProjectNames() {
+    @objc private dynamic func reloadProjectNames() {
         Task {
             guard let projects = try? await ProjectSummary.load() else { return }
             let names = Dictionary(projects.map { ($0.name, $0.displayTitle) }) { first, _ in first }
@@ -78,7 +78,7 @@ final class ChatWidgetPublisher {
     /// against the host's live sessions: an empty list at launch would end
     /// a Live Activity the last run left showing, and a row saved working
     /// would start one for a turn long over.
-    private func publish() {
+    @objc private dynamic func publish() {
         guard let runtime, runtime.isReconciled else { return }
         let listed = runtime.records.values.filter(\.isListedInWidgets).map { record in
             let project = record.summary.projectName.map { projectNames[$0] ?? $0 }
@@ -153,7 +153,7 @@ final class ChatWidgetPublisher {
     /// bounded by `timeout`, because `applicationWillTerminate` is the
     /// caller and anything still queued dies with the process; a suspended
     /// app gets no such call and keeps its activity.
-    static func endActivitiesForQuit(timeout: TimeInterval = 1) {
+    @objc dynamic static func endActivitiesForQuit(timeout: TimeInterval = 1) {
         isClosedForQuit = true
         guard #available(iOS 16.2, *) else { return }
         let activities = Activity<ChatActivityAttributes>.activities

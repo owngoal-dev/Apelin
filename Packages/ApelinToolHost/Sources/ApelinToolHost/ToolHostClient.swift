@@ -31,7 +31,7 @@ public final class ToolHostClient: @unchecked Sendable {
         let attachments: [(id: String, file: ToolOutgoingAttachment)]
         let continuation: CheckedContinuation<ToolCallOutcome, Never>
         var timer: DispatchWorkItem?
-        var sent = false
+        @objc dynamic var sent = false
 
         init(
             frame: ToolFrame,
@@ -51,23 +51,23 @@ public final class ToolHostClient: @unchecked Sendable {
     private var process: ExtensionProcess?
     private var writer: LineWriter?
     private var channel: ToolAttachmentChannel?
-    private var negotiatedVersion = ToolProtocol.version
-    private var concurrency = 1
-    private var outboundFrameLimit: Int
-    private var helloTools: [String] = []
+    @objc private dynamic var negotiatedVersion = ToolProtocol.version
+    @objc private dynamic var concurrency = 1
+    @objc private dynamic var outboundFrameLimit: Int
+    @objc private dynamic var helloTools: [String] = []
     private var helloWaiter: CheckedContinuation<ToolFrame, Error>?
     private var calls: [String: Call] = [:]
-    private var queue: [String] = []
-    private var inFlight = 0
+    @objc private dynamic var queue: [String] = []
+    @objc private dynamic var inFlight = 0
     /// Calls answered to their caller (timeout, cancel) that the extension
     /// has not ended yet, each with its grace timer.
     private var abandoned: [String: DispatchWorkItem] = [:]
-    private var cancelledEarly = Set<String>()
+    @objc private dynamic var cancelledEarly = Set<String>()
     private var stopReason: ToolCallFailure?
     private var exit: ExtensionExit?
     private var exitWaiters: [CheckedContinuation<ExtensionExit, Never>] = []
-    private var logTail: [String] = []
-    private var counter = 0
+    @objc private dynamic var logTail: [String] = []
+    @objc private dynamic var counter = 0
     private let stderrFinished = DispatchSemaphore(value: 0)
 
     public init(configuration: Configuration) {
@@ -110,7 +110,7 @@ public final class ToolHostClient: @unchecked Sendable {
         configuration.limits
     }
 
-    public var isRunning: Bool {
+    @objc public dynamic var isRunning: Bool {
         lock.lock()
         defer { lock.unlock() }
         return state == .running
@@ -293,7 +293,7 @@ public final class ToolHostClient: @unchecked Sendable {
 
     /// Cancels a call by its request ID. Its caller gets
     /// `.failure(.cancelled)`; the extension gets `cancel`.
-    public func cancel(requestID: String) {
+    @objc public dynamic func cancel(requestID: String) {
         abandon(requestID, ToolCallFailure(.cancelled, "cancelled"), early: true)
     }
 
@@ -390,7 +390,7 @@ public final class ToolHostClient: @unchecked Sendable {
     }
 
     /// Sends queued calls while there are free slots.
-    private func pump() {
+    @objc private dynamic func pump() {
         while true {
             lock.lock()
             guard state == .running, inFlight < concurrency, !queue.isEmpty else {
@@ -462,7 +462,7 @@ public final class ToolHostClient: @unchecked Sendable {
         call.continuation.resume(returning: .failure(failure))
     }
 
-    private func graceExpired(_ id: String) {
+    @objc private dynamic func graceExpired(_ id: String) {
         lock.lock()
         let stuck = abandoned[id] != nil
         lock.unlock()
@@ -496,7 +496,7 @@ public final class ToolHostClient: @unchecked Sendable {
 
     // MARK: - Frames from the extension
 
-    private func readFrames(_ descriptor: Int32) {
+    @objc private dynamic func readFrames(_ descriptor: Int32) {
         let reader = LineReader(descriptor: descriptor, maxLineBytes: limits.maxFrameBytes)
         loop: while true {
             switch reader.next() {
@@ -515,7 +515,7 @@ public final class ToolHostClient: @unchecked Sendable {
         processEnded()
     }
 
-    private func receive(_ line: Data) {
+    @objc private dynamic func receive(_ line: Data) {
         let frame: ToolFrame
         do {
             frame = try ToolFrameCodec.decode(line)
@@ -630,7 +630,7 @@ public final class ToolHostClient: @unchecked Sendable {
 
     // MARK: - stderr
 
-    private func readLog(_ descriptor: Int32) {
+    @objc private dynamic func readLog(_ descriptor: Int32) {
         let reader = LineReader(descriptor: descriptor, maxLineBytes: limits.maxLogLineBytes)
         loop: while true {
             switch reader.next() {
@@ -646,7 +646,7 @@ public final class ToolHostClient: @unchecked Sendable {
         stderrFinished.signal()
     }
 
-    private func log(_ line: String, fromExtension: Bool = false) {
+    @objc private dynamic func log(_ line: String, fromExtension: Bool = false) {
         if fromExtension {
             lock.lock()
             logTail.append(line)
@@ -738,7 +738,7 @@ public final class ToolHostClient: @unchecked Sendable {
     }
 
     /// stdout has ended: reap the process and fail whatever was waiting.
-    private func processEnded() {
+    @objc private dynamic func processEnded() {
         lock.lock()
         let process = process
         lock.unlock()
@@ -787,7 +787,7 @@ public final class ToolHostClient: @unchecked Sendable {
 
     /// Closes the extension's stdin once, on the write queue behind any frame
     /// being written, so the descriptor is never closed under a write.
-    private func closeStdin() {
+    @objc private dynamic func closeStdin() {
         lock.lock()
         let stdin = writer != nil ? process?.stdinWrite : nil
         writer = nil
@@ -807,7 +807,7 @@ public final class ToolHostClient: @unchecked Sendable {
         }
     }
 
-    private func nextID(prefix: String) -> String {
+    @objc private dynamic func nextID(prefix: String) -> String {
         lock.lock()
         counter += 1
         let value = counter
@@ -815,7 +815,7 @@ public final class ToolHostClient: @unchecked Sendable {
         return "\(prefix)\(value)"
     }
 
-    private func startThread(named name: String, _ body: @escaping () -> Void) {
+    @objc private dynamic func startThread(named name: String, _ body: @escaping () -> Void) {
         let thread = Thread(block: body)
         thread.name = name
         thread.start()

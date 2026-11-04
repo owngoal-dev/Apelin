@@ -543,8 +543,8 @@ final class SignInRun: @unchecked Sendable {
     private let lock = NSLock()
     private var keyWaiter: CheckedContinuation<[AgentSignInField: String], Error>?
     private var keys: [AgentSignInField: String]?
-    private var cancelled = false
-    private var deviceCode = false
+    @objc private dynamic var cancelled = false
+    @objc private dynamic var deviceCode = false
     private var listener: PasteableLoopback?
 
     init(taskID: TaskID, provider: AgentProvider, method: AgentSignInMethod) {
@@ -558,19 +558,19 @@ final class SignInRun: @unchecked Sendable {
         set { lock.withLock { listener = newValue } }
     }
 
-    var hasAnnouncedDeviceCode: Bool {
+    @objc dynamic var hasAnnouncedDeviceCode: Bool {
         lock.withLock { deviceCode }
     }
 
-    var isCancelled: Bool {
+    @objc dynamic var isCancelled: Bool {
         lock.withLock { cancelled }
     }
 
-    func announcedDeviceCode() {
+    @objc dynamic func announcedDeviceCode() {
         lock.withLock { deviceCode = true }
     }
 
-    func cancel() {
+    @objc dynamic func cancel() {
         let waiter = lock.withLock { () -> CheckedContinuation<[AgentSignInField: String], Error>? in
             cancelled = true
             defer { keyWaiter = nil }

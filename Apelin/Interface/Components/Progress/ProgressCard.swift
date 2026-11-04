@@ -75,12 +75,12 @@ private final class ProgressCardController: UIViewController {
         didSet { update() }
     }
 
-    var onCancel: () -> Void = {}
+    @objc dynamic var onCancel: () -> Void = {}
 
     private let cancellable: Bool
-    private var isFinished = false
-    private var isShown = false
-    private var isClosing = false
+    @objc private dynamic var isFinished = false
+    @objc private dynamic var isShown = false
+    @objc private dynamic var isClosing = false
     private var dismissed: [CheckedContinuation<Void, Never>] = []
 
     private let titleLabel = UILabel()
@@ -103,7 +103,7 @@ private final class ProgressCardController: UIViewController {
         fatalError("Use init(title:status:cancellable:)")
     }
 
-    func present(after delay: TimeInterval, from presenter: UIViewController) {
+    @objc dynamic func present(after delay: TimeInterval, from presenter: UIViewController) {
         Task { @MainActor [weak self, weak presenter] in
             try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
             guard let self, !isFinished, let presenter, presenter.viewIfLoaded?.window != nil,
@@ -143,7 +143,7 @@ private final class ProgressCardController: UIViewController {
         waiting.forEach { $0.resume() }
     }
 
-    private func build() {
+    @objc private dynamic func build() {
         view.backgroundColor = AlertControllerConfiguration.backgroundColor.withAlphaComponent(0.5)
         let material = UIVisualEffectView(effect: UIBlurEffect(style: .systemMaterial))
         view.addSubview(material)
@@ -239,7 +239,7 @@ private final class ProgressCardController: UIViewController {
         }
     }
 
-    private func update() {
+    @objc private dynamic func update() {
         guard isViewLoaded, !isClosing else { return }
         subtitleLabel.text = status.subtitle.isEmpty ? String(localized: "Preparing…") : status.subtitle
         if let fraction = status.fraction {
@@ -256,7 +256,7 @@ private final class ProgressCardController: UIViewController {
         countLabel.isHidden = status.count?.isEmpty != false
     }
 
-    private func close() {
+    @objc private dynamic func close() {
         guard !isClosing, let alert = parent else { return }
         isClosing = true
         cancelButton.isEnabled = false

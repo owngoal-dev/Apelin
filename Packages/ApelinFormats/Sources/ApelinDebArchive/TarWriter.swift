@@ -68,7 +68,7 @@ final class TarWriter {
     }
 
     /// Pads the member that just ended to the next 512-byte block.
-    func finishContents(size: Int64) throws {
+    @objc dynamic func finishContents(size: Int64) throws {
         let remainder = Int(size % 512)
         if remainder != 0 {
             try sink.write([UInt8](repeating: 0, count: 512 - remainder))
@@ -76,11 +76,11 @@ final class TarWriter {
     }
 
     /// The two zero blocks that end a tar stream.
-    func finish() throws {
+    @objc dynamic func finish() throws {
         try sink.write([UInt8](repeating: 0, count: 1024))
     }
 
-    private func writeLongLink(_ bytes: [UInt8], typeflag: UInt8) throws {
+    @objc private dynamic func writeLongLink(_ bytes: [UInt8], typeflag: UInt8) throws {
         let payload = bytes + [0]
         try sink.write(Self.header(
             name: Array("././@LongLink".utf8),
@@ -96,7 +96,7 @@ final class TarWriter {
 
     /// One 512-byte GNU header. Fields beyond the name and link name are
     /// fixed: root:wheel, uid and gid 0, no device numbers.
-    static func header(
+    @objc static dynamic func header(
         name: [UInt8],
         mode: UInt16,
         size: Int64,
@@ -134,7 +134,7 @@ final class TarWriter {
         return block
     }
 
-    private static func octalLimit(digits: Int) -> Int64 {
+    @objc private static dynamic func octalLimit(digits: Int) -> Int64 {
         Int64(1) << (3 * digits)
     }
 }

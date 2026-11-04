@@ -50,11 +50,11 @@ final class ComposerAttachmentPreview: QLPreviewController, QLPreviewControllerD
 
     deinit { try? FileManager.default.removeItem(at: directory) }
 
-    func numberOfPreviewItems(in _: QLPreviewController) -> Int {
+    @objc dynamic func numberOfPreviewItems(in _: QLPreviewController) -> Int {
         files.count
     }
 
-    func previewController(_: QLPreviewController, previewItemAt index: Int) -> QLPreviewItem {
+    @objc dynamic func previewController(_: QLPreviewController, previewItemAt index: Int) -> QLPreviewItem {
         files[index] as NSURL
     }
 }

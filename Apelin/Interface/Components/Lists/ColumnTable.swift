@@ -106,7 +106,7 @@ final class ColumnTableMetrics {
         return (name, columns, symbol)
     }
 
-    private static func width(of text: String, in font: UIFont) -> CGFloat {
+    @objc private dynamic static func width(of text: String, in font: UIFont) -> CGFloat {
         ceil((text as NSString).size(withAttributes: [.font: font]).width)
     }
 }
@@ -119,7 +119,7 @@ final class ColumnTableHeaderView: UITableViewHeaderFooterView {
     private static let bottomSpacing: CGFloat = 7
 
     private let nameLabel = UILabel()
-    private var titleLabels: [UILabel] = []
+    @objc private dynamic var titleLabels: [UILabel] = []
     private var metrics: ColumnTableMetrics?
 
     override init(reuseIdentifier: String?) {
@@ -182,13 +182,13 @@ final class ColumnTableCell: UITableViewCell {
 
     private let nameLabel = UILabel()
     private let subtitleLabel = UILabel()
-    private var valueLabels: [UILabel] = []
+    @objc private dynamic var valueLabels: [UILabel] = []
     private let symbolView = UIImageView().then {
         $0.contentMode = .center
     }
 
     private var metrics: ColumnTableMetrics?
-    private var titles: [String] = []
+    @objc private dynamic var titles: [String] = []
 
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
@@ -310,7 +310,7 @@ final class ColumnTableCell: UITableViewCell {
         }
     }
 
-    private func pixelAligned(_ value: CGFloat) -> CGFloat {
+    @objc private dynamic func pixelAligned(_ value: CGFloat) -> CGFloat {
         let scale = max(traitCollection.displayScale, 1)
         return (value * scale).rounded() / scale
     }

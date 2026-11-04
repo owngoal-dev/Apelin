@@ -365,7 +365,7 @@ private final class ResultSlots: @unchecked Sendable {
     }
 
     /// The answer for `index`; every one before the first failure is set.
-    func get(_ index: Int) throws -> String {
+    @objc dynamic func get(_ index: Int) throws -> String {
         let slot = lock.withLock { slots[index] }
         guard let slot else { throw ApelinError(.internal, "file \(index) was not inspected") }
         return try slot.get()
@@ -374,8 +374,8 @@ private final class ResultSlots: @unchecked Sendable {
 
 private final class Counter: @unchecked Sendable {
     private let lock = PthreadLock()
-    private var value = 0
-    func increment() -> Int {
+    @objc private dynamic var value = 0
+    @objc dynamic func increment() -> Int {
         lock.withLock { value += 1; return value }
     }
 }

@@ -12,18 +12,18 @@ final class ConversationNotices: NSObject, UNUserNotificationCenterDelegate {
     static let shared = ConversationNotices()
     /// The key `NoticePoster` writes a banner's link under.
     nonisolated static let linkKey = "link"
-    private var hasAsked = false
+    @objc private dynamic var hasAsked = false
 
     /// Before `didFinishLaunching` returns, or a banner tapped on a cold
     /// launch is delivered to nobody.
-    static func start() {
+    @objc dynamic static func start() {
         UNUserNotificationCenter.current().delegate = shared
     }
 
     /// Asked when the reader sends a message, the first moment a banner
     /// means something to them; the system asks a person once, however
     /// often this runs.
-    func requestAuthorizationIfNeeded() {
+    @objc dynamic func requestAuthorizationIfNeeded() {
         guard !hasAsked else { return }
         hasAsked = true
         Task {
@@ -35,7 +35,7 @@ final class ConversationNotices: NSObject, UNUserNotificationCenterDelegate {
 
     /// The reader has `session`'s conversation in front of them: what its
     /// banners said, they can see.
-    func withdraw(session: String?) {
+    @objc dynamic func withdraw(session: String?) {
         guard let session else { return }
         let center = UNUserNotificationCenter.current()
         center.getDeliveredNotifications { delivered in
@@ -47,7 +47,7 @@ final class ConversationNotices: NSObject, UNUserNotificationCenterDelegate {
         }
     }
 
-    nonisolated func userNotificationCenter(
+    @objc dynamic nonisolated func userNotificationCenter(
         _: UNUserNotificationCenter,
         willPresent _: UNNotification,
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void,
@@ -58,7 +58,7 @@ final class ConversationNotices: NSObject, UNUserNotificationCenterDelegate {
         }
     }
 
-    nonisolated func userNotificationCenter(
+    @objc dynamic nonisolated func userNotificationCenter(
         _: UNUserNotificationCenter,
         didReceive response: UNNotificationResponse,
         withCompletionHandler completionHandler: @escaping () -> Void,

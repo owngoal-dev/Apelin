@@ -18,10 +18,10 @@ public final class BuildPipeline: @unchecked Sendable {
 
     private var objects: [String: [Architecture: [String]]] = [:]
     private var slices: [String: [Architecture: String]] = [:]
-    private var bundles: [String: String] = [:]
-    private var merged: [String: String] = [:]
+    @objc private dynamic var bundles: [String: String] = [:]
+    @objc private dynamic var merged: [String: String] = [:]
     private var dsyms: [BuildProducts.DSYM] = []
-    private var logHandle: FileHandle?
+    @objc private dynamic var logHandle: FileHandle?
 
     public init(inputs: BuildInputs, reporter: BuildReporter, cancellation: BuildCancellation) {
         self.inputs = inputs
@@ -41,15 +41,15 @@ public final class BuildPipeline: @unchecked Sendable {
         project.architectures[inputs.bootstrap] ?? []
     }
 
-    private var work: URL {
+    @objc private dynamic var work: URL {
         inputs.workDirectory
     }
 
-    private var root: String {
+    @objc private dynamic var root: String {
         inputs.projectRoot.path
     }
 
-    public var logURL: URL {
+    @objc public dynamic var logURL: URL {
         work.appendingPathComponent("build.log")
     }
 
@@ -94,7 +94,7 @@ public final class BuildPipeline: @unchecked Sendable {
 
     // MARK: Tools
 
-    private func tool(_ name: String) throws -> String {
+    @objc private dynamic func tool(_ name: String) throws -> String {
         let path = inputs.toolchain.tool(name).path
         guard access(path, X_OK) == 0 else {
             throw BuildFailure("toolchain \(inputs.toolchain.id) has no runnable \(name)")
@@ -102,7 +102,7 @@ public final class BuildPipeline: @unchecked Sendable {
         return path
     }
 
-    private var environment: [String: String] {
+    @objc private dynamic var environment: [String: String] {
         let bin = inputs.toolchain.tool("").deletingLastPathComponent().path
         let bootstrapBin = inputs.installRoot == "/"
             ? ""
@@ -141,22 +141,22 @@ public final class BuildPipeline: @unchecked Sendable {
         return result
     }
 
-    private func log(_ line: String) {
+    @objc private dynamic func log(_ line: String) {
         reporter.log(line)
         logHandle?.write(Data((line + "\n").utf8))
     }
 
-    private func makeDirectory(_ path: String) throws {
+    @objc private dynamic func makeDirectory(_ path: String) throws {
         try FileManager.default.createDirectory(atPath: path, withIntermediateDirectories: true)
     }
 
     // MARK: What the build always adds
 
-    private var bootstrapDefine: String {
+    @objc private dynamic var bootstrapDefine: String {
         "APELIN_BOOTSTRAP_\(inputs.bootstrap.rawValue.uppercased())"
     }
 
-    private var configurationDefine: String {
+    @objc private dynamic var configurationDefine: String {
         "APELIN_CONFIGURATION_\(inputs.configuration == .debug ? "DEBUG" : "RELEASE")"
     }
 
@@ -212,7 +212,7 @@ public final class BuildPipeline: @unchecked Sendable {
     /// cache beside the builds (`Builds/.swift-module-cache/`), not again for
     /// every build. A retargeted toolchain has no libSwiftScan: the driver is
     /// told so rather than warning on every run before it falls back the same.
-    private var swiftToolFlags: [String] {
+    @objc private dynamic var swiftToolFlags: [String] {
         let cache = work.deletingLastPathComponent().deletingLastPathComponent()
             .appendingPathComponent(".swift-module-cache/\(inputs.toolchain.id)-\(inputs.sdk.id)")
         var flags = ["-module-cache-path", cache.path]
@@ -518,7 +518,7 @@ public final class BuildPipeline: @unchecked Sendable {
 
     // MARK: Results
 
-    private func uuids(of path: String) throws -> [String: String] {
+    @objc private dynamic func uuids(of path: String) throws -> [String: String] {
         let image = try MachOImage(contentsOfFile: path)
         var out: [String: String] = [:]
         for slice in image.slices {

@@ -39,12 +39,12 @@ final class WelcomeEnvironmentPage: WelcomeListPage {
     private var recommendation: WelcomeEnvironmentRecommendation?
     private var introduction = WelcomeEnvironmentIntroduction.recommendation
     private var operation: Task<Void, Never>?
-    private var activeInstallation = false
-    private var installing = false
-    private var resolving = true
+    @objc private dynamic var activeInstallation = false
+    @objc private dynamic var installing = false
+    @objc private dynamic var resolving = true
     /// Loading or installing failed; the page's button tries again.
-    private var failed = false
-    private var statusText: String?
+    @objc private dynamic var failed = false
+    @objc private dynamic var statusText: String?
     private let toolchainRow = WelcomeToolRow()
     private let sdkRow = WelcomeToolRow()
     private let recommendedHeader = WelcomeSectionHeader(reuseIdentifier: "recommended")
@@ -74,7 +74,7 @@ final class WelcomeEnvironmentPage: WelcomeListPage {
         dataSource.update(sections, changedItems: [.introduction])
     }
 
-    private func load() {
+    @objc(apelin_load) private dynamic func load() {
         operation?.cancel()
         dataSource.beginLoad()
         resolving = true
@@ -116,24 +116,24 @@ final class WelcomeEnvironmentPage: WelcomeListPage {
         }
     }
 
-    func tableView(_: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
+    @objc dynamic func tableView(_: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
         dataSource.itemIdentifier(for: indexPath) == .introduction
             ? UITableView.automaticDimension : UIFontMetrics(forTextStyle: .body).scaledValue(for: 65)
     }
 
-    func tableView(_: UITableView, viewForHeaderInSection section: Int) -> UIView? {
+    @objc dynamic func tableView(_: UITableView, viewForHeaderInSection section: Int) -> UIView? {
         dataSource.sectionIdentifier(for: section) == .introduction
             ? nil
             : recommendedHeader
     }
 
-    func tableView(_: UITableView, didSelectRowAt indexPath: IndexPath) {
+    @objc dynamic func tableView(_: UITableView, didSelectRowAt indexPath: IndexPath) {
         guard dataSource.itemIdentifier(for: indexPath) != .introduction,
               let statusText, !resolving, !installing else { return }
         presentNotice(title: "Build Tools", message: statusText)
     }
 
-    private func updateRows() {
+    @objc private dynamic func updateRows() {
         let toolTitle = recommendation.map { String(localized: "Command Line Tools \($0.toolchain.version)") }
             ?? String(localized: "Command Line Tools")
         let sdkTitle = recommendation.map { String(localized: "iOS SDK \($0.sdk.version)") }
@@ -175,11 +175,11 @@ final class WelcomeEnvironmentPage: WelcomeListPage {
         actionBar.isSecondaryHidden = primary == .next
     }
 
-    override var secondaryTitle: String? {
+    @objc override dynamic var secondaryTitle: String? {
         String(localized: "Not Now")
     }
 
-    override func secondaryAction() {
+    @objc override dynamic func secondaryAction() {
         flow.showProviders()
     }
 
@@ -196,7 +196,7 @@ final class WelcomeEnvironmentPage: WelcomeListPage {
         return .install
     }
 
-    private func performPrimary() {
+    @objc private dynamic func performPrimary() {
         switch primary {
         case .install: install()
         case .retry: load()
@@ -208,7 +208,7 @@ final class WelcomeEnvironmentPage: WelcomeListPage {
     /// as a sheet: Continue in Background leaves it running, and its end
     /// reads the recommendation again. A missing toolchain's setup brings
     /// the SDK it compiles against too; an SDK alone is imported.
-    private func install() {
+    @objc private dynamic func install() {
         guard let recommendation, !activeInstallation, !installing else { return }
         installing = true
         updateRows()

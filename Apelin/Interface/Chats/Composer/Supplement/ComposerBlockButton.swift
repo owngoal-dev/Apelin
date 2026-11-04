@@ -5,7 +5,7 @@ import UIKit
 
 /// FlowDown's BlockButton geometry, shared by the composer's small controls.
 final class ComposerBlockButton: UIButton {
-    var borderColor: UIColor = .label.withAlphaComponent(0.1) {
+    @objc dynamic var borderColor: UIColor = .label.withAlphaComponent(0.1) {
         didSet { applyAppearance() }
     }
 
@@ -42,7 +42,7 @@ final class ComposerBlockButton: UIButton {
         fatalError("Use init(text:image:)")
     }
 
-    func setText(_ text: String) {
+    @objc dynamic func setText(_ text: String) {
         textLabel.text = text
         invalidateIntrinsicContentSize()
         setNeedsLayout()
@@ -72,7 +72,7 @@ final class ComposerBlockButton: UIButton {
         applyAppearance()
     }
 
-    private func applyAppearance() {
+    @objc dynamic private func applyAppearance() {
         borderView.layer.borderColor = borderColor.resolvedColor(with: traitCollection).cgColor
         iconView.tintColor = tintColor
         textLabel.textColor = tintColor

@@ -27,7 +27,7 @@ private final class PathMonitor: @unchecked Sendable {
     static let shared = PathMonitor()
     private let monitor = NWPathMonitor()
     private let lock = NSLock()
-    private var unsatisfied = false
+    @objc private dynamic var unsatisfied = false
 
     private init() {
         monitor.pathUpdateHandler = { [weak self] path in
@@ -37,11 +37,11 @@ private final class PathMonitor: @unchecked Sendable {
     }
 
     /// A path that needs a connection counts: the request may bring it up.
-    var isSatisfied: Bool {
+    @objc dynamic var isSatisfied: Bool {
         lock.withLock { !unsatisfied }
     }
 
-    private func update(unsatisfied: Bool) {
+    @objc private dynamic func update(unsatisfied: Bool) {
         lock.withLock { self.unsatisfied = unsatisfied }
     }
 }

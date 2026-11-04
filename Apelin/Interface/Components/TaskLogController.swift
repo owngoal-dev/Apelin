@@ -8,11 +8,11 @@ import UIKit
 /// the same once it is over. The share button hands the text on.
 final class TaskLogController: UIViewController {
     private let tableView = FirstFillTableView(frame: .zero, style: .plain)
-    private var lines: [String]
+    @objc private dynamic var lines: [String]
     /// A refresh asked for while one is waiting is folded into it: lines
     /// arrive in bursts while a download counts.
-    private var refreshPending = false
-    private var displayedLines: [String] = []
+    @objc private dynamic var refreshPending = false
+    @objc private dynamic var displayedLines: [String] = []
     private let pacing = ListPacing()
 
     private lazy var dataSource = UITableViewDiffableDataSource<Int, Int>(
@@ -62,7 +62,7 @@ final class TaskLogController: UIViewController {
 
     /// The task's lines so far; the table catches up at most ten times a
     /// second and always ends on the latest.
-    func update(_ lines: [String]) {
+    @objc dynamic func update(_ lines: [String]) {
         self.lines = lines
         guard isViewLoaded, !refreshPending else { return }
         refreshPending = true
@@ -72,7 +72,7 @@ final class TaskLogController: UIViewController {
         }
     }
 
-    private func share() {
+    @objc private dynamic func share() {
         let share = UIActivityViewController(activityItems: [lines.joined(separator: "\n")], applicationActivities: nil)
         share.popoverPresentationController?.barButtonItem = navigationItem.rightBarButtonItem
         present(share, animated: true)
@@ -80,7 +80,7 @@ final class TaskLogController: UIViewController {
 
     /// Follows the end only while the end is in sight and nobody is
     /// scrolling: reading back up is not interrupted.
-    private func apply() {
+    @objc private dynamic func apply() {
         let previous = dataSource.snapshot()
         let lastVisible = previous.itemIdentifiers.last.map {
             tableView.indexPathsForVisibleRows?.contains(IndexPath(row: $0, section: 0)) == true
@@ -154,7 +154,7 @@ private final class TaskLogCell: UITableViewCell {
         fatalError("Use init(style:reuseIdentifier:)")
     }
 
-    func configure(number: Int, message: String) {
+    @objc dynamic func configure(number: Int, message: String) {
         numberLabel.text = String(number)
         messageLabel.text = message
         accessibilityLabel = message

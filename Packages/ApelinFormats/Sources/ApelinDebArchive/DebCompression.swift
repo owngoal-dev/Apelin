@@ -51,7 +51,7 @@ final class CompressingSink: ByteSink {
     /// libarchive calls back into this with the compressed bytes.
     private final class Output {
         let next: ByteSink
-        var failure: Error?
+        @objc dynamic var failure: Error?
 
         init(next: ByteSink) {
             self.next = next
@@ -137,15 +137,15 @@ final class CompressingSink: ByteSink {
     }
 
     /// Flushes the compressor's tail. Nothing may be written after this.
-    func finish() throws {
+    @objc dynamic func finish() throws {
         try check(archive_write_close(archive))
     }
 
-    private func check(_ status: Int32) throws {
+    @objc private dynamic func check(_ status: Int32) throws {
         guard status == ARCHIVE_OK else { throw failure() }
     }
 
-    private func failure() -> Error {
+    @objc private dynamic func failure() -> Error {
         if let error = output.failure {
             return error
         }

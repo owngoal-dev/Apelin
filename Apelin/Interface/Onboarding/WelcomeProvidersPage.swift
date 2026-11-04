@@ -29,7 +29,7 @@ final class WelcomeProvidersPage: WelcomeListPage {
         self?.cell(for: row)
     }
 
-    private func updateRows() {
+    @objc private dynamic func updateRows() {
         dataSource.update([(0, [.introduction]), (1, entries.map { entry in
             Row.provider(
                 entry.1,
@@ -81,18 +81,18 @@ final class WelcomeProvidersPage: WelcomeListPage {
         return cell
     }
 
-    func tableView(_: UITableView, viewForFooterInSection section: Int) -> UIView? {
+    @objc dynamic func tableView(_: UITableView, viewForFooterInSection section: Int) -> UIView? {
         guard dataSource.sectionIdentifier(for: section) == 1 else { return nil }
         return text(.groupedFooter(), String(localized: "You can add more providers later in Settings."))
     }
 
-    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+    @objc dynamic func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
         guard case let .provider(provider, _, _)? = dataSource.value(at: indexPath) else { return }
         signIn(provider)
     }
 
-    private func load() {
+    @objc(apelin_load) private dynamic func load() {
         loader?.cancel()
         dataSource.beginLoad()
         loader = Task { [weak self] in

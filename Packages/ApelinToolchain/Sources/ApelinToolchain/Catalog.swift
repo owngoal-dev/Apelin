@@ -300,9 +300,9 @@ private final class RangeReceiver: NSObject, URLSessionDataDelegate, @unchecked 
     private let expected: Int
     private let lock = NSLock()
     private var data = Data()
-    private var response: URLResponse?
-    private var overrun = false
-    private var rejected = false
+    @objc private dynamic var response: URLResponse?
+    @objc private dynamic var overrun = false
+    @objc private dynamic var rejected = false
     private var continuation: CheckedContinuation<(Data, URLResponse), Error>?
     /// The answer, once the request completed. A request cancelled before `run` stored its
     /// continuation can complete first; `run` then answers with this instead of waiting.
@@ -333,7 +333,7 @@ private final class RangeReceiver: NSObject, URLSessionDataDelegate, @unchecked 
         } onCancel: { task.cancel() }
     }
 
-    func urlSession(
+    @objc dynamic func urlSession(
         _: URLSession,
         dataTask _: URLSessionDataTask,
         didReceive response: URLResponse,
@@ -351,7 +351,7 @@ private final class RangeReceiver: NSObject, URLSessionDataDelegate, @unchecked 
         completionHandler(partial ? .allow : .cancel)
     }
 
-    func urlSession(_: URLSession, dataTask: URLSessionDataTask, didReceive chunk: Data) {
+    @objc dynamic func urlSession(_: URLSession, dataTask: URLSessionDataTask, didReceive chunk: Data) {
         let over = lock.withLock { () -> Bool in
             guard !overrun else { return true }
             if data.count + chunk.count > expected {
@@ -365,7 +365,7 @@ private final class RangeReceiver: NSObject, URLSessionDataDelegate, @unchecked 
         }
     }
 
-    func urlSession(_: URLSession, task _: URLSessionTask, didCompleteWithError error: Error?) {
+    @objc dynamic func urlSession(_: URLSession, task _: URLSessionTask, didCompleteWithError error: Error?) {
         let (continuation, result) = lock.withLock { () -> (CheckedContinuation<(Data, URLResponse), Error>?, Result<(Data, URLResponse), Error>) in
             let result: Result<(Data, URLResponse), Error> =
                 if overrun {

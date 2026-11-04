@@ -112,12 +112,12 @@ final class MessageAttachmentPreviews {
         }
     }
 
-    private func store(_ result: Result, for id: UUID) {
+    @objc dynamic private func store(_ result: Result, for id: UUID) {
         let cost = result.image?.cgImage.map { $0.bytesPerRow * $0.height } ?? 1
         cache.setObject(result, forKey: id as NSUUID, cost: cost)
     }
 
-    private func finish(_ image: UIImage?, for id: UUID) {
+    @objc dynamic private func finish(_ image: UIImage?, for id: UUID) {
         store(Result(image), for: id)
         let callbacks = pending.removeValue(forKey: id) ?? []
         callbacks.forEach { $0() }

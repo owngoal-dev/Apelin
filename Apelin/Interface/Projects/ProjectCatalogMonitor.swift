@@ -11,11 +11,11 @@ final class ProjectCatalogMonitor {
 
     deinit { sources.forEach { $0.cancel() }; pending?.cancel() }
 
-    func start() {
+    @objc dynamic func start() {
         updateWatches()
     }
 
-    private func updateWatches() {
+    @objc private dynamic func updateWatches() {
         sources.forEach { $0.cancel() }
         sources = []
         var paths = CanonicalPath.resolve(DataFolder.app.root.path).map { [$0] } ?? []
@@ -48,7 +48,7 @@ final class ProjectCatalogMonitor {
         }
     }
 
-    private func changed() {
+    @objc private dynamic func changed() {
         pending?.cancel()
         let work = DispatchWorkItem { [weak self] in
             guard let self else { return }

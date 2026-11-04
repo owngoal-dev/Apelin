@@ -8,7 +8,7 @@ final class ComposerGiantButton: UIButton {
     private let iconView = UIImageView()
     private let backgroundView = UIView()
     private let labelView = UILabel()
-    var actionBlock: () -> Void = {}
+    @objc dynamic var actionBlock: () -> Void = {}
 
     init(title: String, icon: String) {
         super.init(frame: .zero)
@@ -40,7 +40,7 @@ final class ComposerGiantButton: UIButton {
         fatalError("Use init(title:icon:)")
     }
 
-    @objc private func onTapped() {
+    @objc dynamic private func onTapped() {
         actionBlock()
     }
 

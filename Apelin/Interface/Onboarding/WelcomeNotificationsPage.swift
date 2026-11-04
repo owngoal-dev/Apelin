@@ -17,11 +17,11 @@ import UserNotifications
 /// stages were.
 final class WelcomeNotificationsPage: UIViewController {
     private let flow: WelcomeFlow
-    private var authorization: UNAuthorizationStatus = .notDetermined
+    @objc private dynamic var authorization: UNAuthorizationStatus = .notDetermined
     private var request: Task<Void, Never>?
     deinit { request?.cancel(); NotificationCenter.default.removeObserver(self) }
 
-    private lazy var actionBar = WelcomeActionBar(
+    @objc private dynamic lazy var actionBar = WelcomeActionBar(
         title: String(localized: "Turn On Notifications"),
         secondaryTitle: String(localized: "Not Now"),
         action: { [weak self] in self?.turnOn() },
@@ -65,7 +65,7 @@ final class WelcomeNotificationsPage: UIViewController {
         [UIKeyCommand(input: "\r", modifierFlags: [], action: #selector(activatePrimaryButton))]
     }
 
-    @objc private func activatePrimaryButton() {
+    @objc private dynamic func activatePrimaryButton() {
         actionBar.activate()
     }
 
@@ -73,7 +73,7 @@ final class WelcomeNotificationsPage: UIViewController {
 
     /// The switch in Settings is what the answer becomes, either way: a
     /// refusal leaves it off rather than on and silent.
-    @objc private func refreshAuthorization() {
+    @objc private dynamic func refreshAuthorization() {
         guard actionBar.isEnabled else { return }
         request?.cancel()
         request = Task { [weak self] in
@@ -88,7 +88,7 @@ final class WelcomeNotificationsPage: UIViewController {
         }
     }
 
-    private func turnOn() {
+    @objc private dynamic func turnOn() {
         switch authorization {
         case .authorized, .provisional, .ephemeral: flow.showCaution()
         case .denied:
@@ -110,13 +110,13 @@ final class WelcomeNotificationsPage: UIViewController {
         }
     }
 
-    private func decline() {
+    @objc private dynamic func decline() {
         flow.showCaution()
     }
 
     // MARK: Layout
 
-    private func setupLayout() {
+    @objc private dynamic func setupLayout() {
         let heading = UILabel().then {
             $0.text = String(localized: "Notifications")
             $0.font = WelcomeStyle.titleFont
