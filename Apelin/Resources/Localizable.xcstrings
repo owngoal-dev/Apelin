@@ -1,6 +1,90 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Apelin cannot build on roothide Bootstrap. Bootstrap runs only programs it signs itself, and it does not sign Apelin’s build tools or the programs they build." : {
+      "comment" : "apelin-environment's and apelin-build's refusal on roothide Bootstrap (HostSigning.bootstrapRefusal in ApelinCore), shown in alerts and on the Build Tools welcome page. The key must stay that text.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لا يمكن لـ Apelin البناء على roothide Bootstrap. لا يشغّل Bootstrap إلا البرامج التي يوقّعها بنفسه، ولا يوقّع أدوات البناء في Apelin ولا البرامج المبنية بها."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apelin kann auf roothide Bootstrap nicht bauen. Bootstrap führt nur Programme aus, die es selbst signiert, und signiert weder die Build-Tools von Apelin noch die damit gebauten Programme."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apelin cannot build on roothide Bootstrap. Bootstrap runs only programs it signs itself, and it does not sign Apelin’s build tools or the programs they build."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apelin no puede compilar en roothide Bootstrap. Bootstrap solo ejecuta programas que firma él mismo, y no firma las herramientas de compilación de Apelin ni los programas compilados con ellas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apelin ne peut pas compiler sur roothide Bootstrap. Bootstrap n’exécute que les programmes qu’il signe lui-même, et il ne signe ni les outils de compilation d’Apelin ni les programmes compilés avec eux."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apelin non può compilare su roothide Bootstrap. Bootstrap esegue solo i programmi che firma da sé e non firma né gli strumenti di compilazione di Apelin né i programmi compilati con essi."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apelin は roothide Bootstrap 上ではビルドできません。Bootstrap は自身が署名したプログラムしか実行せず、Apelin のビルドツールやそれでビルドしたプログラムには署名しません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apelin은 roothide Bootstrap에서 빌드할 수 없습니다. Bootstrap은 직접 서명한 프로그램만 실행하며, Apelin의 빌드 도구나 이 도구로 빌드한 프로그램에는 서명하지 않습니다."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Apelin não pode compilar no roothide Bootstrap. O Bootstrap só executa programas que ele mesmo assina e não assina as ferramentas de compilação do Apelin nem os programas compilados com elas."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apelin не может собирать программы в roothide Bootstrap. Bootstrap запускает только программы, которые подписывает сам, а инструменты сборки Apelin и собранные ими программы он не подписывает."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apelin không thể xây dựng trên roothide Bootstrap. Bootstrap chỉ chạy các chương trình do chính nó ký và không ký công cụ xây dựng của Apelin hay các chương trình được xây dựng bằng chúng."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apelin 无法在 roothide Bootstrap 上构建。Bootstrap 只运行由它自己签名的程序，而它不会为 Apelin 的构建工具及其构建出的程序签名。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apelin 無法在 roothide Bootstrap 上建置。Bootstrap 只會執行由它自己簽署的程式，而它不會為 Apelin 的建置工具及其建置出的程式簽署。"
+          }
+        }
+      }
+    },
     "OpenCode Go" : {
       "extractionState" : "manual",
       "shouldTranslate" : false

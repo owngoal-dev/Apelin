@@ -53,11 +53,13 @@ public struct ToolchainService: Sendable {
     /// the app to pick from. A product Apelin has not reviewed (12.4, a
     /// release it dropped, one it never took) is left out: setup still
     /// refuses it by ID with its reason. A reviewed one this device cannot
-    /// run stays, with that reason.
+    /// run stays, with that reason; on roothide Bootstrap, which runs none,
+    /// every one carries that one reason.
     public func catalog() async throws -> ToolchainCatalogResponse {
         guard backend.isAvailable else {
             throw ApelinError(.unavailable, UnavailableToolchainBackend.setupUnavailable)
         }
+        let signing = HostSigning.toolchainRefusal(installRoot: layout.installRoot)
         let products = try await backend.catalog()
             .filter { $0.reviewed != false }
             .sorted { Self.versionOrder($1.version, $0.version) }
@@ -66,7 +68,8 @@ public struct ToolchainService: Sendable {
                     productID: $0.productID,
                     version: $0.version,
                     size: $0.size,
-                    unsupportedReason: $0.unsupportedReason
+                    unsupportedReason: signing
+                        ?? $0.unsupportedReason
                         ?? $0.compatibility?.unavailableReason
                         ?? HostCPU.toolchainRefusal,
                     newestSDK: $0.newestSDK,
@@ -98,8 +101,9 @@ public struct ToolchainService: Sendable {
         guard backend.isAvailable else {
             throw ApelinError(.unavailable, UnavailableToolchainBackend.setupUnavailable)
         }
-        // the tools' machine code is the M1's: some CPUs cannot run them
-        if let refusal = HostCPU.toolchainRefusal {
+        // nothing Apelin signs runs on roothide Bootstrap, and the tools'
+        // machine code is the M1's, which some CPUs cannot run
+        if let refusal = HostSigning.toolchainRefusal(installRoot: layout.installRoot) ?? HostCPU.toolchainRefusal {
             throw ApelinError(.unavailable, refusal)
         }
         guard case .appleCatalog = request.source else {

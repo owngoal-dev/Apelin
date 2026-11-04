@@ -6,7 +6,8 @@ import UIKit
 
 /// The recommended toolchain and SDK for this device. The page's button
 /// installs them while anything is missing and moves on once both are in;
-/// Not Now skips the step, and Retry follows a failure.
+/// Not Now skips the step, and Retry follows a failure. Where every release
+/// is refused for one reason, the page says that reason and lists nothing.
 final class WelcomeEnvironmentPage: WelcomeListPage {
     private enum Section: Hashable { case introduction, recommended }
     private enum Row: Hashable { case introduction, toolchain, sdk }
@@ -19,7 +20,12 @@ final class WelcomeEnvironmentPage: WelcomeListPage {
         case .introduction:
             let cell = UITableViewCell(style: .default, reuseIdentifier: nil)
             var content = UIListContentConfiguration.cell()
-            content.text = String(localized: "A compatible toolchain and iOS SDK, selected for this device. You can also install them later in Settings.")
+            content.text = switch self?.introduction {
+            // the service's own words, read in the user's language when
+            // the catalogue has them (roothide Bootstrap's)
+            case let .refusal(reason)?: String(localized: String.LocalizationValue(reason))
+            default: String(localized: "A compatible toolchain and iOS SDK, selected for this device. You can also install them later in Settings.")
+            }
             content.textProperties.font = .preferredFont(forTextStyle: .body)
             content.textProperties.numberOfLines = 0
             cell.contentConfiguration = content
@@ -31,6 +37,7 @@ final class WelcomeEnvironmentPage: WelcomeListPage {
     }
 
     private var recommendation: WelcomeEnvironmentRecommendation?
+    private var introduction = WelcomeEnvironmentIntroduction.recommendation
     private var operation: Task<Void, Never>?
     private var activeInstallation = false
     private var installing = false
@@ -49,8 +56,22 @@ final class WelcomeEnvironmentPage: WelcomeListPage {
         title = String(localized: "Build Tools")
         next { [weak self] in self?.performPrimary() }
         updateRows()
-        dataSource.update([(.introduction, [.introduction]), (.recommended, [.toolchain, .sdk])])
+        dataSource.update(sections)
         load()
+    }
+
+    /// The pair's rows, unless the introduction says why there is none.
+    private var sections: [(Section, [Row])] {
+        switch introduction {
+        case .recommendation: [(.introduction, [.introduction]), (.recommended, [.toolchain, .sdk])]
+        case .refusal: [(.introduction, [.introduction])]
+        }
+    }
+
+    private func show(_ introduction: WelcomeEnvironmentIntroduction) {
+        guard introduction != self.introduction else { return }
+        self.introduction = introduction
+        dataSource.update(sections, changedItems: [.introduction])
     }
 
     private func load() {
@@ -75,6 +96,7 @@ final class WelcomeEnvironmentPage: WelcomeListPage {
                     sdks: values.2,
                 )
                 activeInstallation = !values.1.activeTasks.isEmpty || !values.2.activeTasks.isEmpty
+                show(WelcomeEnvironmentIntroduction(catalog: values.0.products))
                 if recommendation == nil {
                     statusText = String(localized: "No compatible versions are available. You can set up build tools later in Settings.")
                 } else if activeInstallation {
@@ -86,6 +108,8 @@ final class WelcomeEnvironmentPage: WelcomeListPage {
                 resolving = false
                 failed = true
                 recommendation = nil
+                // the rows say what failed, and Retry is for them
+                show(.recommendation)
                 statusText = String(localized: "Unable to load recommendations. Tap “Retry” or continue to set up later.")
                 updateRows()
             }

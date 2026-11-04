@@ -15,6 +15,30 @@ import Foundation
         precondition(resolve?.sdk.version == "27.0", "Reviewed pairing preferred to unverified point update")
         precondition(resolve?.sdk.installed == false)
         precondition(WelcomeEnvironmentRecommendation.resolve(catalog: [refused], status: .init(), sdks: sdks) == nil)
+        // Every release refused for one reason (roothide Bootstrap, issue
+        // #35): the page says it rather than pointing at Settings.
+        var bootstrap = [refused, c, swift]
+        for index in bootstrap.indices {
+            bootstrap[index].unsupportedReason = HostSigning.bootstrapRefusal
+        }
+        precondition(WelcomeEnvironmentRecommendation.resolve(catalog: bootstrap, status: .init(), sdks: sdks) == nil)
+        precondition(WelcomeEnvironmentRecommendation.commonRefusal(in: bootstrap) == HostSigning.bootstrapRefusal)
+        precondition(WelcomeEnvironmentRecommendation.commonRefusal(in: [refused, c]) == nil, "One release is set up")
+        precondition(WelcomeEnvironmentRecommendation.commonRefusal(in: [refused, bootstrap[1]]) == nil, "Two reasons")
+        precondition(WelcomeEnvironmentRecommendation.commonRefusal(in: []) == nil)
+        // ...and in place of its introduction, which promises Settings can
+        // install the tools later: there every release is refused too.
+        precondition(WelcomeEnvironmentIntroduction(catalog: bootstrap) == .refusal(HostSigning.bootstrapRefusal))
+        precondition(WelcomeEnvironmentIntroduction(catalog: [refused]) == .refusal("No host support"), "A CPU's reason too")
+        precondition(WelcomeEnvironmentIntroduction(catalog: [refused, c, swift]) == .recommendation)
+        precondition(WelcomeEnvironmentIntroduction(catalog: []) == .recommendation, "An empty catalog is no refusal")
+        // The app reads the service's refusal in the user's language only
+        // while the catalogue has it as a key, word for word.
+        let catalogue = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("Apelin/Resources/Localizable.xcstrings")
+        let strings = (try? JSONSerialization.jsonObject(with: Data(contentsOf: catalogue)) as? [String: Any])?["strings"] as? [String: Any]
+        precondition(strings?[HostSigning.bootstrapRefusal] != nil, "The catalogue keys roothide Bootstrap's refusal")
         precondition(WelcomeEnvironmentRecommendation.resolve(catalog: [swift], status: .init(), sdks: .init(sources: [.init(name: "Old", url: "https://example.com", enabled: true, branches: ["sdk/iPhoneOS18.5"])])) == nil, "Swift requires matching SDK major")
         let old = ToolchainCatalogProduct(productID: "old", version: "15.3", size: 1, newestSDK: "17.4", supportsSwift: false)
         let fallback = WelcomeEnvironmentRecommendation.resolve(catalog: [old], status: .init(), sdks: sdks)

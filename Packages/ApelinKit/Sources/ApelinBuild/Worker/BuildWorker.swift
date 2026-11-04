@@ -224,7 +224,7 @@ public final class BuildWorker: @unchecked Sendable {
         if let (_, root) = try? store.root(of: request.projectID), let manifest = Workspace.manifest(at: root) {
             return Self.workspaceCheck(manifest, root: root)
         }
-        let check = ProjectCheck(store: store, catalog: catalog, registry: registry)
+        let check = ProjectCheck(store: store, catalog: catalog, registry: registry, installRoot: installRoot)
         var candidate: ProjectDocument.EnvironmentBinding?
         if let choice = request.environment, let current = try? store.locate(request.projectID).project.environment {
             candidate = try check.binding(choice, replacing: current)

@@ -298,6 +298,32 @@ final class ExtensionAndProjectTests: XCTestCase {
         XCTAssertEqual(architectures.map(\.field), ["/architectures/rootless"], "rootless asks for arm64, which the SDK lacks")
     }
 
+    /// On roothide Bootstrap no toolchain runs (issue #35), whatever the
+    /// project binds: the check says why, field by field, as it does for a
+    /// CPU that cannot run one.
+    func testTheCheckSaysWhyNothingBuildsOnRoothideBootstrap() throws {
+        let scratch = try scratchDirectory()
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        try FileManager.default.createDirectory(at: scratch.appendingPathComponent("Documents/wiki.qaq.apelin"), withIntermediateDirectories: true)
+        let store = ProjectStore(dataFolder: DataFolder(home: scratch.path))
+        let catalog = ExtensionCatalog(directory: Repository.extensions)
+        let created = try store.create(templateID: "wiki.qaq.apelin.dev.tweak/objc-hook", name: "Signed", values: [:], catalog: catalog, registry: sampleRegistry())
+        let root = scratch.appendingPathComponent(".jbroot-F1E6FD3C82204430", isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+
+        let elsewhere = ProjectCheck(store: store, catalog: catalog, registry: sampleRegistry(), installRoot: root.path)
+        XCTAssertFalse(elsewhere.run(projectID: created.projectID).diagnostics.contains { $0.code == "environment.device.toolchain" })
+
+        FileManager.default.createFile(atPath: root.appendingPathComponent(".thebootstrapped").path, contents: Data("1900".utf8))
+        let bootstrap = ProjectCheck(store: store, catalog: catalog, registry: sampleRegistry(), installRoot: root.path)
+        let result = bootstrap.run(projectID: created.projectID)
+        XCTAssertFalse(result.passed)
+        let refusal = result.diagnostics.first { $0.code == "environment.device.toolchain" }
+        XCTAssertEqual(refusal?.severity, .error)
+        XCTAssertEqual(refusal?.message, HostSigning.bootstrapRefusal)
+        XCTAssertEqual(refusal?.field, "/environment/toolchain")
+    }
+
     func testProjectCheck() throws {
         let scratch = try scratchDirectory()
         defer { try? FileManager.default.removeItem(at: scratch) }

@@ -299,6 +299,49 @@ final class TransferTests: XCTestCase {
         XCTAssertEqual(log.last("artifact")?["packageID"]?.stringValue, "wiki.qaq.apelin.toolchain.\(FakeBackend.id)")
     }
 
+    /// A toolchain brought to roothide Bootstrap would fail its self-test
+    /// there as a downloaded one does (issue #35): the file says so when it
+    /// is opened, and its import installs nothing.
+    func testAToolchainIsRefusedOnRoothideBootstrapBeforeAnythingIsInstalled() async throws {
+        let first = try await device()
+        let record = try await setUpToolchain(first)
+        let export = try await export(first, .toolchain, record.id)
+        let base = try TemporaryHome(self)
+        let root = base.home.appendingPathComponent(".jbroot-F1E6FD3C82204430", isDirectory: true)
+        let mobile = root.appendingPathComponent("var/mobile").path
+        let data = DataFolder(home: mobile)
+        try FileManager.default.createDirectory(at: data.root, withIntermediateDirectories: true)
+        FileManager.default.createFile(atPath: root.appendingPathComponent(".thebootstrapped").path, contents: Data("1900".utf8))
+        let layout = EnvironmentLayout(data: data, installRoot: root.path, home: mobile)
+        try layout.make(layout.environment)
+        try JSONFile.write(SDKSourceList(), to: layout.sdkSources)
+        // an SDK its self-test would read, so Bootstrap is all that stands in the way
+        try layout.make(layout.inbox)
+        try SDKFixture.make(at: layout.inbox.appendingPathComponent("iPhoneOS99.0.sdk"))
+        let manager = SDKManager(layout: layout)
+        _ = try await manager.run(
+            manager.prepare(SDKImportRequest(source: .inbox(path: "iPhoneOS99.0.sdk")), descriptors: []),
+            staging: layout.makeStaging("sdk"), hasSwiftToolchain: false, reporter: .silent,
+        )
+        let transfers = TransferService(layout: layout, toolchains: ToolchainService(layout: layout, backend: FakeBackend()), sdk: manager)
+        let inspection = try transfers.inspect(
+            TransferInspectRequest(source: .file(DescriptorSlot(index: 0)), fileName: export.fileName),
+            descriptors: [descriptor(export.path)],
+        )
+        XCTAssertFalse(inspection.importable)
+        XCTAssertEqual(inspection.problems, [HostSigning.bootstrapRefusal])
+        let installer = FakeInstaller(installRoot: root.path)
+        let refusal = await code {
+            let prepared = try transfers.prepareImport(
+                TransferImportRequest(source: .file(DescriptorSlot(index: 0)), fileName: export.fileName),
+                descriptors: [self.descriptor(export.path)],
+            )
+            _ = try await transfers.runImport(prepared, staging: layout.makeStaging("i"), taskID: TaskID("i"), installer: installer, reporter: .silent)
+        }
+        XCTAssertNotNil(refusal)
+        XCTAssertTrue(installer.installed.isEmpty)
+    }
+
     func testAToolchainOfAReleaseThisApelinDoesNotSupportIsRefusedBeforeReading() async throws {
         let second = try await device()
         var record = ToolchainRecord(id: FakeBackend.id, version: FakeBackend.unsupportedVersion, components: [ToolchainComponent(kind: .c, selfCheckPassed: true)])

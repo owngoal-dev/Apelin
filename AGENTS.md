@@ -947,6 +947,24 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   releases (a product Apple lists that Apelin has not reviewed is left
   out, `ToolchainProduct.reviewed`); a kept one this device cannot run
   stays, with its reason.
+  roothide Bootstrap, the TrollStore one, runs none of them (issue #35;
+  `HostSigning` in ApelinCore): it trust-caches nothing it installs and
+  runs only a Mach-O carrying the CoreTrust-bypass signature its dpkg
+  hook writes (Bootstrap-basebin `autosign.m`: its own `ldid`, then
+  `fastPathSign`), and what Apelin signs is ad hoc and goes through
+  irisind, never dpkg — on the reporter's iPhone clang was "Bad
+  executable" at the self-test.
+  It is known by the mark Bootstrap writes in its root, `.thebootstrapped`
+  (`.bootstrapped` in its betas), which Dopamine-roothide refuses to
+  jailbreak over. There every release carries that one reason, setup and
+  a toolchain transfer import are refused before anything downloads or
+  installs, `projectCheck` says it as `environment.device.toolchain`, and
+  the welcome page's Build Tools says it in place of its introduction,
+  which promises Settings, and lists no pair
+  (`WelcomeEnvironmentIntroduction`).
+  Real support would mean writing Bootstrap's signature on everything
+  Apelin signs and installs, which nothing here can test; it waits for a
+  Bootstrap device.
   Each release reads SDKs up to its Xcode's (`newestSDK`, major.minor),
   which the record keeps: the self-test compiles against the newest
   registered SDK the release reads. When none fits, the same setup task

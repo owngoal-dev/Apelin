@@ -183,6 +183,16 @@ console now goes on after a restart only past a successful respring.
 
 ## Still to run on the owner's devices
 
+- [ ] roothide Bootstrap (2026-11-04, issue #35, AGENTS.md ▸ Toolchains;
+      the Mac harness ran, and a roothide vphone with Bootstrap's mark
+      written into its root by hand, which runs ad hoc code, showed the
+      refusal). On an iPhone running roothide Bootstrap (iOS 15–17.0):
+      Settings ▸ Toolchains lists every release struck through, and a
+      tap says Apelin cannot build there; the welcome page's Build Tools
+      says the same; nothing downloads. Then, as the reporter did, an
+      ad hoc-signed copy of a bootstrap binary is killed, so the refusal
+      still stands on that Bootstrap version.
+
 - [ ] Each conversation's diagnostic journal (2026-10-31, issue #27,
       AGENTS.md ▸ Agent sessions; only the Mac's `SessionJournalTests`,
       `LogRedactionTests` and `Tests/Journal` have run). After `make

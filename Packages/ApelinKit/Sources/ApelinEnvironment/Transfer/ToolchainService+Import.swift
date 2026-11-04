@@ -18,7 +18,7 @@ extension ToolchainService {
         reporter: TaskReporter,
     ) async throws -> ToolchainRecord {
         let product = tree.product
-        if let refusal = HostCPU.toolchainRefusal {
+        if let refusal = HostSigning.toolchainRefusal(installRoot: layout.installRoot) ?? HostCPU.toolchainRefusal {
             throw ApelinError(.unavailable, refusal)
         }
         if let reason = product.unsupportedReason ?? product.compatibility?.unavailableReason {
