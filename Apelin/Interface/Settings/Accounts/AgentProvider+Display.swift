@@ -6,7 +6,9 @@ import UIKit
 /// DeepSeek's is the unmodified official whale SVG:
 /// https://api-docs.deepseek.com/img/favicon.svg and OpenCode's (Go's and
 /// Zen's alike) the unmodified official favicon SVG:
-/// https://opencode.ai/favicon.svg
+/// https://opencode.ai/favicon.svg. Antigravity's is its official mark,
+/// https://antigravity.google/assets/image/antigravity-logo.png, scaled
+/// onto the white plate Google AI Studio's mark sits on.
 /// Which providers there are, and in
 /// what order, is apelin-agent's answer, not this file's.
 extension AgentProvider {
@@ -20,6 +22,7 @@ extension AgentProvider {
         case .cursor: String(localized: "Cursor")
         case .devin: String(localized: "Devin")
         case .kiro: String(localized: "Kiro")
+        case .antigravity: String(localized: "Antigravity")
         case .qoder: String(localized: "Qoder")
         case .qoderCN: String(localized: "Qoder CN")
         case .workBuddy: String(localized: "WorkBuddy")
@@ -48,6 +51,7 @@ extension AgentProvider {
         case .cursor: UIImage(named: "ProviderCursor")
         case .devin: UIImage(named: "ProviderDevin")
         case .kiro: UIImage(named: "ProviderKiro")
+        case .antigravity: UIImage(named: "ProviderAntigravity")
         case .qoder: UIImage(named: "ProviderQoder")
         case .qoderCN: UIImage(named: "ProviderQoderCN")
         case .workBuddy: UIImage(named: "ProviderWorkBuddy")
@@ -83,6 +87,8 @@ extension AgentProvider {
             String(localized: "Sign in with your Devin or Windsurf subscription.")
         case .kiro:
             String(localized: "Sign in to Kiro with AWS Builder ID, Google or GitHub.")
+        case .antigravity:
+            String(localized: "Sign in with the Google account you use for Antigravity.")
         case .qoder:
             String(localized: "Sign in with your qoder.com subscription.")
         case .qoderCN:

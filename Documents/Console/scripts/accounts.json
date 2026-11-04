@@ -1,5 +1,5 @@
 {
-  "name": "accounts: needs the network; lists every provider kwwk signs in to, in kwwk's order, starts a GitHub Copilot sign-in and reads its device code, checks a device flow takes no typed values and cancels it; starts OpenRouter's browser sign-in, reads its page, refuses an address with no code and cancels it; starts Cursor's polled sign-in, reads its page, refuses a pasted address and cancels it; refuses a method OpenRouter does not offer; starts OpenRouter's key form, reads its fields and cancels it; then starts an Anthropic API-key sign-in, checks it asks for its fields and refuses an empty key, and cancels that too. Signs nothing in or out",
+  "name": "accounts: needs the network; lists every provider kwwk signs in to, in kwwk's order, starts a GitHub Copilot sign-in and reads its device code, checks a device flow takes no typed values and cancels it; starts OpenRouter's browser sign-in, reads its page, refuses an address with no code and cancels it; starts Antigravity's Google sign-in, reads its page, refuses an address with no code and cancels it; starts Cursor's polled sign-in, reads its page, refuses a pasted address and cancels it; refuses a method OpenRouter does not offer; starts OpenRouter's key form, reads its fields and cancels it; then starts an Anthropic API-key sign-in, checks it asks for its fields and refuses an empty key, and cancels that too. Signs nothing in or out",
   "steps": [
     {"op": "hello"},
     {"op": "agentAccountList", "label": "before"},
@@ -8,9 +8,10 @@
     {"op": "expect", "request": {"step": "empty-models", "errorCode": "badRequest"}},
     {"op": "expect", "request": {"step": "before", "path": "response.accounts.0.provider", "equals": "openAICodex"}},
     {"op": "expect", "request": {"step": "before", "path": "response.accounts.2.provider", "equals": "githubCopilot"}},
-    {"op": "expect", "request": {"step": "before", "path": "response.accounts.9.provider", "equals": "openRouter"}},
-    {"op": "expect", "request": {"step": "before", "path": "response.accounts.9.alternativeMethods.0", "equals": "apiKey"}},
-    {"op": "expect", "request": {"step": "before", "path": "response.accounts.22.provider", "equals": "openAICompatible"}},
+    {"op": "expect", "request": {"step": "before", "path": "response.accounts.4.provider", "equals": "antigravity"}},
+    {"op": "expect", "request": {"step": "before", "path": "response.accounts.10.provider", "equals": "openRouter"}},
+    {"op": "expect", "request": {"step": "before", "path": "response.accounts.10.alternativeMethods.0", "equals": "apiKey"}},
+    {"op": "expect", "request": {"step": "before", "path": "response.accounts.23.provider", "equals": "openAICompatible"}},
 
     {"op": "agentSignIn", "label": "copilot", "follow": false, "request": {"provider": "githubCopilot"}},
     {"op": "expect", "request": {"step": "copilot", "path": "response.kind", "equals": "signIn"}},
@@ -37,6 +38,20 @@
     {"op": "agentAttach", "label": "openrouter-ended", "follow": false,
      "request": {"taskID": "${openrouter.response.taskID}", "afterSeq": "${openrouter-page.response.lastSeq}", "waitMilliseconds": 5000}},
     {"op": "expect", "request": {"step": "openrouter-ended", "path": "response.state", "equals": "cancelled"}},
+
+    {"op": "agentSignIn", "label": "antigravity", "follow": false, "request": {"provider": "antigravity"}},
+    {"op": "agentAttach", "label": "antigravity-page", "follow": false,
+     "request": {"taskID": "${antigravity.response.taskID}", "afterSeq": 0, "waitMilliseconds": 5000}},
+    {"op": "expect", "request": {"step": "antigravity-page", "path": "response.events.0.kind", "equals": "authorize"}},
+    {"op": "expect", "request": {"step": "antigravity-page", "path": "response.events.0.payload.url", "exists": true}},
+    {"op": "expect", "request": {"step": "antigravity-page", "path": "response.events.0.payload.acceptsCallbackURL", "equals": true}},
+    {"op": "agentSignInRespond", "label": "antigravity-no-code", "allowError": true,
+     "request": {"taskID": "${antigravity.response.taskID}", "values": {"callbackURL": "http://localhost:51121/oauth-callback?nothing=here"}}},
+    {"op": "expect", "request": {"step": "antigravity-no-code", "errorCode": "badRequest"}},
+    {"op": "agentSignInCancel", "request": {"taskID": "${antigravity.response.taskID}"}},
+    {"op": "agentAttach", "label": "antigravity-ended", "follow": false,
+     "request": {"taskID": "${antigravity.response.taskID}", "afterSeq": "${antigravity-page.response.lastSeq}", "waitMilliseconds": 5000}},
+    {"op": "expect", "request": {"step": "antigravity-ended", "path": "response.state", "equals": "cancelled"}},
 
     {"op": "agentSignIn", "label": "cursor", "follow": false, "request": {"provider": "cursor"}},
     {"op": "agentAttach", "label": "cursor-page", "follow": false,
