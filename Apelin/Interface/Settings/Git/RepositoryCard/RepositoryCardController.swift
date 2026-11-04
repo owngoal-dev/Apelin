@@ -135,7 +135,7 @@ final class RepositoryCardController: UIViewController, PHPickerViewControllerDe
         present(picker, animated: true)
     }
 
-    @objc dynamic func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+    func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
         picker.dismiss(animated: true)
         guard let provider = results.first?.itemProvider, provider.canLoadObject(ofClass: UIImage.self) else { return }
         provider.loadObject(ofClass: UIImage.self) { object, _ in
