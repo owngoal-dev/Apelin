@@ -26,6 +26,13 @@ struct ChatRecord: Codable, Sendable {
 /// also ends where the task does, when the task stops before getting that
 /// far: its worker died, the host stopped, or a second open of the session
 /// failed.
+///
+/// One thing in it is new: the resolution of each approval an earlier task
+/// left waiting, which the reopened worker writes (deny, "the session
+/// restarted") before anything new. That task has ended, so the approval
+/// can never be answered; read past, its card stood in for the composer on
+/// every later turn, and neither Approve nor Deny could take it away
+/// (issue #38). `take` keeps it and goes on reading past the rest.
 struct SessionReplay: Codable, Sendable {
     private static let userMessageKinds: Set<String> = ["prompt", "steer"]
     private static let compactionKind = "compactionStarted"
@@ -39,17 +46,39 @@ struct SessionReplay: Codable, Sendable {
     /// The compactions still to come again. Absent from older files, which
     /// have none.
     private var compactions: Int?
+    /// The approvals the history asked and never saw resolved. Absent from
+    /// older files, which take none.
+    private var waitingApprovals: Set<String>?
 
     /// The replay of a session whose history is `events`.
     init(of events: [TaskEvent]) {
-        for event in events where Self.userMessageKinds.contains(event.kind) {
-            if let id = ChatTranscript.userMessageID(of: event) {
-                messageIDs.insert(id)
-            } else {
-                unnamedMessages += 1
+        var waiting: Set<String> = []
+        for event in events {
+            if Self.userMessageKinds.contains(event.kind) {
+                if let id = ChatTranscript.userMessageID(of: event) {
+                    messageIDs.insert(id)
+                } else {
+                    unnamedMessages += 1
+                }
+            } else if let approval = Self.approvalID(event, kind: "approvalRequested") {
+                waiting.insert(approval)
+            } else if let approval = Self.approvalID(event, kind: "approvalResolved") {
+                waiting.remove(approval)
             }
         }
         compactions = events.count { $0.kind == Self.compactionKind }
+        waitingApprovals = waiting
+    }
+
+    /// Whether `event` resolves an approval the history left waiting, which
+    /// the conversation has not seen: once for each.
+    mutating func resolvesWaitingApproval(_ event: TaskEvent) -> Bool {
+        guard let approval = Self.approvalID(event, kind: "approvalResolved") else { return false }
+        return waitingApprovals?.remove(approval) != nil
+    }
+
+    private static func approvalID(_ event: TaskEvent, kind: String) -> String? {
+        event.kind == kind ? event.payload?["approvalID"]?.stringValue : nil
     }
 
     /// Whether `event` is still part of the replay, counting off the user
@@ -143,24 +172,29 @@ extension ChatRecord {
     }
 
     /// Adds the events of `batch` past the cursor, less a reopened task's
-    /// replay, and returns them.
+    /// replay, and returns them. Of the replay, only the resolutions of
+    /// approvals the history left waiting are added (`SessionReplay`).
     mutating func take(_ batch: [TaskEvent]) -> [TaskEvent] {
         let fresh = batch.filter { $0.seq > cursor }
         guard var replay else {
             events += fresh
             return fresh
         }
+        var resolved: [TaskEvent] = []
         for (index, event) in fresh.enumerated() {
-            guard replay.replays(event) else {
+            if replay.resolvesWaitingApproval(event) {
+                resolved.append(event)
+            } else if !replay.replays(event) {
                 self.replay = nil
-                let taken = Array(fresh[index...])
+                let taken = resolved + fresh[index...]
                 events += taken
                 return taken
             }
             replay.cursor = event.seq
         }
         self.replay = replay
-        return []
+        events += resolved
+        return resolved
     }
 
     /// Where the end of the finished task `batch` answered for is, when this

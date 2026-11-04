@@ -1,6 +1,7 @@
 #!/bin/bash
 # Compile the app's event-to-transcript reducer, how it reads past a reopened
-# session's replay, how it adopts the conversations agents open, how far it
+# session's replay and takes from it the approvals its stopped task left,
+# how it adopts the conversations agents open, how far it
 # follows a turn, how the trace sheet lists a summary's steps, how dropped
 # messages go back to the composer, which conversations a deleted project
 # takes with it, what a rootless app's data container gives back, which
@@ -45,6 +46,7 @@ sources=(
     "$root/Tests/ChatTranscript/ToolCallDetailCheck.swift"
     "$root/Tests/ChatTranscript/TraceStepCheck.swift"
     "$root/Tests/ChatTranscript/ReplayEndCheck.swift"
+    "$root/Tests/ChatTranscript/AbandonedApprovalCheck.swift"
     "$root/Tests/ChatTranscript/DroppedMessagesCheck.swift"
     "$root/Tests/ChatTranscript/DeletedProjectsCheck.swift"
     "$root/Tests/ChatTranscript/ContainerDataFolderCheck.swift"
