@@ -2853,3 +2853,25 @@ on the iPad:
   `reloadIfFileGrew` among them), so those calls go through the runtime.
   The selector audit of `c6a5da9`'s packages found nothing but the two
   accepted `ComposerAttachmentPreview` data source methods.
+
+## Antigravity (2026-11-04, 0.3.7)
+
+The release commit `108ba4d` built on the Mac (roothide, build 274), over
+0.3.6 on the iOS 26.4 iPhone vphone:
+
+- The smoke suite (`hello`, `terminal`, `files`, `logs`, `diagnostics`,
+  `i3-image-check-refused`, `i1-smoke`) and `accounts` passed, the latter
+  with its Antigravity steps: the sign-in's page is Google's
+  `accounts.google.com/o/oauth2/v2/auth` with Antigravity's client, a
+  pasted address with no code is refused, and the cancel ends it
+  `cancelled`.
+- Settings ▸ Model Providers lists Antigravity after Cursor with its mark.
+  Its page says "Sign in with the Google account you use for Antigravity."
+  and opens the system's sign-in browser on Google's "Sign in to continue
+  to Google Antigravity"; closing it leaves the page on Continue, signed in
+  to nothing.
+- A message to the device's existing OpenAI-compatible sign-in
+  (deepseek-v4-pro) was answered.
+
+No Google account has signed in: the Antigravity entry under Still to run
+stands.
