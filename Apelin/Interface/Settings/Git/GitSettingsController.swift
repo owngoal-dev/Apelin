@@ -48,17 +48,17 @@ final class GitSettingsController: TableController {
     /// What apelin-environment last answered; nil until it has.
     private var settings: GitSettingsResponse?
     private var linked: DistributionRepository?
-    private var failure: Error?
+    @objc private dynamic var failure: Error?
     private var loader: Task<Void, Never>?
-    private var isSaving = false
+    @objc private dynamic var isSaving = false
 
     private let nameField = UITextField()
     private let emailField = UITextField()
-    private lazy var nameCell = Self.cell(containing: nameField)
-    private lazy var emailCell = Self.cell(containing: emailField)
+    @objc private dynamic lazy var nameCell = Self.cell(containing: nameField)
+    @objc private dynamic lazy var emailCell = Self.cell(containing: emailField)
     private lazy var flow = DistributionRepositoryFlow(presenter: self) { [weak self] in self?.load() }
 
-    private lazy var saveItem = UIBarButtonItem(
+    @objc private dynamic lazy var saveItem = UIBarButtonItem(
         title: String(localized: "Save"),
         primaryAction: UIAction { [weak self] _ in self?.saveAuthor() },
     )
@@ -136,7 +136,7 @@ final class GitSettingsController: TableController {
 
     // MARK: - Loading
 
-    private func load() {
+    @objc(apelin_load) private dynamic func load() {
         loader?.cancel()
         dataSource.beginLoad()
         loader = Task { [weak self] in
@@ -170,7 +170,7 @@ final class GitSettingsController: TableController {
         }
     }
 
-    private var isPreparingCreation = false
+    @objc private dynamic var isPreparingCreation = false
 
     private func updateRows(changedItems: Set<Row> = []) {
         guard let settings else {
@@ -197,24 +197,24 @@ final class GitSettingsController: TableController {
 
     // MARK: - The author
 
-    private static func trimmed(_ field: UITextField) -> String {
+    @objc private dynamic static func trimmed(_ field: UITextField) -> String {
         (field.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    private var authorChanged: Bool {
+    @objc private dynamic var authorChanged: Bool {
         guard let settings else { return false }
         return Self.trimmed(nameField) != settings.authorName ?? ""
             || Self.trimmed(emailField) != settings.authorEmail ?? ""
     }
 
-    private func updateControls() {
+    @objc private dynamic func updateControls() {
         let editable = settings != nil && !isSaving
         nameField.isEnabled = editable
         emailField.isEnabled = editable
         saveItem.isEnabled = editable && authorChanged
     }
 
-    private func saveAuthor() {
+    @objc private dynamic func saveAuthor() {
         guard saveItem.isEnabled else { return }
         view.endEditing(true)
         let name = Self.trimmed(nameField)
@@ -243,11 +243,11 @@ final class GitSettingsController: TableController {
 
     // MARK: - GitHub and other hosts
 
-    private func signInToGitHub() {
+    @objc private dynamic func signInToGitHub() {
         navigationController?.pushViewController(GitHubLoginController(), animated: true)
     }
 
-    private func confirmSignOut() {
+    @objc private dynamic func confirmSignOut() {
         presentConfirmation(
             title: "Sign Out of GitHub?",
             message: "Clones, pulls and pushes to github.com stop working until you sign in again. The package repository stays linked.",
@@ -269,7 +269,7 @@ final class GitSettingsController: TableController {
         }
     }
 
-    private func remove(host: String) {
+    @objc private dynamic func remove(host: String) {
         Task { [weak self] in
             do {
                 try await ApelinService.app.gitCredentialRemove(host: host)
@@ -292,7 +292,7 @@ final class GitSettingsController: TableController {
 
     // MARK: - Table
 
-    private func configure(_ field: UITextField, label: String, placeholder: String) {
+    @objc private dynamic func configure(_ field: UITextField, label: String, placeholder: String) {
         field.font = .preferredFont(forTextStyle: .body)
         field.adjustsFontForContentSizeCategory = true
         field.autocorrectionType = .no
@@ -306,7 +306,7 @@ final class GitSettingsController: TableController {
     }
 
     /// A field filling the row's margins; the field is the element, not the row.
-    static func cell(containing field: UITextField) -> UITableViewCell {
+    @objc dynamic static func cell(containing field: UITextField) -> UITableViewCell {
         UITableViewCell(style: .default, reuseIdentifier: nil).then { cell in
             cell.selectionStyle = .none
             cell.isAccessibilityElement = false
@@ -387,7 +387,7 @@ final class GitSettingsController: TableController {
         }
     }
 
-    private func valueCell(_ text: String, _ value: String) -> UITableViewCell {
+    @objc private dynamic func valueCell(_ text: String, _ value: String) -> UITableViewCell {
         let cell = UITableViewCell(style: .value1, reuseIdentifier: nil)
         var content = UIListContentConfiguration.valueCell()
         content.text = text

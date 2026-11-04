@@ -7,7 +7,7 @@ import UIKit
 /// Removing it is in the menu at the top.
 final class SDKDetailController: TableController {
     /// Told once the SDK is removed, so the list reads itself again.
-    var onRemove: (() -> Void)?
+    @objc dynamic var onRemove: (() -> Void)?
 
     private enum Field: Hashable { case version, name, architecture(String), swiftInterfaces }
     private struct Row: Equatable {
@@ -26,7 +26,7 @@ final class SDKDetailController: TableController {
     private let record: SDKRecord
 
     /// `…` in the bar: Export, anchoring the share sheet that follows.
-    private lazy var moreItem: UIBarButtonItem = .init(
+    @objc private dynamic lazy var moreItem: UIBarButtonItem = .init(
         image: UIImage(systemName: "ellipsis"),
         menu: UIMenu(children: [
             UIAction(title: String(localized: "Show in Fila"), image: UIImage(systemName: "folder")) { [weak self] _ in
@@ -122,7 +122,7 @@ final class SDKDetailController: TableController {
         false
     }
 
-    private func confirmRemoval() {
+    @objc private dynamic func confirmRemoval() {
         presentConfirmation(
             title: "Remove the SDK?",
             message: "This deletes the SDK files. SDKs used by a project cannot be removed.",
@@ -151,7 +151,7 @@ final class SDKDetailController: TableController {
     }
 
     /// A `.apesdk` of this SDK, for the user's other devices.
-    private func export() {
+    @objc private dynamic func export() {
         TransferExporter.confirmAndExport(
             kind: .sdk,
             id: record.id,
@@ -161,7 +161,7 @@ final class SDKDetailController: TableController {
         )
     }
 
-    private func remove() {
+    @objc private dynamic func remove() {
         Task { [weak self, record] in
             guard let self else { return }
             do {

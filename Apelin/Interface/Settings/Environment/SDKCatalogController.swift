@@ -33,7 +33,7 @@ final class SDKCatalogController: TableController {
         self?.cell(in: table, at: indexPath, entry: entry)
     }
 
-    private func updateRows(changedItems: Set<String> = []) {
+    @objc private dynamic func updateRows(changedItems: Set<String> = []) {
         dataSource.headerTitle = { [weak self] id in
             guard let self else { return nil }
             return sections.count > 1 ? sections.first { $0.id == id }?.source.name : String(localized: "Version")
@@ -62,9 +62,9 @@ final class SDKCatalogController: TableController {
     }
 
     /// Told once an import ends, so the list behind reads itself again.
-    var onImport: (() -> Void)?
+    @objc dynamic var onImport: (() -> Void)?
 
-    private var inbox: URL {
+    @objc private dynamic var inbox: URL {
         DataFolder.app.root.appendingPathComponent("inbox", isDirectory: true)
     }
 
@@ -91,7 +91,7 @@ final class SDKCatalogController: TableController {
         load()
     }
 
-    private func load() {
+    @objc(apelin_load) private dynamic func load() {
         loader?.cancel()
         dataSource.beginLoad()
         loader = Task { [weak self] in
@@ -142,7 +142,7 @@ final class SDKCatalogController: TableController {
         updateRows()
     }
 
-    private func show(_ error: Error) {
+    @objc private dynamic func show(_ error: Error) {
         sections = []
         tableView.backgroundView = EmptyStateView(
             symbolName: "exclamationmark.triangle",
@@ -199,7 +199,7 @@ final class SDKCatalogController: TableController {
 
     // MARK: - Import
 
-    private func importMenu() -> UIMenu {
+    @objc private dynamic func importMenu() -> UIMenu {
         UIMenu(children: [
             UIDeferredMenuElement.uncached { [weak self] completion in
                 completion(self?.importMenuItems() ?? [])
@@ -207,7 +207,7 @@ final class SDKCatalogController: TableController {
         ])
     }
 
-    private func importMenuItems() -> [UIMenuElement] {
+    @objc private dynamic func importMenuItems() -> [UIMenuElement] {
         let otherSources: [UIMenuElement] = [
             UIAction(title: String(localized: "From Link…"), image: UIImage(systemName: "link")) { [weak self] _ in
                 self?.askForLink()
@@ -239,7 +239,7 @@ final class SDKCatalogController: TableController {
         ]
     }
 
-    private func askForLink() {
+    @objc private dynamic func askForLink() {
         presentTextInput(
             title: "Import from Link",
             message: "Enter an HTTPS link to a zip, tar.xz or tar.zst archive containing one iPhoneOS SDK.",
@@ -252,7 +252,7 @@ final class SDKCatalogController: TableController {
         }
     }
 
-    private func pickFile() {
+    @objc private dynamic func pickFile() {
         let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.item], asCopy: false)
         picker.delegate = self
         present(picker, animated: true)
@@ -290,7 +290,7 @@ final class SDKCatalogController: TableController {
 extension SDKCatalogController: UIDocumentPickerDelegate {
     /// An archive goes to the host as a descriptor; a folder cannot, so it
     /// is copied into the inbox first and imported from there.
-    func documentPicker(_: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+    @objc dynamic func documentPicker(_: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
         guard let url = urls.first else { return }
         // an SDK exported by Apelin is a transfer file, not an archive to unpack
         if TransferKind(fileName: url.lastPathComponent) != nil {

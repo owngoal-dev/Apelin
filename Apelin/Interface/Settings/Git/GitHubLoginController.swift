@@ -16,7 +16,7 @@ import UIKit
 /// (`ProviderLoginController`): the mark, the name, one line, the code.
 final class GitHubLoginController: UIViewController {
     /// Told once signed in, with the account's login.
-    var onSignedIn: ((String) -> Void)?
+    @objc dynamic var onSignedIn: ((String) -> Void)?
 
     private enum Step: Equatable {
         case starting
@@ -28,9 +28,9 @@ final class GitHubLoginController: UIViewController {
     private var step = Step.starting
     private var flow: Task<Void, Never>?
     /// The page opened by itself: once per code.
-    private var openedCode: String?
+    @objc private dynamic var openedCode: String?
 
-    private lazy var browser = SignInBrowser(anchor: view)
+    @objc private dynamic lazy var browser = SignInBrowser(anchor: view)
 
     private let scrollView = UIScrollView().then {
         $0.alwaysBounceVertical = true
@@ -82,7 +82,7 @@ final class GitHubLoginController: UIViewController {
         """)
     }
 
-    private lazy var spinnerItem: UIBarButtonItem = {
+    @objc private dynamic lazy var spinnerItem: UIBarButtonItem = {
         let spinner = UIActivityIndicatorView(style: .medium)
         spinner.isAccessibilityElement = true
         spinner.accessibilityLabel = String(localized: "Waiting")
@@ -155,7 +155,7 @@ final class GitHubLoginController: UIViewController {
         }
     }
 
-    private func abandon() {
+    @objc private dynamic func abandon() {
         flow?.cancel()
         flow = nil
         browser.close()
@@ -163,7 +163,7 @@ final class GitHubLoginController: UIViewController {
 
     // MARK: - The flow
 
-    private func start() {
+    @objc private dynamic func start() {
         flow?.cancel()
         openedCode = nil
         show(.starting)
@@ -191,7 +191,7 @@ final class GitHubLoginController: UIViewController {
         }
     }
 
-    private func signedIn(as login: String) {
+    @objc private dynamic func signedIn(as login: String) {
         browser.close()
         SPIndicator.present(title: String(localized: "Signed In"), message: login, preset: .done, haptic: .success)
         onSignedIn?(login)
@@ -202,7 +202,7 @@ final class GitHubLoginController: UIViewController {
         }
     }
 
-    static func failureText(_ error: Error) -> String {
+    @objc dynamic static func failureText(_ error: Error) -> String {
         switch error as? GitHubDeviceFlow.Failure {
         case .denied: String(localized: "The sign-in was declined on GitHub.")
         case .expired: String(localized: "The code expired before it was entered.")
@@ -212,7 +212,7 @@ final class GitHubLoginController: UIViewController {
         }
     }
 
-    private func primaryTapped() {
+    @objc private dynamic func primaryTapped() {
         switch step {
         case let .code(code): open(code)
         case .failed: start()

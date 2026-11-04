@@ -35,7 +35,7 @@ final class RepositoryCardView: UIView {
         Self.draw(card)
     }
 
-    private func updateAccessibility() {
+    @objc private dynamic func updateAccessibility() {
         guard let card else { return }
         accessibilityLabel = [
             String(localized: "Repository Card"),
@@ -75,14 +75,14 @@ final class RepositoryCardView: UIView {
     /// The grey a saved card sits on, the light grouped background's.
     private static let page = UIColor(red: 0xF2 / 255, green: 0xF2 / 255, blue: 0xF7 / 255, alpha: 1)
 
-    private static func font(_ weight: UIFont.Weight) -> UIFont {
+    @objc private dynamic static func font(_ weight: UIFont.Weight) -> UIFont {
         let system = UIFont.systemFont(ofSize: 17, weight: weight)
         guard let rounded = system.fontDescriptor.withDesign(.rounded) else { return system }
         return UIFont(descriptor: rounded, size: 17)
     }
 
     /// The card's outline with the badge's slot cut out of it.
-    private static var shape: UIBezierPath {
+    @objc private dynamic static var shape: UIBezierPath {
         let bounds = CGRect(origin: .zero, size: canvas)
         let path = UIBezierPath(roundedRect: bounds, cornerRadius: 24)
         path.append(UIBezierPath(roundedRect: CGRect(x: bounds.midX - 30, y: 20, width: 60, height: 11), cornerRadius: 5.5))
@@ -108,7 +108,7 @@ final class RepositoryCardView: UIView {
         line("@" + card.owner, font(.regular), ink.withAlphaComponent(0.5), y: qrBottom + 54)
     }
 
-    private static func line(_ text: String, _ font: UIFont, _ color: UIColor, y: CGFloat) {
+    @objc private dynamic static func line(_ text: String, _ font: UIFont, _ color: UIColor, y: CGFloat) {
         let paragraph = NSMutableParagraphStyle()
         paragraph.alignment = .center
         paragraph.lineBreakMode = .byTruncatingTail
@@ -123,7 +123,7 @@ final class RepositoryCardView: UIView {
     /// Square modules filled as one path, so no seam shows between
     /// neighbours at any scale; the three finder patterns rounded. Answers
     /// the code's bottom edge.
-    private static func drawModules(_ modules: [[Bool]], top: CGFloat, side: CGFloat) -> CGFloat {
+    @objc private dynamic static func drawModules(_ modules: [[Bool]], top: CGFloat, side: CGFloat) -> CGFloat {
         let count = modules.count
         guard count > 0 else { return top }
         let cell = side / CGFloat(count)

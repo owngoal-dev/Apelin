@@ -13,7 +13,7 @@ import UIKit
 final class EnvironmentTaskController: TableController {
     /// Told once, when the task has ended, so the page beneath reads its
     /// list again.
-    var onFinish: (() -> Void)?
+    @objc dynamic var onFinish: (() -> Void)?
 
     private enum Section: Hashable {
         case summary
@@ -52,17 +52,17 @@ final class EnvironmentTaskController: TableController {
     private let showsStatusSummary: Bool
     private var progress: EnvironmentTaskProgress
     private var follower: Task<Void, Never>?
-    private var cancelRequested = false
+    @objc private dynamic var cancelRequested = false
 
     /// One cell per stage, kept rather than dequeued, so a ring goes on
     /// turning from one event to the next.
-    private var stageCells: [TaskStepCell] = []
+    @objc private dynamic var stageCells: [TaskStepCell] = []
 
     /// Every event as a line, for the full log; a download's progress is
     /// one line said again with new figures, not a line per sample.
     private var logLines: [String] = []
-    private var lastLogKey: String?
-    private weak var logPage: TaskLogController?
+    @objc private dynamic var lastLogKey: String?
+    @objc private dynamic weak var logPage: TaskLogController?
 
     private static let logTime = DateFormatter().then {
         $0.dateFormat = "HH:mm:ss"
@@ -113,7 +113,7 @@ final class EnvironmentTaskController: TableController {
     /// A dropped connection is the same call again from the last event: the
     /// stream ends with an error, and the next attach picks up after it. A
     /// task the host does not have, or will not show, ends the page.
-    private func follow() {
+    @objc private dynamic func follow() {
         follower = Task { [weak self, handle] in
             var cursor = EventSeq.start
             while !Task.isCancelled {
@@ -172,20 +172,20 @@ final class EnvironmentTaskController: TableController {
         logPage?.update(logLines)
     }
 
-    private func openLog() {
+    @objc private dynamic func openLog() {
         let page = TaskLogController(lines: logLines)
         logPage = page
         navigationController?.pushViewController(page, animated: true)
     }
 
-    private func lose(_ error: Error) {
+    @objc private dynamic func lose(_ error: Error) {
         guard !progress.isFinished else { return }
         progress.lost(error.readableMessage)
         render()
         finished()
     }
 
-    private func finished() {
+    @objc private dynamic func finished() {
         onFinish?()
         onFinish = nil
         UIAccessibility.post(notification: .announcement, argument: progress.state == .succeeded ? doneTitle : statusTitle)
@@ -193,7 +193,7 @@ final class EnvironmentTaskController: TableController {
 
     // MARK: - Drawing
 
-    private func render() {
+    @objc private dynamic func render() {
         let finished = progress.isFinished
         title = runningTitle
         // the items are made once and swapped only when the task ends: a
@@ -263,7 +263,7 @@ final class EnvironmentTaskController: TableController {
         dataSource.update(sections, animatingDifferences: false)
     }
 
-    private var statusTitle: String {
+    @objc private dynamic var statusTitle: String {
         switch progress.state {
         case .queued: String(localized: "Waiting")
         case .running: String(localized: "In Progress")
@@ -276,7 +276,7 @@ final class EnvironmentTaskController: TableController {
     }
 
     /// A step value always describes its state, never its transfer figures.
-    private func status(of stage: String) -> String {
+    @objc private dynamic func status(of stage: String) -> String {
         switch progress.state(of: stage) {
         case .pending: progress.isFinished ? String(localized: "Not Started") : String(localized: "Waiting")
         case .skipped: String(localized: "Skipped")
@@ -288,22 +288,22 @@ final class EnvironmentTaskController: TableController {
     }
 
     /// Whether the bar holds the finished task's items.
-    private var barShowsFinished = false
-    private lazy var spinnerBarItem = spinnerItem()
-    private lazy var doneBarItem = doneItem()
+    @objc private dynamic var barShowsFinished = false
+    @objc private dynamic lazy var spinnerBarItem = spinnerItem()
+    @objc private dynamic lazy var doneBarItem = doneItem()
     /// Closes the sheet; the task is the host's and goes on.
-    private lazy var backgroundBarItem = UIBarButtonItem(
+    @objc private dynamic lazy var backgroundBarItem = UIBarButtonItem(
         title: String(localized: "Continue in Background"),
         primaryAction: UIAction { [weak self] _ in self?.leave() },
     )
 
-    private var isSheetRoot: Bool {
+    @objc private dynamic var isSheetRoot: Bool {
         navigationController?.viewControllers.first === self
     }
 
-    private lazy var menuBarItem = menuItem()
+    @objc private dynamic lazy var menuBarItem = menuItem()
 
-    private func spinnerItem() -> UIBarButtonItem {
+    @objc private dynamic func spinnerItem() -> UIBarButtonItem {
         let spinner = UIActivityIndicatorView(style: .medium)
         spinner.isAccessibilityElement = true
         spinner.accessibilityLabel = String(localized: "In Progress")
@@ -311,7 +311,7 @@ final class EnvironmentTaskController: TableController {
         return UIBarButtonItem(customView: spinner)
     }
 
-    private func doneItem() -> UIBarButtonItem {
+    @objc private dynamic func doneItem() -> UIBarButtonItem {
         UIBarButtonItem(
             image: UIImage(systemName: "checkmark"),
             primaryAction: UIAction { [weak self] _ in self?.leave() },
@@ -321,7 +321,7 @@ final class EnvironmentTaskController: TableController {
         }
     }
 
-    private func menuItem() -> UIBarButtonItem {
+    @objc private dynamic func menuItem() -> UIBarButtonItem {
         UIBarButtonItem(
             image: UIImage(systemName: "ellipsis"),
             menu: UIMenu(children: [UIDeferredMenuElement.uncached { [weak self] completion in
@@ -330,7 +330,7 @@ final class EnvironmentTaskController: TableController {
         ).then { $0.accessibilityLabel = String(localized: "More") }
     }
 
-    private func menuElements() -> [UIMenuElement] {
+    @objc private dynamic func menuElements() -> [UIMenuElement] {
         var elements: [UIMenuElement] = [
             UIAction(
                 title: String(localized: "View Full Log"),
@@ -390,7 +390,7 @@ final class EnvironmentTaskController: TableController {
 
     /// Done: back to the page beneath, or — the root of a sheet of its own,
     /// as an import opened from another app is — the sheet closes.
-    private func leave() {
+    @objc private dynamic func leave() {
         guard let navigation = navigationController else { return }
         if navigation.viewControllers.first === self {
             navigation.dismiss(animated: true)
@@ -401,7 +401,7 @@ final class EnvironmentTaskController: TableController {
 
     // MARK: - Stopping
 
-    private func confirmStop() {
+    @objc private dynamic func confirmStop() {
         presentConfirmation(
             title: "Stop This Task?",
             message: "Progress so far is discarded. Starting again begins from scratch.",
@@ -412,7 +412,7 @@ final class EnvironmentTaskController: TableController {
         }
     }
 
-    private func stop() {
+    @objc private dynamic func stop() {
         cancelRequested = true
         Task { [weak self, handle] in
             do {

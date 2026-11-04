@@ -49,7 +49,7 @@ final class DistributionRepositoryPickerController: TableController {
         load()
     }
 
-    private func load() {
+    @objc(apelin_load) private dynamic func load() {
         loader?.cancel()
         dataSource.beginLoad()
         loader = Task { [weak self] in
@@ -183,7 +183,7 @@ private final class RepositoryCandidateCell: UITableViewCell {
         updateBadgeLayout()
     }
 
-    private func updateBadgeLayout() {
+    @objc private dynamic func updateBadgeLayout() {
         let stacked = traitCollection.preferredContentSizeCategory.isAccessibilityCategory
         badges.axis = stacked ? .vertical : .horizontal
         badges.alignment = stacked ? .leading : .center

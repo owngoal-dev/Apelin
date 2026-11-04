@@ -57,9 +57,9 @@ final class ModelProvidersController: TableController, UISearchResultsUpdating {
 
     /// The accounts as apelin-agent last listed them.
     private var accounts: [AgentAccount] = []
-    private var loaded = false
-    private var failure: Error?
-    private var query = ""
+    @objc private dynamic var loaded = false
+    @objc private dynamic var failure: Error?
+    @objc private dynamic var query = ""
     private var sections: [(Section, [Row])] = [(.status, [.status(.loading)])]
     private var loader: Task<Void, Never>?
     private let search = UISearchController(searchResultsController: nil)
@@ -106,7 +106,7 @@ final class ModelProvidersController: TableController, UISearchResultsUpdating {
         load()
     }
 
-    private func load() {
+    @objc(apelin_load) private dynamic func load() {
         loader?.cancel()
         dataSource.beginLoad()
         loader = Task { [weak self] in
@@ -125,14 +125,14 @@ final class ModelProvidersController: TableController, UISearchResultsUpdating {
         }
     }
 
-    func updateSearchResults(for searchController: UISearchController) {
+    @objc dynamic func updateSearchResults(for searchController: UISearchController) {
         let text = (searchController.searchBar.text ?? "").trimmingCharacters(in: .whitespaces)
         guard text != query else { return }
         query = text
         regroup()
     }
 
-    private func regroup() {
+    @objc private dynamic func regroup() {
         if !loaded {
             sections = [(.status, [.status(.loading)])]
         } else if let failure, accounts.isEmpty {

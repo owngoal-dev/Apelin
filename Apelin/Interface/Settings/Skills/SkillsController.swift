@@ -87,7 +87,7 @@ final class SkillsController: TableController {
         load()
     }
 
-    private func load(then check: String? = nil) {
+    @objc private dynamic func load(then check: String? = nil) {
         loader?.cancel()
         dataSource.beginLoad()
         loader = Task { [weak self] in
@@ -202,7 +202,7 @@ final class SkillsController: TableController {
 
     // MARK: - Changes
 
-    private func confirmRemoval(of location: String, named name: String) {
+    @objc private dynamic func confirmRemoval(of location: String, named name: String) {
         presentConfirmation(
             title: "Remove \(name)?",
             message: "Its files are removed from the skills folder, and chats are no longer offered it.",
@@ -213,7 +213,7 @@ final class SkillsController: TableController {
         }
     }
 
-    private func remove(_ location: String) {
+    @objc private dynamic func remove(_ location: String) {
         let folder = folder
         Task { [weak self] in
             do {
@@ -226,7 +226,7 @@ final class SkillsController: TableController {
         }
     }
 
-    private func pickSkill() {
+    @objc private dynamic func pickSkill() {
         let markdown = UTType(filenameExtension: "md", conformingTo: .text) ?? .plainText
         let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.folder, markdown], asCopy: false)
         picker.delegate = self
@@ -235,7 +235,7 @@ final class SkillsController: TableController {
 
     /// Copies the pick in, asking first before it replaces a skill of the
     /// same place; afterwards a problem the agent finds with it is shown.
-    private func add(_ url: URL, replacing: Bool) {
+    @objc private dynamic func add(_ url: URL, replacing: Bool) {
         let folder = folder
         Task { [weak self] in
             let scoped = url.startAccessingSecurityScopedResource()
@@ -279,7 +279,7 @@ final class SkillsController: TableController {
 }
 
 extension SkillsController: UIDocumentPickerDelegate {
-    func documentPicker(_: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+    @objc dynamic func documentPicker(_: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
         guard let url = urls.first else { return }
         add(url, replacing: false)
     }

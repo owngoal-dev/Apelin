@@ -20,7 +20,7 @@ final class ToolchainCatalogController: TableController {
         self?.cell(in: table, at: indexPath, product: product)
     }
 
-    private func updateRows(changedItems: Set<String> = []) {
+    @objc private dynamic func updateRows(changedItems: Set<String> = []) {
         dataSource.footerTitle = { [weak self] _ in self?.footer() }
         dataSource.update(products.isEmpty ? [] : [(0, products)], reconfigure: true, changedItems: changedItems)
     }
@@ -101,7 +101,7 @@ final class ToolchainCatalogController: TableController {
         UserDefaults.standard.set(data, forKey: savedKey)
     }
 
-    private func reload() {
+    @objc private dynamic func reload() {
         loader?.cancel()
         dataSource.beginLoad()
         loader = Task { [weak self] in
@@ -145,7 +145,7 @@ final class ToolchainCatalogController: TableController {
         product.version == "unknown" ? String(localized: "Unknown Version") : product.version
     }
 
-    private static func compactSize(_ bytes: Int64) -> String {
+    @objc private dynamic static func compactSize(_ bytes: Int64) -> String {
         let units: [(Int64, String)] = [(1_000_000_000, "G"), (1_000_000, "M"), (1000, "K")]
         for (divisor, suffix) in units {
             if bytes >= divisor {
@@ -157,7 +157,7 @@ final class ToolchainCatalogController: TableController {
 
     // MARK: - Table
 
-    private func footer() -> String? {
+    @objc private dynamic func footer() -> String? {
         String(localized: """
         Downloaded from Apple. No Apple ID needed.
 

@@ -1,7 +1,7 @@
 import UIKit
 
 extension LogViewerController {
-    func logText() -> String {
+    @objc dynamic func logText() -> String {
         Self.text(of: file, hiding: hiddenPrefixCount)
     }
 
@@ -17,16 +17,16 @@ extension LogViewerController {
     }
 
     /// Bytes in the log file, without reading it.
-    var fileLength: Int {
+    @objc dynamic var fileLength: Int {
         (try? FileManager.default.attributesOfItem(atPath: file.url.path)[.size] as? Int) ?? -1
     }
 
-    func reloadIfFileGrew() {
+    @objc dynamic func reloadIfFileGrew() {
         guard fileLength != lastReadLength else { return }
         reload(growing: true)
     }
 
-    func reload(growing: Bool) {
+    @objc dynamic func reload(growing: Bool) {
         // a first parse still running would land older lines over these
         work?.cancel()
         work = nil

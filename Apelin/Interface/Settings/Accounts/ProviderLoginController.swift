@@ -32,11 +32,11 @@ import UIKit
 final class ProviderLoginController: UIViewController {
     /// Told each time a sign-in has ended (Try Again starts another), so
     /// Settings reads the accounts again.
-    var onFinish: (() -> Void)?
+    @objc dynamic var onFinish: (() -> Void)?
 
     private let provider: AgentProvider
     private let isEditingConfiguration: Bool
-    private var savedValues: [String: String] = [:]
+    @objc private dynamic var savedValues: [String: String] = [:]
     /// Every way this provider signs in, its own first, as apelin-agent
     /// listed them; the page runs `method`.
     private let methods: [AgentSignInMethod]
@@ -44,12 +44,12 @@ final class ProviderLoginController: UIViewController {
     private var handle: TaskHandle?
     private var progress = SignInProgress()
     private var follower: Task<Void, Never>?
-    private var submitting = false
+    @objc private dynamic var submitting = false
     /// The page opened by itself: once per sign-in.
-    private var openedPage: URL?
-    private var isWaitingForContinue = false
+    @objc private dynamic var openedPage: URL?
+    @objc private dynamic var isWaitingForContinue = false
     /// The in-app browser on the provider's page.
-    private lazy var browser = SignInBrowser(anchor: view).then {
+    @objc private dynamic lazy var browser = SignInBrowser(anchor: view).then {
         $0.onClosedByUser = { [weak self] in self?.webClosedByUser() }
     }
 
@@ -112,10 +112,10 @@ final class ProviderLoginController: UIViewController {
         $0.spacing = 4
     }
 
-    private var primaryAction: (() -> Void)?
-    private var keyForm: ProviderKeyFormController?
+    @objc private dynamic var primaryAction: (() -> Void)?
+    @objc private dynamic var keyForm: ProviderKeyFormController?
 
-    private lazy var spinnerItem: UIBarButtonItem = {
+    @objc private dynamic lazy var spinnerItem: UIBarButtonItem = {
         let spinner = UIActivityIndicatorView(style: .medium)
         spinner.isAccessibilityElement = true
         spinner.accessibilityLabel = String(localized: "Waiting")
@@ -199,7 +199,7 @@ final class ProviderLoginController: UIViewController {
         }
     }
 
-    private func abandon() {
+    @objc private dynamic func abandon() {
         browser.close()
         guard !progress.isFinished else { return }
         follower?.cancel()
@@ -219,7 +219,7 @@ final class ProviderLoginController: UIViewController {
         start()
     }
 
-    private func start() {
+    @objc private dynamic func start() {
         follower?.cancel()
         progress = SignInProgress()
         handle = nil
@@ -281,14 +281,14 @@ final class ProviderLoginController: UIViewController {
         render()
     }
 
-    private func lose(_ error: Error) {
+    @objc private dynamic func lose(_ error: Error) {
         guard !progress.isFinished else { return }
         progress.lost(Self.unavailableText(error))
         finished()
         render()
     }
 
-    static func unavailableText(_ error: Error) -> String {
+    @objc dynamic static func unavailableText(_ error: Error) -> String {
         if let error = error as? ApelinError, error.code == .backendUnavailable {
             return String(localized: """
             Apelin’s background service is unavailable. Reinstall Apelin with your preferred package \
@@ -298,7 +298,7 @@ final class ProviderLoginController: UIViewController {
         return error.readableMessage
     }
 
-    private func finished() {
+    @objc private dynamic func finished() {
         onFinish?()
         // the provider's page has done its part either way
         browser.close()
@@ -316,7 +316,7 @@ final class ProviderLoginController: UIViewController {
         chooseModels()
     }
 
-    private func chooseModels() {
+    @objc private dynamic func chooseModels() {
         guard !submitting else { return }
         submitting = true
         updatePrimary()
@@ -344,7 +344,7 @@ final class ProviderLoginController: UIViewController {
 
     // MARK: - Drawing
 
-    private func render() {
+    @objc private dynamic func render() {
         let step = progress.step
         let waiting: Bool = switch step {
         case .starting: true
@@ -449,27 +449,27 @@ final class ProviderLoginController: UIViewController {
         updatePrimary()
     }
 
-    private var isSucceeded: Bool {
+    @objc private dynamic var isSucceeded: Bool {
         if case .ended(.succeeded, _) = progress.step {
             return true
         }
         return false
     }
 
-    private func setPrimary(_ title: String, action: @escaping () -> Void) {
+    @objc private dynamic func setPrimary(_ title: String, action: @escaping () -> Void) {
         primaryButton.configuration?.title = title
         primaryAction = action
     }
 
     /// Sign In waits for every required field, and spins while it is sent.
-    private func updatePrimary() {
+    @objc private dynamic func updatePrimary() {
         keyForm?.isSubmitting = submitting
         primaryButton.isEnabled = !submitting
         primaryButton.configuration?.showsActivityIndicator = submitting
     }
 
     /// A quiet way out: footnote-sized, grey and underlined.
-    private func addLink(_ title: String, action: @escaping () -> Void) {
+    @objc private dynamic func addLink(_ title: String, action: @escaping () -> Void) {
         var configuration = UIButton.Configuration.plain()
         configuration.baseForegroundColor = .secondaryLabel
         configuration.attributedTitle = AttributedString(title, attributes: AttributeContainer([
@@ -482,7 +482,7 @@ final class ProviderLoginController: UIViewController {
     /// Opens the page the first time it is known, a moment after the sheet
     /// is drawn so the code is seen on the way; a page that does not take
     /// the code from its link gets it on the clipboard first.
-    private func openOnce(_ page: URL, copying code: String?) {
+    @objc private dynamic func openOnce(_ page: URL, copying code: String?) {
         guard openedPage != page else { return }
         openedPage = page
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
@@ -499,7 +499,7 @@ final class ProviderLoginController: UIViewController {
     /// side — a device code approved, the loopback reached — and the page
     /// is closed from here when the task ends. Closing it by hand leaves the
     /// sign-in waiting; Continue opens it again.
-    private func open(_ page: URL, copying code: String?) {
+    @objc private dynamic func open(_ page: URL, copying code: String?) {
         isWaitingForContinue = false
         primaryButton.isHidden = true
         render()
@@ -513,7 +513,7 @@ final class ProviderLoginController: UIViewController {
     /// The page closed by the user, or the system's prompt declined. The
     /// sign-in goes on waiting — a code already entered, or a grant already
     /// made, still finishes it — and Continue opens the page again.
-    private func webClosedByUser() {
+    @objc private dynamic func webClosedByUser() {
         guard !progress.isFinished, let page = openedPage else { return }
         isWaitingForContinue = true
         render()

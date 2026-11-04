@@ -26,7 +26,7 @@ final class ToolchainController: TableController {
         case let .toolchain(record, _): "toolchain:" + record.id
         }
     }) { [weak self] table, _, row in self?.cell(in: table, row: row) }
-    private func updateRows() {
+    @objc private dynamic func updateRows() {
         dataSource.headerTitle = { [weak self] id in self?.sections.first { $0.id == id }?.header }
         dataSource.update(sections.map { ($0.id, $0.rows) })
     }
@@ -90,7 +90,7 @@ final class ToolchainController: TableController {
         )
     }
 
-    @objc private func transferImported() {
+    @objc private dynamic func transferImported() {
         reload()
     }
 
@@ -99,7 +99,7 @@ final class ToolchainController: TableController {
         reload()
     }
 
-    private func reload() {
+    @objc private dynamic func reload() {
         loader?.cancel()
         dataSource.beginLoad()
         loader = Task { [weak self] in
@@ -147,7 +147,7 @@ final class ToolchainController: TableController {
         updateRows()
     }
 
-    private func show(_ error: Error) {
+    @objc private dynamic func show(_ error: Error) {
         refreshControl?.endRefreshing()
         sections = []
         tableView.backgroundView = EmptyStateView(
@@ -158,7 +158,7 @@ final class ToolchainController: TableController {
         updateRows()
     }
 
-    static func unavailableText(_ error: Error) -> String {
+    @objc dynamic static func unavailableText(_ error: Error) -> String {
         if let error = error as? ApelinError, error.code == .backendUnavailable {
             return String(localized: """
             Apelin’s background service is unavailable. Reinstall Apelin with your preferred package \
@@ -209,7 +209,7 @@ final class ToolchainController: TableController {
 
     /// The release first; the catalog page starts the setup, and the setup
     /// page takes its place in the stack.
-    private func setUp() {
+    @objc private dynamic func setUp() {
         let catalog = ToolchainCatalogController(installedToolchains: status.toolchains)
         catalog.onStart = { [weak self, weak catalog] handle in
             guard let self, let navigation = navigationController else { return }
@@ -223,7 +223,7 @@ final class ToolchainController: TableController {
     }
 
     /// A `.apetc` from Files: read and confirmed before anything is installed.
-    private func pickFile() {
+    @objc private dynamic func pickFile() {
         let picker = UIDocumentPickerViewController(
             forOpeningContentTypes: [TransferOpener.contentType(.toolchain)],
             asCopy: false,
@@ -245,7 +245,7 @@ final class ToolchainController: TableController {
 }
 
 extension ToolchainController: UIDocumentPickerDelegate {
-    func documentPicker(_: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+    @objc dynamic func documentPicker(_: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
         guard let url = urls.first else { return }
         TransferOpener.open(url, from: self, pushingOnto: navigationController)
     }

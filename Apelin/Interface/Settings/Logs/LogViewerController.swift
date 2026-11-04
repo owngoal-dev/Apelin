@@ -27,20 +27,20 @@ final class LogViewerController: UIViewController, UITableViewDelegate, UISearch
     var shown: [JournalLine] = []
 
     var selectedLevels = Set(JournalLevel.allCases)
-    var selectedCategories: Set<String> = []
+    @objc dynamic var selectedCategories: Set<String> = []
     /// What the search field holds; empty keeps every entry.
-    private var searchText = ""
-    var allCategories: Set<String> {
+    @objc private dynamic var searchText = ""
+    @objc dynamic var allCategories: Set<String> {
         Set(parsed.map(\.category))
     }
 
     /// Characters Clear hid from the top of the file.
-    var hiddenPrefixCount = 0
+    @objc dynamic var hiddenPrefixCount = 0
 
     /// Size of the file at the last parse, so the poll can skip a file that
     /// has not moved.
-    var lastReadLength = -1
-    private var tail: Timer?
+    @objc dynamic var lastReadLength = -1
+    @objc private dynamic var tail: Timer?
     /// The first parse, off the main actor from init; nil once the rows are
     /// in `parsed`.
     var work: Task<Void, Never>?
@@ -119,7 +119,7 @@ final class LogViewerController: UIViewController, UITableViewDelegate, UISearch
         tail = nil
     }
 
-    private func setupTableView() {
+    @objc private dynamic func setupTableView() {
         tableView.dataSource = dataSource
         tableView.delegate = self
         tableView.estimatedRowHeight = 60
@@ -133,7 +133,7 @@ final class LogViewerController: UIViewController, UITableViewDelegate, UISearch
         }
     }
 
-    private func setupSearch() {
+    @objc private dynamic func setupSearch() {
         let search = UISearchController(searchResultsController: nil)
         search.obscuresBackgroundDuringPresentation = false
         search.searchResultsUpdater = self
@@ -145,7 +145,7 @@ final class LogViewerController: UIViewController, UITableViewDelegate, UISearch
         definesPresentationContext = true
     }
 
-    func updateSearchResults(for searchController: UISearchController) {
+    @objc dynamic func updateSearchResults(for searchController: UISearchController) {
         let text = searchController.searchBar.text?.trimmingCharacters(in: .whitespaces) ?? ""
         guard text != searchText else { return }
         searchText = text
@@ -155,7 +155,7 @@ final class LogViewerController: UIViewController, UITableViewDelegate, UISearch
     /// `growing` for new lines from the file, which may animate in a list
     /// that sat still (`ListPacing`); a filter, a search or Clear shows
     /// other rows and never does.
-    func applyFilters(stickToBottom: Bool, growing: Bool = false) {
+    @objc dynamic func applyFilters(stickToBottom: Bool, growing: Bool = false) {
         shown = parsed.filter { line in
             selectedLevels.contains(line.level)
                 && (selectedCategories.isEmpty || selectedCategories.contains(line.category))
@@ -187,7 +187,7 @@ final class LogViewerController: UIViewController, UITableViewDelegate, UISearch
 
     /// Following the file must not fight someone reading further up, so new
     /// lines only pull the view down when it was already at the end.
-    var isNearBottom: Bool {
+    @objc dynamic var isNearBottom: Bool {
         guard tableView.contentSize.height > tableView.bounds.height else { return true }
         let distance = tableView.contentSize.height
             - tableView.contentOffset.y
@@ -196,7 +196,7 @@ final class LogViewerController: UIViewController, UITableViewDelegate, UISearch
         return distance < 60
     }
 
-    private func scrollToBottom(animated: Bool) {
+    @objc private dynamic func scrollToBottom(animated: Bool) {
         guard !shown.isEmpty, !tableView.isTracking, !tableView.isDecelerating else { return }
         tableView.scrollToRow(at: IndexPath(row: shown.count - 1, section: 0), at: .bottom, animated: animated)
     }

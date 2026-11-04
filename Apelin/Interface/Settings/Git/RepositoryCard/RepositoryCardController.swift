@@ -19,20 +19,20 @@ final class RepositoryCardController: UIViewController, PHPickerViewControllerDe
     private var style: RepositoryCardStyle
     private let cardView = RepositoryCardView()
 
-    private lazy var saveItem = UIBarButtonItem(
+    @objc private dynamic lazy var saveItem = UIBarButtonItem(
         title: String(localized: "Save"),
         primaryAction: UIAction { [weak self] _ in self?.saveToPhotos() },
     )
 
     /// Remove Icon only while the card has an icon of the user's own.
-    private lazy var moreItem = UIBarButtonItem(
+    @objc private dynamic lazy var moreItem = UIBarButtonItem(
         image: UIImage(systemName: "ellipsis"),
         menu: UIMenu(children: [UIDeferredMenuElement.uncached { [weak self] completion in
             completion(self?.menuActions() ?? [])
         }]),
     ).then { $0.accessibilityLabel = String(localized: "More") }
 
-    private func menuActions() -> [UIMenuElement] {
+    @objc private dynamic func menuActions() -> [UIMenuElement] {
         let open = UIAction(
             title: String(localized: "Open in Irisin…"),
             image: UIImage(systemName: "arrow.up.forward.app"),
@@ -94,7 +94,7 @@ final class RepositoryCardController: UIViewController, PHPickerViewControllerDe
         updateCard()
     }
 
-    private func updateCard() {
+    @objc private dynamic func updateCard() {
         cardView.card = RepositoryCard(repository: repository, style: style)
     }
 
@@ -105,14 +105,14 @@ final class RepositoryCardController: UIViewController, PHPickerViewControllerDe
     }
 
     /// Irisin is a dependency of Apelin's, so it is there to take the link.
-    private func openInIrisin() {
+    @objc private dynamic func openInIrisin() {
         guard let url = URL(string: RepositoryCard.irisinLink(source: repository.sourceURL)) else { return }
         UIApplication.shared.open(url)
     }
 
     // MARK: - Title and icon
 
-    private func editTitle() {
+    @objc private dynamic func editTitle() {
         present(AlertInputViewController(
             title: "Edit Title",
             message: "Leave it empty to use the repository’s name.",
@@ -126,7 +126,7 @@ final class RepositoryCardController: UIViewController, PHPickerViewControllerDe
         ), animated: true)
     }
 
-    private func chooseIcon() {
+    @objc private dynamic func chooseIcon() {
         var configuration = PHPickerConfiguration()
         configuration.filter = .images
         configuration.selectionLimit = 1
@@ -135,7 +135,7 @@ final class RepositoryCardController: UIViewController, PHPickerViewControllerDe
         present(picker, animated: true)
     }
 
-    func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+    @objc dynamic func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
         picker.dismiss(animated: true)
         guard let provider = results.first?.itemProvider, provider.canLoadObject(ofClass: UIImage.self) else { return }
         provider.loadObject(ofClass: UIImage.self) { object, _ in
@@ -153,7 +153,7 @@ final class RepositoryCardController: UIViewController, PHPickerViewControllerDe
 
     // MARK: - Saving
 
-    private func saveToPhotos() {
+    @objc private dynamic func saveToPhotos() {
         guard let card = cardView.card, let data = RepositoryCardView.image(of: card).pngData() else { return }
         PHPhotoLibrary.requestAuthorization(for: .addOnly) { status in
             guard status == .authorized || status == .limited else {

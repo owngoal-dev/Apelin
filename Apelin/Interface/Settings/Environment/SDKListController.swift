@@ -25,7 +25,7 @@ final class SDKListController: TableController {
         case let .sdk(record): "sdk:" + record.id
         }
     }) { [weak self] table, _, row in self?.cell(in: table, row: row) }
-    private func updateRows() {
+    @objc private dynamic func updateRows() {
         dataSource.headerTitle = { [weak self] id in self?.sections.first { $0.id == id }?.header }
         dataSource.footerTitle = { [weak self] id in self?.sections.first { $0.id == id }?.footer }
         dataSource.update(sections.map { ($0.id, $0.rows) })
@@ -68,7 +68,7 @@ final class SDKListController: TableController {
         )
     }
 
-    @objc private func transferImported() {
+    @objc private dynamic func transferImported() {
         reload()
     }
 
@@ -77,7 +77,7 @@ final class SDKListController: TableController {
         reload()
     }
 
-    private func reload() {
+    @objc private dynamic func reload() {
         loader?.cancel()
         dataSource.beginLoad()
         loader = Task { [weak self] in
@@ -126,7 +126,7 @@ final class SDKListController: TableController {
         updateRows()
     }
 
-    private func show(_ error: Error) {
+    @objc private dynamic func show(_ error: Error) {
         refreshControl?.endRefreshing()
         sections = []
         tableView.backgroundView = EmptyStateView(

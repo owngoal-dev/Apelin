@@ -18,7 +18,7 @@ final class WaitingCell: UITableViewCell {
         fatalError("Use init()")
     }
 
-    func show(_ text: String) {
+    @objc dynamic func show(_ text: String) {
         var content = UIListContentConfiguration.cell()
         content.text = text
         content.textProperties.color = .secondaryLabel

@@ -72,7 +72,7 @@ final class DistributionBuildController: TableController {
     @objc private dynamic var outcome: String?
     private var finishedState: TaskState?
     private lazy var stepCells = Dictionary(uniqueKeysWithValues: Stage.stages(for: method).map { ($0, TaskStepCell(stage: String($0.rawValue))) })
-    @objc private dynamic var logLines: [String] = []
+    private var logLines: [String] = []
     @objc private dynamic weak var logPage: TaskLogController?
     private var dataSource: TableDataSource<Section, Row, RowContent>!
     /// While the package is read back for Share Package or Publish to

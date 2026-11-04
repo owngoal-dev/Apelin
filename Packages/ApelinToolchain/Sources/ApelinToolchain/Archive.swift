@@ -292,8 +292,9 @@ final class BinaryReader: ByteReader {
 final class PBZXReader: ByteReader {
     let reader: BinaryReader, end: UInt64
     let window: Int
-    @objc dynamic var buffer = Data(), cursor = 0
-    @objc private dynamic var decoded: [Data] = []
+    var buffer = Data()
+    @objc dynamic var cursor = 0
+    private var decoded: [Data] = []
     init(reader: BinaryReader, end: UInt64, window: Int = PBZXReader.defaultWindow) throws {
         self.reader = reader; self.end = end; self.window = max(1, window)
         guard try reader.read(4) == Data("pbzx".utf8) else {
@@ -319,7 +320,7 @@ final class PBZXReader: ByteReader {
 
     /// Four decodes at once at most, and never more than the cores: past
     /// four the reads and the cpio writer, which stay serial, set the pace.
-    @objc static dynamic var defaultWindow: Int {
+    @objc dynamic static var defaultWindow: Int {
         min(4, max(1, ProcessInfo.processInfo.activeProcessorCount))
     }
 
@@ -364,7 +365,7 @@ final class PBZXReader: ByteReader {
         }
     }
 
-    @objc static dynamic func decode(_ input: Data, expanded: Int) throws -> Data {
+    @objc dynamic static func decode(_ input: Data, expanded: Int) throws -> Data {
         if input.count == expanded {
             return input
         }
@@ -387,7 +388,8 @@ final class PBZXReader: ByteReader {
 private final class XarTOC: NSObject, XMLParserDelegate {
     struct Payload { let offset: Int64; let length: Int64; let checksum: String; let algorithm: String }
     var payload: Payload?
-    @objc private dynamic var stack: [String] = [], text = "", fields: [String: String] = [:], fileDepth = 0
+    private var stack: [String] = [], text = "", fields: [String: String] = [:]
+    @objc private dynamic var fileDepth = 0
     @objc dynamic func parser(
         _: XMLParser,
         didStartElement elementName: String,

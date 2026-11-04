@@ -34,7 +34,7 @@ final class LogsController: TableController {
 
     /// Where Dog writes: its own answer once it is open, else the data
     /// folder's `Journal/` (`AppJournal`).
-    private static var directory: URL {
+    @objc private dynamic static var directory: URL {
         Dog.shared.currentLogFileDirLocation ?? AppJournal.directory
     }
 
@@ -81,7 +81,7 @@ final class LogsController: TableController {
         load()
     }
 
-    private func load() {
+    @objc(apelin_load) private dynamic func load() {
         loader?.cancel()
         dataSource.beginLoad()
         let directory = Self.directory

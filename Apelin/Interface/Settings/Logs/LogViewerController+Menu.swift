@@ -2,7 +2,7 @@ import Then
 import UIKit
 
 extension LogViewerController {
-    func setupNavigationItems() {
+    @objc dynamic func setupNavigationItems() {
         navigationItem.rightBarButtonItem = UIBarButtonItem(
             image: UIImage(systemName: "ellipsis"),
             menu: UIMenu(children: [UIDeferredMenuElement.uncached { [weak self] completion in
@@ -11,7 +11,7 @@ extension LogViewerController {
         ).then { $0.accessibilityLabel = String(localized: "More") }
     }
 
-    private func createMenu() -> UIMenu {
+    @objc private dynamic func createMenu() -> UIMenu {
         let levelActions = JournalLevel.allCases.map { level in
             UIAction(
                 title: Self.name(of: level),
@@ -117,7 +117,7 @@ extension LogViewerController {
         applyFilters(stickToBottom: false)
     }
 
-    private func toggleCategory(_ category: String) {
+    @objc private dynamic func toggleCategory(_ category: String) {
         if selectedCategories.contains(category) {
             selectedCategories.remove(category)
         } else {
@@ -128,7 +128,7 @@ extension LogViewerController {
 
     /// Shares the log as a file. A support report is a `.log` attachment, not
     /// half a megabyte pasted into a message field.
-    private func shareLog() {
+    @objc private dynamic func shareLog() {
         let text = logText()
         let copy = FileManager.default.temporaryDirectory.appendingPathComponent(file.shareName)
         let items: [Any] = if (try? text.write(to: copy, atomically: true, encoding: .utf8)) != nil {
@@ -143,12 +143,12 @@ extension LogViewerController {
 
     /// Hides what the running launch wrote so far; the file keeps it, and
     /// Share sends only what is shown after this.
-    private func clearLog() {
+    @objc private dynamic func clearLog() {
         hiddenPrefixCount = Self.text(of: file, hiding: 0).count
         reload(growing: false)
     }
 
-    func tableView(
+    @objc dynamic func tableView(
         _: UITableView,
         contextMenuConfigurationForRowAt indexPath: IndexPath,
         point _: CGPoint,

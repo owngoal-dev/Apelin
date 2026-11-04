@@ -28,7 +28,7 @@ final class PermissionModeController: TableController {
         self?.cell(in: table, row: row)
     }
 
-    private func updateRows() {
+    @objc private dynamic func updateRows() {
         dataSource.footerTitle = { section in
             switch section {
             case .modes: AgentPermissions.explanation
@@ -130,7 +130,7 @@ final class PermissionModeController: TableController {
         updateRows()
     }
 
-    @objc private func asksBeforeScreenChanged(_ toggle: UISwitch) {
+    @objc private dynamic func asksBeforeScreenChanged(_ toggle: UISwitch) {
         AgentPermissions.asksBeforeScreen = toggle.isOn
         updateRows()
     }

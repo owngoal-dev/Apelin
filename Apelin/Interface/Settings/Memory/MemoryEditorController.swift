@@ -20,8 +20,8 @@ final class MemoryEditorController: TableController, UITextViewDelegate {
     private let bodyField = UITextView()
     private let bodyPlaceholder = UILabel()
     private var dataSource: DataSource!
-    private var saving = false
-    private lazy var saveItem = UIBarButtonItem(
+    @objc private dynamic var saving = false
+    @objc private dynamic lazy var saveItem = UIBarButtonItem(
         title: String(localized: "Save"),
         primaryAction: UIAction { [weak self] _ in self?.save() },
     )
@@ -121,11 +121,11 @@ final class MemoryEditorController: TableController, UITextViewDelegate {
         return cell
     }
 
-    func textViewDidChange(_: UITextView) {
+    @objc dynamic func textViewDidChange(_: UITextView) {
         updateSave()
     }
 
-    private func updateSave() {
+    @objc private dynamic func updateSave() {
         let title = (titleField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         let body = (bodyField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         saveItem.isEnabled = !saving && !title.isEmpty && !body.isEmpty
@@ -133,7 +133,7 @@ final class MemoryEditorController: TableController, UITextViewDelegate {
         bodyField.accessibilityHint = bodyPlaceholder.isHidden ? nil : bodyPlaceholder.text
     }
 
-    private func save() {
+    @objc private dynamic func save() {
         guard saveItem.isEnabled else { return }
         let value = MemoryRecord(
             id: record?.id ?? UUID().uuidString.lowercased(),

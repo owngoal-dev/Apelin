@@ -7,7 +7,7 @@ final class ProviderKeyFormController: TableController {
     var onSubmit: (([AgentSignInField: String]) -> Void)?
     var onSwitchMethod: ((AgentSignInMethod) -> Void)?
 
-    var isSubmitting = false {
+    @objc dynamic var isSubmitting = false {
         didSet {
             if isViewLoaded {
                 updateSubmit()
@@ -37,7 +37,7 @@ final class ProviderKeyFormController: TableController {
         self?.cell(for: row)
     }
 
-    lazy var submitItem = UIBarButtonItem(
+    @objc dynamic lazy var submitItem = UIBarButtonItem(
         title: String(localized: "Fetch Models"),
         primaryAction: UIAction { [weak self] _ in self?.submit() },
     )
@@ -105,7 +105,7 @@ final class ProviderKeyFormController: TableController {
         }
     }
 
-    private func cell(containing input: UIView) -> UITableViewCell {
+    @objc private dynamic func cell(containing input: UIView) -> UITableViewCell {
         let cell = UITableViewCell(style: .default, reuseIdentifier: nil)
         cell.selectionStyle = .none
         cell.isAccessibilityElement = false
@@ -132,18 +132,18 @@ final class ProviderKeyFormController: TableController {
         return result.merging(fields.mapValues { $0.text ?? "" }) { _, edited in edited }
     }
 
-    private var isReady: Bool {
+    @objc private dynamic var isReady: Bool {
         keys.allSatisfy {
             !$0.required || !(fields[$0.field]?.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         }
     }
 
-    private func updateSubmit() {
+    @objc private dynamic func updateSubmit() {
         submitItem.isEnabled = isReady && !isSubmitting
         fields.values.forEach { $0.isEnabled = !isSubmitting }
     }
 
-    private func advance(from index: Int) {
+    @objc private dynamic func advance(from index: Int) {
         if index + 1 < keys.count {
             fields[keys[index + 1].field]?.becomeFirstResponder()
         } else {
@@ -151,7 +151,7 @@ final class ProviderKeyFormController: TableController {
         }
     }
 
-    private func submit() {
+    @objc private dynamic func submit() {
         guard isReady, !isSubmitting else { return }
         view.endEditing(true)
         onSubmit?(values)

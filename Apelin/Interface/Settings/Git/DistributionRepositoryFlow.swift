@@ -12,9 +12,9 @@ import UIKit
 /// `onChange` is told when anything may have changed.
 @MainActor
 final class DistributionRepositoryFlow {
-    private weak var presenter: UIViewController?
+    @objc private dynamic weak var presenter: UIViewController?
     private let onChange: () -> Void
-    private var isPreparingCreation = false
+    @objc private dynamic var isPreparingCreation = false
 
     init(presenter: UIViewController, onChange: @escaping () -> Void) {
         self.presenter = presenter
@@ -22,7 +22,7 @@ final class DistributionRepositoryFlow {
     }
 
     /// The account or one of its organizations, when it has any, then the name.
-    func create(onLoadingChange: @escaping (Bool) -> Void = { _ in }) {
+    @objc dynamic func create(onLoadingChange: @escaping (Bool) -> Void = { _ in }) {
         guard !isPreparingCreation else { return }
         isPreparingCreation = true
         onLoadingChange(true)
@@ -43,7 +43,7 @@ final class DistributionRepositoryFlow {
         }
     }
 
-    private func chooseOwner(account: String, organizations: [String]) {
+    @objc private dynamic func chooseOwner(account: String, organizations: [String]) {
         let alert = UIAlertController(
             title: String(localized: "Choose an Owner"),
             message: String(localized: "Create the repository on your account or in one of your organizations."),
@@ -62,7 +62,7 @@ final class DistributionRepositoryFlow {
     }
 
     /// The name field, filled with a name that reads as a source.
-    private func askName(owner: String?) {
+    @objc private dynamic func askName(owner: String?) {
         let message = if let owner {
             String(localized: "A public repository in the organization \(owner), published with GitHub Pages as a package source.")
         } else {
@@ -96,7 +96,7 @@ final class DistributionRepositoryFlow {
     }
 
     /// The account's repositories to link one.
-    func pick() {
+    @objc dynamic func pick() {
         let picker = DistributionRepositoryPickerController { [weak self] candidate in
             self?.confirmLink(candidate)
         }

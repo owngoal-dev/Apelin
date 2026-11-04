@@ -5,13 +5,13 @@ import UIKit
 /// Saves one provider's enabled models only when the user confirms.
 final class ModelActivationController: TableController, UISearchResultsUpdating {
     private let account: AgentAccount
-    private var selected: Set<String>
-    private var shown: [String]
-    private var models: [String]
-    private var custom: Set<String>
-    private var hidden: Set<String>
+    @objc private dynamic var selected: Set<String>
+    @objc private dynamic var shown: [String]
+    @objc private dynamic var models: [String]
+    @objc private dynamic var custom: Set<String>
+    @objc private dynamic var hidden: Set<String>
     private var loader: Task<Void, Never>?
-    private var saving = false
+    @objc private dynamic var saving = false
     private var verification: TaskHandle?
     private let search = UISearchController(searchResultsController: nil)
 
@@ -80,14 +80,14 @@ final class ModelActivationController: TableController, UISearchResultsUpdating 
         self?.cell(in: table, at: indexPath, row: row)
     }
 
-    private func updateRows() {
+    @objc private dynamic func updateRows() {
         dataSource.headerTitle = { [weak self] _ in self.map { $0.account.account ?? $0.account.provider.displayName } }
         dataSource.footerTitle = { _ in String(localized: "Choose the models to show in the chat model picker. You can change this later in Model Providers.") }
         dataSource.allowsEditing = usesAPIKey
         dataSource.update([(0, shown.map { ModelRow(id: $0, selected: selected.contains($0)) })], reconfigure: true)
     }
 
-    private var usesAPIKey: Bool {
+    @objc private dynamic var usesAPIKey: Bool {
         account.isAPIKeyAccount
     }
 
@@ -109,7 +109,7 @@ final class ModelActivationController: TableController, UISearchResultsUpdating 
         }
     }
 
-    func updateSearchResults(for searchController: UISearchController) {
+    @objc dynamic func updateSearchResults(for searchController: UISearchController) {
         let query = (searchController.searchBar.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         shown = models.filter { query.isEmpty || $0.localizedStandardContains(query) }
         updateRows()
@@ -158,7 +158,7 @@ final class ModelActivationController: TableController, UISearchResultsUpdating 
         return UISwipeActionsConfiguration(actions: [delete])
     }
 
-    private func addCustomModel() {
+    @objc private dynamic func addCustomModel() {
         let alert = AlertInputViewController(
             title: "Add Custom Model",
             message: "Enter the model ID accepted by this provider.",
@@ -184,7 +184,7 @@ final class ModelActivationController: TableController, UISearchResultsUpdating 
         present(alert, animated: true)
     }
 
-    private func save(verify: Bool = true) {
+    @objc private dynamic func save(verify: Bool = true) {
         guard !saving else { return }
         guard usesAPIKey && verify || account.provider == .githubCopilot,
               !selected.isEmpty
@@ -250,7 +250,7 @@ final class ModelActivationController: TableController, UISearchResultsUpdating 
         }
     }
 
-    private func finishSaving() {
+    @objc private dynamic func finishSaving() {
         EnabledModels.save(selected, custom: custom, hidden: hidden, for: account.provider)
         dismiss(animated: true)
     }

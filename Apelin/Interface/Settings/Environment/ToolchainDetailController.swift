@@ -7,7 +7,7 @@ import UIKit
 /// Toolchain details: version, self-tests, supported languages and architectures.
 final class ToolchainDetailController: TableController {
     /// Refresh the list when its default or installed toolchains change.
-    var onChange: (() -> Void)?
+    @objc dynamic var onChange: (() -> Void)?
 
     private enum Section: Hashable {
         case overview, selfTests, languages, architectures, metadata
@@ -38,18 +38,18 @@ final class ToolchainDetailController: TableController {
     }
 
     private let record: ToolchainRecord
-    private var isDefault: Bool
-    private var isSettingDefault = false
+    @objc private dynamic var isDefault: Bool
+    @objc private dynamic var isSettingDefault = false
 
     /// `…` in the bar: Export, anchoring the share sheet that follows.
-    private lazy var moreItem: UIBarButtonItem = .init(
+    @objc private dynamic lazy var moreItem: UIBarButtonItem = .init(
         image: UIImage(systemName: "ellipsis"),
         menu: UIMenu(children: [UIDeferredMenuElement.uncached { [weak self] completion in
             completion(self?.menuItems() ?? [])
         }]),
     ).then { $0.accessibilityLabel = String(localized: "More") }
 
-    private func menuItems() -> [UIMenuElement] {
+    @objc private dynamic func menuItems() -> [UIMenuElement] {
         var items: [UIMenuElement] = [
             UIAction(title: String(localized: "Show in Fila"), image: UIImage(systemName: "folder")) { [weak self] _ in
                 self?.revealInFila(path: self?.record.path ?? "")
@@ -121,7 +121,7 @@ final class ToolchainDetailController: TableController {
         updateRows()
     }
 
-    private func updateRows() {
+    @objc private dynamic func updateRows() {
         var overview: [Row] = [
             .value(.version, String(localized: "Version"), record.version),
             .value(.isDefault, String(localized: "Default"), isDefault ? String(localized: "Yes") : String(localized: "No")),
@@ -224,7 +224,7 @@ final class ToolchainDetailController: TableController {
         })
     }
 
-    private func confirmSetDefault() {
+    @objc private dynamic func confirmSetDefault() {
         presentConfirmation(
             title: "Set as Default?",
             message: "New projects will use this toolchain. To switch an existing project’s toolchain, ask the model in that project.",
@@ -232,7 +232,7 @@ final class ToolchainDetailController: TableController {
         ) { [weak self] in self?.setDefault() }
     }
 
-    private func setDefault() {
+    @objc private dynamic func setDefault() {
         guard !isDefault, !isSettingDefault else { return }
         isSettingDefault = true
         moreItem.isEnabled = false
@@ -253,7 +253,7 @@ final class ToolchainDetailController: TableController {
         }
     }
 
-    private func confirmRemoval() {
+    @objc private dynamic func confirmRemoval() {
         presentConfirmation(
             title: "Remove the Toolchain?",
             message: "Projects using this toolchain cannot build until you download and set it up again.",
@@ -265,7 +265,7 @@ final class ToolchainDetailController: TableController {
     }
 
     /// A `.apetc` of this toolchain, for the user's other devices.
-    private func export() {
+    @objc private dynamic func export() {
         TransferExporter.confirmAndExport(
             kind: .toolchain,
             id: record.id,
@@ -276,7 +276,7 @@ final class ToolchainDetailController: TableController {
     }
 
     /// Removal is quick: Fila's progress card, not the setup page.
-    private func remove() {
+    @objc private dynamic func remove() {
         Task { [weak self, record] in
             guard let self else { return }
             do {
@@ -339,7 +339,7 @@ private final class SelfTestsController: TableController {
         }
     }
 
-    private func updateRows() {
+    @objc private dynamic func updateRows() {
         dataSource.headerTitle = { section in
             if case let .language(name) = section {
                 return name
@@ -389,7 +389,7 @@ private final class SelfTestsController: TableController {
 
     /// The installed tools tested once more, on the task page; back here the
     /// list shows what the registry now keeps.
-    private func runAgain() {
+    @objc private dynamic func runAgain() {
         Task { [weak self, record] in
             do {
                 let handle = try await ApelinService.app.toolchainSelfTest(id: record.id)
@@ -408,7 +408,7 @@ private final class SelfTestsController: TableController {
         }
     }
 
-    private func reload() {
+    @objc private dynamic func reload() {
         dataSource.beginLoad()
         Task { [weak self, record] in
             guard let status = try? await ApelinService.app.toolchainStatus(),
@@ -420,7 +420,7 @@ private final class SelfTestsController: TableController {
         }
     }
 
-    private func explanationCell() -> UITableViewCell {
+    @objc private dynamic func explanationCell() -> UITableViewCell {
         let cell = UITableViewCell(style: .default, reuseIdentifier: nil)
         var content = UIListContentConfiguration.cell()
         content.text = String(localized: """

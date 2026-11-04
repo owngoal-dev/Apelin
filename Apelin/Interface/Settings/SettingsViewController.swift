@@ -39,7 +39,7 @@ final class SettingsViewController: TableController {
         self?.cell(in: table, content: row)
     }
 
-    private func updateRows() {
+    @objc private dynamic func updateRows() {
         dataSource.headerTitle = { [weak self] in self?.header(for: $0) }
         dataSource.footerTitle = { [weak self] in self?.footer(for: $0) }
         dataSource.update(Section.allCases.map { section in
@@ -54,7 +54,7 @@ final class SettingsViewController: TableController {
         }, reconfigure: true)
     }
 
-    private var memorySummary: String?
+    @objc private dynamic var memorySummary: String?
     private var loader: Task<Void, Never>?
 
     init() {
@@ -102,7 +102,7 @@ final class SettingsViewController: TableController {
         }
     }
 
-    private func loadMemorySummary() {
+    @objc private dynamic func loadMemorySummary() {
         loader?.cancel()
         let store = MemoryStore(root: DataFolder.app.root)
         loader = Task { [weak self] in
@@ -203,7 +203,7 @@ final class SettingsViewController: TableController {
     /// Settings as the sidebar's gear opens it, but already at Git, for a
     /// page whose next step is set up there: a package repository, and the
     /// GitHub sign-in it needs. Back leads to the rest of Settings.
-    static func presentGit(from presenter: UIViewController) {
+    @objc dynamic static func presentGit(from presenter: UIViewController) {
         let settings = SettingsViewController()
         // the Git page's Back is made from the title and back button mode
         // this page sets as it loads
@@ -212,13 +212,13 @@ final class SettingsViewController: TableController {
     }
 
     /// Closes Settings and shows the welcome pages from the start.
-    private func openOnboarding() {
+    @objc private dynamic func openOnboarding() {
         guard let root = view.window?.rootViewController as? RootInterfaceController else { return }
         navigationController?.dismiss(animated: true) { [weak root] in root?.presentWelcome() }
     }
 
     /// A new issue on Apelin's repository, in the browser.
-    private static func reportProblem() {
+    @objc private dynamic static func reportProblem() {
         guard let url = URL(string: "https://github.com/owngoal-dev/Apelin/issues/new") else { return }
         UIApplication.shared.open(url)
     }

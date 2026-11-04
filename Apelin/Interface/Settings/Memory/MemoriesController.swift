@@ -6,8 +6,8 @@ final class MemoriesController: TableController {
     private enum Row: Hashable { case memory(String), empty }
 
     private final class DataSource: UITableViewDiffableDataSource<Section, Row> {
-        var projectNames: [String: String] = [:]
-        func name(for id: String) -> String {
+        @objc dynamic var projectNames: [String: String] = [:]
+        @objc dynamic func name(for id: String) -> String {
             projectNames[id] ?? (id.hasPrefix("temporary:")
                 ? String(localized: "Temporary Chat")
                 : String(localized: "Unavailable Project"))
@@ -87,7 +87,7 @@ final class MemoriesController: TableController {
         load()
     }
 
-    private func load() {
+    @objc(apelin_load) private dynamic func load() {
         loader?.cancel()
         pacing.beginLoad()
         let store = store
