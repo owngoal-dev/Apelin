@@ -151,7 +151,7 @@ public struct TransferService: Sendable {
 
     private func inspectToolchain(_ manifest: TransferManifest, into inspection: inout TransferInspection) {
         guard let toolchain = manifest.toolchain else { return }
-        if let refusal = HostCPU.toolchainRefusal {
+        if let refusal = HostSigning.toolchainRefusal(installRoot: layout.installRoot) ?? HostCPU.toolchainRefusal {
             inspection.problems.append(refusal)
         } else if let refusal = toolchains.backend.importRefusal(toolchain) {
             inspection.problems.append(refusal)

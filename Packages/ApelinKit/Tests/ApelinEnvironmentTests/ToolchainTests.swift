@@ -303,6 +303,32 @@ final class ToolchainServiceTests: XCTestCase {
         XCTAssertNil(listed.first { $0.productID == FakeBackend.newest.productID }?.unsupportedReason)
     }
 
+    /// roothide Bootstrap runs no ad hoc signature (issue #35: CLT 16.4 was
+    /// downloaded, installed and then failed its self-test). Every release
+    /// is listed with that reason, and setup is refused before the task is
+    /// accepted, so nothing downloads.
+    func testRoothideBootstrapRefusesEveryReleaseBeforeAnyDownload() async throws {
+        let home = try await ready(self)
+        let root = home.home.appendingPathComponent(".jbroot-F1E6FD3C82204430", isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        FileManager.default.createFile(atPath: root.appendingPathComponent(".thebootstrapped").path, contents: Data("1900".utf8))
+        let layout = EnvironmentLayout(data: home.layout.data, installRoot: root.path, home: home.home.path)
+        let service = ToolchainService(
+            layout: layout,
+            backend: FakeBackend(products: [Self.cannotRun, FakeBackend.newest, Self.older]),
+        )
+        let listed = try await service.catalog().products
+        XCTAssertEqual(listed.count, 3)
+        XCTAssertEqual(Set(listed.map(\.unsupportedReason)), [HostSigning.bootstrapRefusal])
+        for product in [FakeBackend.newest, Self.older] {
+            XCTAssertThrowsError(try service.prepare(ToolchainSetupRequest(source: .appleCatalog(productID: product.productID)))) {
+                XCTAssertEqual(($0 as? ApelinError)?.code, .unavailable)
+                XCTAssertEqual(($0 as? ApelinError)?.message, HostSigning.bootstrapRefusal)
+            }
+        }
+        XCTAssertFalse(FileManager.default.fileExists(atPath: layout.toolchainJobs.path))
+    }
+
     private func registerSDK(_ home: TemporaryHome, version: String) async throws {
         let name = "iPhoneOS\(version).sdk"
         try SDKFixture.make(at: home.inbox.appendingPathComponent(name), canonicalName: "iphoneos\(version)", version: version)

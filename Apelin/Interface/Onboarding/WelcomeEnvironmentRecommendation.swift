@@ -69,6 +69,17 @@ struct WelcomeEnvironmentRecommendation {
         return nil
     }
 
+    /// The one reason every release is refused for, when there is one: a
+    /// device-wide reason (roothide Bootstrap, a CPU the compilers cannot
+    /// run on), which the page says instead of sending the reader to
+    /// Settings, where every release is refused for it too.
+    static func commonRefusal(in catalog: [ToolchainCatalogProduct]) -> String? {
+        guard let reason = catalog.first?.unsupportedReason,
+              catalog.allSatisfy({ $0.unsupportedReason == reason })
+        else { return nil }
+        return reason
+    }
+
     private static func major(_ version: String) -> Substring {
         version.split(separator: ".").first ?? ""
     }

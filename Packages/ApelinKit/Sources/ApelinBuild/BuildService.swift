@@ -25,6 +25,7 @@ public enum BuildService {
             store: store,
             catalog: inputs.catalog,
             registry: StaticEnvironmentRegistry(toolchains: [inputs.toolchain], sdks: [inputs.sdk]),
+            installRoot: inputs.installRoot,
         )
         .run(root: inputs.projectRoot)
         for diagnostic in check.diagnostics where diagnostic.severity != .note {

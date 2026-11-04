@@ -76,7 +76,11 @@ final class WelcomeEnvironmentPage: WelcomeListPage {
                 )
                 activeInstallation = !values.1.activeTasks.isEmpty || !values.2.activeTasks.isEmpty
                 if recommendation == nil {
-                    statusText = String(localized: "No compatible versions are available. You can set up build tools later in Settings.")
+                    // the service's own words, read in the user's language
+                    // when the catalogue has them (roothide Bootstrap's)
+                    statusText = WelcomeEnvironmentRecommendation.commonRefusal(in: values.0.products)
+                        .map { String(localized: String.LocalizationValue($0)) }
+                        ?? String(localized: "No compatible versions are available. You can set up build tools later in Settings.")
                 } else if activeInstallation {
                     statusText = String(localized: "An installation is in progress. Check Settings for details.")
                 }

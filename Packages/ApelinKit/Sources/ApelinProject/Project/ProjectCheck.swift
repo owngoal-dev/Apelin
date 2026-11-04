@@ -12,15 +12,25 @@ public struct ProjectCheck: Sendable {
     public var store: ProjectStore
     public var catalog: ExtensionCatalog
     public var registry: EnvironmentRegistry
+    /// The install root the session host assigned: whether the device runs
+    /// what a toolchain builds at all (`HostSigning`) is decided under it.
+    /// Nil checks the project alone.
+    public var installRoot: String?
 
     /// Below this much free space a build fails; below `lowSpace` it warns.
     public var minimumSpace: UInt64 = 64 << 20
     public var lowSpace: UInt64 = 512 << 20
 
-    public init(store: ProjectStore, catalog: ExtensionCatalog, registry: EnvironmentRegistry) {
+    public init(
+        store: ProjectStore,
+        catalog: ExtensionCatalog,
+        registry: EnvironmentRegistry,
+        installRoot: String? = nil,
+    ) {
         self.store = store
         self.catalog = catalog
         self.registry = registry
+        self.installRoot = installRoot
     }
 
     public struct Result: Sendable {
@@ -224,7 +234,10 @@ public struct ProjectCheck: Sendable {
 
         // 2. The toolchain and the SDK, and what the project asks of them.
         let toolchain = (try? registry.toolchain(project.environment.toolchain.id)) ?? nil
-        if let reason = toolchain?.compatibility?.unavailableReason ?? HostCPU.toolchainRefusal {
+        if let reason = installRoot.flatMap({ HostSigning.toolchainRefusal(installRoot: $0) })
+            ?? toolchain?.compatibility?.unavailableReason
+            ?? HostCPU.toolchainRefusal
+        {
             add("environment.device.toolchain", .error, reason, field: "/environment/toolchain")
         }
         if let toolchain {
