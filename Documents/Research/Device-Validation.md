@@ -2786,3 +2786,59 @@ iPhone vphones and the iOS 26.4 iPad vphone:
   toolchain or tweak extension for `files`. `i1-smoke` was not run: it
   needs the harness's fixtures, which `Scripts/device.py` pushes, and the
   vphones were driven from their hosts, which have no Python.
+
+## Restarts, rootless's data folder, Bootstrap and hooks (2026-11-04, 0.3.6)
+
+CI's packages of `1034f89`, roothide, over 0.3.5 on the iOS 26.4 iPhone
+vphone and the iOS 26.4 iPad vphone, then the release commit `c6a5da9`
+on the iPad:
+
+- The smoke suite (`hello`, `terminal`, `files`, `logs`, `diagnostics`,
+  `i3-image-check-refused`, `i1-smoke`) passed on the iPhone, and all but
+  `files` on the iPad, which has no tweak extension, toolchain or SDK.
+  `i1-smoke` ran this time: a shell stand-in for `Scripts/device.py` on
+  the guests set up and checked its fixture package and
+  `/etc/apelin-smoke.conf`.
+- Issue #38, on the iPhone (Strict, deepseek-v4-pro): with the session
+  host and the app killed while a `shell_run` card waited, the reopened
+  conversation had no card and a normal composer, and the next message was
+  answered. On 0.3.5 the card stayed, and Approve answered "This approval
+  request is no longer waiting for a decision." Killing the host
+  and the app otherwise brought back the same list with the same
+  conversation open; an approval card asked and approved ran `uname -a`.
+  Still seen: the interrupted turn's summary reads "Executing tool…" until
+  the next message is sent.
+- Issue #38's restart, reproduced on 0.3.5 on the iPhone in four of six
+  device restarts: the Live Activity launched Apelin in the background and
+  it opened on a new chat. On the fixed build the conversation open before
+  the restart was the one shown, and no new chat was added.
+- Issue #35, on the iPad with a regular file `.thebootstrapped` made at the
+  bootstrap's root: the welcome flow's Build Tools page showed only "Apelin
+  cannot build on roothide Bootstrap. Bootstrap runs only programs it signs
+  itself, and it does not sign Apelin's build tools or the programs they
+  build." and Next; Settings ▸ Toolchains ▸ From Apple… struck through every
+  release, and picking one said Not Supported and started nothing. With the
+  mark removed, the page recommended Command Line Tools 15.3 and iOS SDK
+  17.4 again and the catalog offered every release. No roothide Bootstrap
+  device has run it.
+- Issue #37 has no rootless device here: 0.3.5's wrong data folder was
+  reproduced on the Mac by launching the app as rootless uicache does, and
+  the fix's one-time move only by `ContainerDataFolderCheck`. On the iPad,
+  a conversation with a draft in a project survived a launch that read a
+  `Projects/` the app had not read before; on 0.3.5 it was removed.
+- `apelin://project/<folder>` opened the project on both; on the iPad its
+  conversation, with a draft, was the one shown after a relaunch.
+- The release commit's package (CI build 116 of `c6a5da9`), whose Settings
+  screens gained `@objc dynamic` after the round above, on the iPad: every
+  Settings page opened with its content (Model Providers and DeepSeek's key
+  form, Permission Mode, Memories and the editor, Skills and one skill's
+  text, Git, Toolchains and the Apple catalog, SDKs and their catalog,
+  Templates, the licenses, Logs with its level and category menus), and no
+  crash report was written. Git's Publishing, the repository picker and
+  the Repository Card need a GitHub sign-in the vphone does not have.
+- Hooks: the app's executable carries an `objc_msgSend$<selector>` stub for
+  each of Apelin's own methods its Swift code calls (1,243 before the
+  change, 1,989 in 0.3.6's, `startNewChatWithPicked:` and
+  `reloadIfFileGrew` among them), so those calls go through the runtime.
+  The selector audit of `c6a5da9`'s packages found nothing but the two
+  accepted `ComposerAttachmentPreview` data source methods.
