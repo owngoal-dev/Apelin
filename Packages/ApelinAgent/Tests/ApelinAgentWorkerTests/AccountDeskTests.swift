@@ -214,6 +214,34 @@ struct AccountDeskTests {
         #expect(!recorder.transcript.contains("c1&"))
     }
 
+    /// Antigravity's own login, kwwk's and not a stand-in: Google's PKCE
+    /// page with the loopback Antigravity registered, which a pasted
+    /// redirect can stand in for. Cancelled before the code would go to
+    /// Google, so nothing here reaches the network.
+    @Test
+    func `Antigravity signs in with Google through a loopback a pasted address can stand in for`() async throws {
+        let opened = SignInRecorder()
+        let listener: OAuthLoopbackFactory = { host, port, path in
+            opened.reporter.emit(TaskID("listener"), "\(host):\(port)\(path)", nil)
+            return SilentListener(host: host, port: port, path: path)
+        }
+        let desk = AccountDesk(store: DeliveredCredentialSource(), login: KWWKSignIn.login, listener: listener, verifyKey: { _, _, _ in })
+        let recorder = SignInRecorder()
+        #expect(AgentProvider.antigravity.signInMethods == [.browser])
+        try await desk.start(AgentSignInRequest(provider: .antigravity), taskID: TaskID("g1"), reporter: recorder.reporter)
+        try await recorder.waitFor { !$0.events.isEmpty }
+        #expect(opened.events.map(\.kind) == ["localhost:51121/oauth-callback"])
+        #expect(recorder.events.map(\.kind) == ["authorize"])
+        #expect(recorder.events[0].payload?["acceptsCallbackURL"] == .bool(true))
+        let page = try #require(recorder.events[0].payload?["url"]?.stringValue.flatMap(URLComponents.init(string:)))
+        #expect(page.host == "accounts.google.com")
+        #expect(page.queryItems?.first { $0.name == "redirect_uri" }?.value == "http://localhost:51121/oauth-callback")
+        #expect(page.queryItems?.first { $0.name == "code_challenge_method" }?.value == "S256")
+        #expect(await desk.cancel(TaskID("g1")))
+        try await recorder.waitFor { $0.state != nil }
+        #expect(recorder.state == .cancelled)
+    }
+
     @Test
     func `an API key is asked for by field, checked by name alone, and stored in kwwk's shape`() async throws {
         let store = DeliveredCredentialSource()

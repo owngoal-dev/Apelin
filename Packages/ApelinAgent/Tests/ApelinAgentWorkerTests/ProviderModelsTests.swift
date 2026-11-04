@@ -21,6 +21,22 @@ struct ProviderModelsTests {
         #expect(try AgentWorker.provider(.init(provider: provider)) == .stored(storeID: plan.id, model: nil))
     }
 
+    /// Antigravity's models are kwwk's list for it, as every subscription's
+    /// are: nothing to discover, and its session is kwwk's stored provider.
+    @Test
+    func `Antigravity lists kwwk's catalog for it and is kwwk's stored provider`() throws {
+        let subscription = OAuthCredentials(access: "token", refresh: "refresh", expires: 1)
+        let models = ProviderModels.list(.antigravity, credentials: subscription)
+        #expect(models.contains("gemini-4-argon"))
+        #expect(models.contains("claude-opus-5-5"))
+        #expect(ProviderModels.reasoningEfforts(.antigravity, credentials: subscription)["gemini-4-argon"]?.isEmpty == false)
+        #expect(!ProviderModels.usesAPIKey(.antigravity, credentials: subscription))
+        #expect(ProviderModels.modelRequest(.antigravity, credentials: subscription) == nil)
+        #expect(try AgentWorker.provider(.init(provider: .antigravity)) == .stored(storeID: "antigravity", model: nil))
+        #expect(try AgentWorker.provider(.init(provider: .antigravity, model: "gemini-4-argon"))
+            == .stored(storeID: "antigravity", model: "gemini-4-argon"))
+    }
+
     @Test
     func `DeepSeek offers its own models and discovery with only an API key`() throws {
         let key = OAuthCredentials(access: "key", refresh: "", expires: .max)

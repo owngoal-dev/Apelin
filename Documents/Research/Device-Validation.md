@@ -1073,6 +1073,17 @@ console now goes on after a restart only past a successful respring.
       key fails verification without the key in what the app shows. Kimi
       For Coding Global signs in with its code on kimi.ai, a chat answers,
       and a sign-in again keeps the device id the first one recorded.
+- [ ] Antigravity's Google sign-in (2026-11-04, kwwk 0.1.111, AGENTS.md ▸
+      Agent sign-in; no Google account has signed in on a device). With a
+      Google account, Settings ▸ Model Providers ▸ Antigravity opens
+      Google's page in Safari, which comes back to
+      `localhost:51121/oauth-callback` (or the address pasted from
+      Safari's address bar where it cannot), and Antigravity is listed
+      signed in. A chat on `gemini-4-argon` and one on `claude-sonnet-5-5`
+      read a file with file_read and answer, Compact… compacts one, and the
+      chat still answers after the hour Google's token lasts. A free
+      account and a Google AI Pro one say which of the listed models each
+      serves; one it does not serve fails in Google's words.
 
 ## SDK and toolchain matrix (2026-10-19)
 

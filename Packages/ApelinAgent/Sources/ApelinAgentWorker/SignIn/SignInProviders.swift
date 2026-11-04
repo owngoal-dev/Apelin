@@ -13,7 +13,7 @@ public extension AgentProvider {
     /// preserving this order within each group.
     static let signInOrder: [AgentProvider] = {
         let order: [AgentProvider] = [
-            .openAICodex, .anthropicOAuth, .githubCopilot, .cursor,
+            .openAICodex, .anthropicOAuth, .githubCopilot, .cursor, .antigravity,
             .workBuddyAI, .workBuddy, .kimiCoding, .kimiCodingGlobal, .xai, .openRouter,
             .zai, .zaiCodingCN, .qoder, .qoderCN, .kiro, .devin,
             .openAI, .deepSeek, .openCodeGo, .openCodeZen, .google, .anthropic, .openAICompatible,
@@ -32,6 +32,7 @@ public extension AgentProvider {
         case .cursor: "cursor"
         case .devin: "devin"
         case .kiro: "kiro"
+        case .antigravity: "antigravity"
         case .qoder: QoderSite.global.id
         case .qoderCN: QoderSite.cn.id
         case .workBuddy: WorkBuddySite.china.id
@@ -57,8 +58,8 @@ public extension AgentProvider {
         switch self {
         case .githubCopilot, .kimiCoding, .kimiCodingGlobal, .xai:
             .deviceCode
-        case .anthropicOAuth, .openAICodex, .cursor, .devin, .kiro, .qoder, .qoderCN, .workBuddy, .workBuddyAI,
-             .zai, .zaiCodingCN, .openRouter:
+        case .anthropicOAuth, .openAICodex, .cursor, .devin, .kiro, .antigravity, .qoder, .qoderCN, .workBuddy,
+             .workBuddyAI, .zai, .zaiCodingCN, .openRouter:
             .browser
         case .anthropic, .openAICompatible, .openAI, .google, .deepSeek, .openCodeGo, .openCodeZen:
             .apiKey

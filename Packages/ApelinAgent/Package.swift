@@ -20,11 +20,11 @@ let package = Package(
         .library(name: "ApelinAgentWorker", targets: ["ApelinAgentWorker"]),
     ],
     dependencies: [
-        // EYHN/kwwk v0.1.109, pinned to the commit the tag names so a moved
+        // EYHN/kwwk v0.1.111, pinned to the commit the tag names so a moved
         // tag cannot change what is built. Bump deliberately.
         .package(
             url: "https://github.com/EYHN/kwwk.git",
-            revision: "b2c8b4a95f6c314034a2d955023bedda7bb19053",
+            revision: "a43b122f0953ba922f9361754b9df9a496d5f5af",
         ),
         // kwwk's swift-nio, held below 2.104.0. That release made
         // ByteToMessageHandler's decoder `~Copyable`, and an iOS runtime
