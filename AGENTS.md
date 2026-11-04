@@ -959,7 +959,9 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   jailbreak over. There every release carries that one reason, setup and
   a toolchain transfer import are refused before anything downloads or
   installs, `projectCheck` says it as `environment.device.toolchain`, and
-  the welcome page's Build Tools says it in place of pointing to Settings.
+  the welcome page's Build Tools says it in place of its introduction,
+  which promises Settings, and lists no pair
+  (`WelcomeEnvironmentIntroduction`).
   Real support would mean writing Bootstrap's signature on everything
   Apelin signs and installs, which nothing here can test; it waits for a
   Bootstrap device.

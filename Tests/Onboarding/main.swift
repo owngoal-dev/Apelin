@@ -26,6 +26,12 @@ import Foundation
         precondition(WelcomeEnvironmentRecommendation.commonRefusal(in: [refused, c]) == nil, "One release is set up")
         precondition(WelcomeEnvironmentRecommendation.commonRefusal(in: [refused, bootstrap[1]]) == nil, "Two reasons")
         precondition(WelcomeEnvironmentRecommendation.commonRefusal(in: []) == nil)
+        // ...and in place of its introduction, which promises Settings can
+        // install the tools later: there every release is refused too.
+        precondition(WelcomeEnvironmentIntroduction(catalog: bootstrap) == .refusal(HostSigning.bootstrapRefusal))
+        precondition(WelcomeEnvironmentIntroduction(catalog: [refused]) == .refusal("No host support"), "A CPU's reason too")
+        precondition(WelcomeEnvironmentIntroduction(catalog: [refused, c, swift]) == .recommendation)
+        precondition(WelcomeEnvironmentIntroduction(catalog: []) == .recommendation, "An empty catalog is no refusal")
         // The app reads the service's refusal in the user's language only
         // while the catalogue has it as a key, word for word.
         let catalogue = URL(fileURLWithPath: #filePath)
