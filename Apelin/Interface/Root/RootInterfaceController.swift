@@ -278,8 +278,17 @@ final class RootInterfaceController: UIViewController {
             syncBarItems()
             syncVisibility()
             if isDrawer, restoredChat, navigator.viewControllers.first is NothingSelectedController {
-                // after this pass: showing a page lays the columns out again
-                DispatchQueue.main.async { [weak self] in self?.sidebar.startNewChat(picked: false) }
+                // After this pass: showing a page lays the columns out again.
+                // This pass may be that very showing. Launched in the
+                // background (a Live Activity relaunches the app after a
+                // reboot), the scene is not laid out before the saved
+                // conversation is restored, and its first layout comes inside
+                // the restore's own showing of it. So the icon is checked
+                // again once the page is in (issue #38).
+                DispatchQueue.main.async { [weak self] in
+                    guard let self, isDrawer, navigator.viewControllers.first is NothingSelectedController else { return }
+                    sidebar.startNewChat(picked: false)
+                }
             }
             // a drawer that was out is gone; after this pass, since reading
             // a conversation redraws the sidebar and the page

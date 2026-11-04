@@ -2417,7 +2417,12 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   without closing a drawer; only a row or New Chat the reader picked puts
   the drawer away. A drawer always has a conversation behind it: an empty
   project, deleting the picked conversation, or a window narrowing onto the
-  icon starts one. The drawer's pan yields to content scrolled sideways (a
+  icon starts one — only if the icon is still there once that layout pass
+  is over: launched in the background (a Live Activity relaunches the app
+  after a reboot), the scene is not laid out before the saved
+  conversation is restored, its first layout comes inside the restore's
+  own showing of it, and a New Chat took its place (issue #38). The
+  drawer's pan yields to content scrolled sideways (a
   code block, a table, the attachments) and to a text selection. Pinned
   conversations come first, the rest under the day the reader last started
   or wrote in each (Today, Yesterday, the weekday
