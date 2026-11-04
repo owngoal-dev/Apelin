@@ -28,13 +28,13 @@ public struct ToolchainJob: Codable, Sendable, Equatable {
 /// The latest install one setup made.
 final class InstallTracker: @unchecked Sendable {
     private let lock = PthreadLock()
-    private var id: String?
+    @objc private dynamic var id: String?
 
-    func add(_ id: String) {
+    @objc dynamic func add(_ id: String) {
         lock.withLock { self.id = id }
     }
 
-    var latest: String? {
+    @objc dynamic var latest: String? {
         lock.withLock { id }
     }
 }
@@ -43,13 +43,13 @@ final class InstallTracker: @unchecked Sendable {
 final class RunningJobs: @unchecked Sendable {
     static let shared = RunningJobs()
     private let lock = PthreadLock()
-    private var keys: Set<String> = []
+    @objc private dynamic var keys: Set<String> = []
 
-    func claim(_ key: String) -> Bool {
+    @objc dynamic func claim(_ key: String) -> Bool {
         lock.withLock { keys.insert(key).inserted }
     }
 
-    func release(_ key: String) {
+    @objc(apelin_release:) dynamic func release(_ key: String) {
         _ = lock.withLock { keys.remove(key) }
     }
 }
@@ -65,23 +65,23 @@ final class JobJournal: @unchecked Sendable {
         self.url = url
     }
 
-    var toolchainID: String? {
+    @objc dynamic var toolchainID: String? {
         get { lock.withLock { job.toolchainID } }
         set { lock.withLock { job.toolchainID = newValue }; save() }
     }
 
-    var installationID: String? {
+    @objc dynamic var installationID: String? {
         get { lock.withLock { job.installationID } }
         set { lock.withLock { job.installationID = newValue }; save() }
     }
 
-    var installTaskID: String? {
+    @objc dynamic var installTaskID: String? {
         get { lock.withLock { job.installTaskID } }
         set { lock.withLock { job.installTaskID = newValue }; save() }
     }
 
     /// Records `stage`; true when it is a new one.
-    func enter(_ stage: String) -> Bool {
+    @objc dynamic func enter(_ stage: String) -> Bool {
         let changed: Bool = lock.withLock {
             guard job.stage != stage else { return false }
             job.stage = stage
@@ -94,12 +94,12 @@ final class JobJournal: @unchecked Sendable {
         return changed
     }
 
-    func fail(_ message: String) {
+    @objc dynamic func fail(_ message: String) {
         lock.withLock { job.failure = message; job.updated = Date() }
         save()
     }
 
-    func save() {
+    @objc dynamic func save() {
         let snapshot = lock.withLock { job }
         try? JSONFile.write(snapshot, to: url)
     }

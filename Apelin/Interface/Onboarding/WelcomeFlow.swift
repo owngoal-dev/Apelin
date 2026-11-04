@@ -6,15 +6,15 @@ import UIKit
 @MainActor
 final class WelcomeFlow {
     private static let seenKey = "onboarding.seenVersion"
-    static var shouldPresent: Bool {
+    @objc dynamic static var shouldPresent: Bool {
         UserDefaults.standard.integer(forKey: seenKey) < 1
     }
 
-    private weak var navigation: UINavigationController?
-    private var finished = false
+    @objc private dynamic weak var navigation: UINavigationController?
+    @objc private dynamic var finished = false
     private let onFinish: (ProjectSummary?) -> Void
     var project: ProjectSummary?
-    var projectTemplateID: String?
+    @objc dynamic var projectTemplateID: String?
 
     private init(onFinish: @escaping (ProjectSummary?) -> Void) {
         self.onFinish = onFinish
@@ -36,35 +36,35 @@ final class WelcomeFlow {
         presenter.present(navigation, animated: true)
     }
 
-    func showEnvironment() {
+    @objc dynamic func showEnvironment() {
         push(WelcomeEnvironmentPage(flow: self))
     }
 
-    func showProviders() {
+    @objc dynamic func showProviders() {
         push(WelcomeProvidersPage(flow: self))
     }
 
-    func showGitHub() {
+    @objc dynamic func showGitHub() {
         push(WelcomeGitHubPage(flow: self))
     }
 
-    func showProject() {
+    @objc dynamic func showProject() {
         push(WelcomeProjectPage(flow: self))
     }
 
-    func showNotifications() {
+    @objc dynamic func showNotifications() {
         push(WelcomeNotificationsPage(flow: self))
     }
 
-    func showCaution() {
+    @objc dynamic func showCaution() {
         push(WelcomeCautionController(flow: self))
     }
 
-    private func push(_ page: UIViewController) {
+    @objc private dynamic func push(_ page: UIViewController) {
         navigation?.pushViewController(page, animated: !UIAccessibility.isReduceMotionEnabled)
     }
 
-    func finish() {
+    @objc dynamic func finish() {
         guard !finished else { return }
         finished = true
         if Self.shouldPresent {

@@ -13,7 +13,7 @@ final class SheetNavigationController: UINavigationController {
 
     /// Gives the sheet its size and holds it: what UIKit reports now, with the
     /// root page's bar, is what every page after it gets.
-    func holdPreferredContentSize(_ size: CGSize) {
+    @objc dynamic func holdPreferredContentSize(_ size: CGSize) {
         super.preferredContentSize = size
         heldSize = super.preferredContentSize
     }

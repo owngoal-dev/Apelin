@@ -22,7 +22,7 @@ final class Proxy {
         authenticator = PeerAuthenticator(installRoot: installRoot)
     }
 
-    func run() -> Never {
+    @objc dynamic func run() -> Never {
         // The Mach service listener, whose flag and constructor the iOS SDK keeps private.
         let listener = AppProtocol.serviceName.withCString {
             daemonCreateMachServiceListener($0, queue, machServiceListener)
@@ -45,7 +45,7 @@ final class Proxy {
         dispatchMain()
     }
 
-    private func accept(_ peer: xpc_connection_t) {
+    @objc dynamic private func accept(_ peer: xpc_connection_t) {
         // The peer's handler runs on the proxy queue, as the ledger does.
         xpc_connection_set_target_queue(peer, queue)
         ledger.connectionOpened()
@@ -63,7 +63,7 @@ final class Proxy {
         xpc_connection_activate(peer)
     }
 
-    private func handle(_ message: xpc_object_t, from peer: xpc_connection_t) {
+    @objc dynamic private func handle(_ message: xpc_object_t, from peer: xpc_connection_t) {
         guard let reply = xpc_dictionary_create_reply(message) else { return }
         let request: WireRequest
         let descriptors: [OwnedDescriptor]
@@ -98,7 +98,7 @@ final class Proxy {
         }
     }
 
-    private func exitIdle() {
+    @objc dynamic private func exitIdle() {
         NSLog("apelind: idle, exiting until launchd starts it again")
         session.shutdown()
         exit(0)

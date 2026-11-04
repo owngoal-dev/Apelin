@@ -27,7 +27,7 @@ protocol PatchableSink: ByteSink {
 final class MemorySink: PatchableSink {
     private(set) var data = Data()
 
-    var byteCount: Int64 {
+    @objc dynamic var byteCount: Int64 {
         Int64(data.count)
     }
 
@@ -35,7 +35,7 @@ final class MemorySink: PatchableSink {
         data.append(contentsOf: bytes)
     }
 
-    func overwrite(_ bytes: [UInt8], at offset: Int64) throws {
+    @objc dynamic func overwrite(_ bytes: [UInt8], at offset: Int64) throws {
         let start = data.startIndex + Int(offset)
         data.replaceSubrange(start ..< start + bytes.count, with: bytes)
     }
@@ -44,7 +44,7 @@ final class MemorySink: PatchableSink {
 /// A descriptor written with `pwrite` at offsets this sink tracks.
 final class DescriptorSink: PatchableSink {
     private let descriptor: Int32
-    private(set) var byteCount: Int64 = 0
+    @objc private(set) dynamic var byteCount: Int64 = 0
 
     init(descriptor: Int32) {
         self.descriptor = descriptor
@@ -55,7 +55,7 @@ final class DescriptorSink: PatchableSink {
         byteCount += Int64(bytes.count)
     }
 
-    func overwrite(_ bytes: [UInt8], at offset: Int64) throws {
+    @objc dynamic func overwrite(_ bytes: [UInt8], at offset: Int64) throws {
         try bytes.withUnsafeBytes { try put($0, at: offset) }
     }
 
@@ -86,7 +86,7 @@ final class DescriptorSink: PatchableSink {
 /// Counts what passes through, for the `ar` member size.
 final class CountingSink: ByteSink {
     private let next: ByteSink
-    private(set) var byteCount: Int64 = 0
+    @objc private(set) dynamic var byteCount: Int64 = 0
 
     init(_ next: ByteSink) {
         self.next = next

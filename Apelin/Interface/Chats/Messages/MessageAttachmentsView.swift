@@ -6,8 +6,8 @@ import UIKit
 final class MessageAttachmentsView: UIView {
     var onPreview: ((ComposerAttachment) -> Void)?
     var onPreviewImages: (([ComposerAttachment], UUID) -> Void)?
-    var onSizeChange: (() -> Void)?
-    var documentWidthLimit: CGFloat = 350 {
+    @objc dynamic var onSizeChange: (() -> Void)?
+    @objc dynamic var documentWidthLimit: CGFloat = 350 {
         didSet {
             if documentWidthLimit != oldValue {
                 setNeedsLayout()
@@ -15,7 +15,7 @@ final class MessageAttachmentsView: UIView {
         }
     }
 
-    var previewHeightLimit: CGFloat = 0 {
+    @objc dynamic var previewHeightLimit: CGFloat = 0 {
         didSet {
             if previewHeightLimit != oldValue {
                 setNeedsLayout()
@@ -24,7 +24,7 @@ final class MessageAttachmentsView: UIView {
     }
 
     /// The screen's, as `height(for:…)` was given it.
-    var displayScale: CGFloat = 0 {
+    @objc dynamic var displayScale: CGFloat = 0 {
         didSet {
             if displayScale != oldValue {
                 setNeedsLayout()
@@ -33,10 +33,10 @@ final class MessageAttachmentsView: UIView {
     }
 
     private let grid = MessageImageGrid()
-    private var cards: [MessageDocumentCard] = []
+    @objc dynamic private var cards: [MessageDocumentCard] = []
     private var attachments: [ComposerAttachment] = []
-    private var requested: Set<UUID> = []
-    private var trailing = false
+    @objc dynamic private var requested: Set<UUID> = []
+    @objc dynamic private var trailing = false
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -71,7 +71,7 @@ final class MessageAttachmentsView: UIView {
         }
     }
 
-    private func refresh(animated: Bool) {
+    @objc dynamic private func refresh(animated: Bool) {
         if animated, window != nil, !UIAccessibility.isReduceMotionEnabled {
             UIView.transition(with: self, duration: 0.18, options: [.transitionCrossDissolve, .allowAnimatedContent]) {
                 // Only the cross-fade: new tiles and cards start at their
@@ -86,7 +86,7 @@ final class MessageAttachmentsView: UIView {
         }
     }
 
-    private func updateContent() {
+    @objc dynamic private func updateContent() {
         grid.show(Self.images(in: attachments))
         cards.forEach { $0.removeFromSuperview() }
         cards = Self.files(in: attachments).map { item in
@@ -165,11 +165,11 @@ private final class MessageDocumentCard: UIControl {
     private static let padding: CGFloat = 12
     private static let previewLines = 3
     private static let sizingExcerpt = UILabel()
-    private static var nameFont: UIFont {
+    @objc dynamic private static var nameFont: UIFont {
         UIFont.systemFont(ofSize: UIFont.preferredFont(forTextStyle: .subheadline).pointSize, weight: .semibold)
     }
 
-    private static var excerptFont: UIFont {
+    @objc dynamic private static var excerptFont: UIFont {
         .preferredFont(forTextStyle: .subheadline)
     }
 
@@ -261,7 +261,7 @@ private final class MessageDocumentCard: UIControl {
         updateBorder()
     }
 
-    private func updateBorder() {
+    @objc dynamic private func updateBorder() {
         layer.borderColor = tintColor.resolvedColor(with: traitCollection).withAlphaComponent(0.15).cgColor
     }
 }

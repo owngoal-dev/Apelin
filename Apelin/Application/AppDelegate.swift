@@ -3,7 +3,7 @@ import UIKit
 
 /// Not `@main`: `main.swift` clears saved scenes before `UIApplicationMain`.
 final class AppDelegate: UIResponder, UIApplicationDelegate {
-    func application(
+    @objc dynamic func application(
         _ application: UIApplication,
         didFinishLaunchingWithOptions _: [UIApplication.LaunchOptionsKey: Any]?,
     ) -> Bool {
@@ -33,11 +33,11 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
 
     /// A quit takes the Live Activity with it: nothing would update it
     /// after (`ChatWidgetPublisher.endActivitiesForQuit`).
-    func applicationWillTerminate(_: UIApplication) {
+    @objc dynamic func applicationWillTerminate(_: UIApplication) {
         ChatWidgetPublisher.endActivitiesForQuit()
     }
 
-    func application(
+    @objc dynamic func application(
         _: UIApplication,
         configurationForConnecting connectingSceneSession: UISceneSession,
         options _: UIScene.ConnectionOptions,
@@ -50,7 +50,7 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
     /// The watch fires once, and may fire with no scene active: at launch,
     /// in the background, or on resume before the scene activates. The
     /// notice then waits for the next activation instead of being lost.
-    private static func presentWhenActive(_ alert: UIAlertController, in application: UIApplication) {
+    @objc private dynamic static func presentWhenActive(_ alert: UIAlertController, in application: UIApplication) {
         let active = application.connectedScenes.first { $0.activationState == .foregroundActive }
         guard let scene = active as? UIWindowScene else {
             var observer: NSObjectProtocol?
@@ -79,9 +79,9 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
 }
 
 final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
-    var window: UIWindow?
+    @objc dynamic var window: UIWindow?
 
-    func scene(
+    @objc dynamic func scene(
         _ scene: UIScene,
         willConnectTo _: UISceneSession,
         options connectionOptions: UIScene.ConnectionOptions,
@@ -99,7 +99,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
 
     /// Open in Apelin, or an `apelin://` link, while the app runs.
-    func scene(_ scene: UIScene, openURLContexts contexts: Set<UIOpenURLContext>) {
+    @objc dynamic func scene(_ scene: UIScene, openURLContexts contexts: Set<UIOpenURLContext>) {
         guard let scene = scene as? UIWindowScene else { return }
         openURLs(contexts, in: scene)
     }
@@ -108,7 +108,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     /// (`ApelinLinkRouter`); anything else is a transfer file, and the
     /// opener refuses what is not one with a notice. One at a time: a
     /// second sheet could not be presented over the first.
-    private func openURLs(_ contexts: Set<UIOpenURLContext>, in scene: UIWindowScene) {
+    @objc private dynamic func openURLs(_ contexts: Set<UIOpenURLContext>, in scene: UIWindowScene) {
         guard let context = contexts.first, !ApelinLinkRouter.open(context.url, in: scene) else { return }
         TransferOpener.open(context.url, in: scene)
     }

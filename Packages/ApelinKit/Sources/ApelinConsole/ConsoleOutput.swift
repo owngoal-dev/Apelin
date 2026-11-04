@@ -58,7 +58,7 @@ final class ConsoleOutput: @unchecked Sendable {
         log.line(text)
     }
 
-    func close() {
+    @objc dynamic func close() {
         lock.withLock { try? handle?.close() }
     }
 }

@@ -107,22 +107,22 @@ public struct Diagnostics: LogEvidenceSource, LiveLogSource {
     /// What one stream has heard, for telling a refusal from a lost end.
     private final class Heard: @unchecked Sendable {
         private let lock = NSLock()
-        private var anything = false
-        private var cut = false
+        @objc private dynamic var anything = false
+        @objc private dynamic var cut = false
 
-        func matched() {
+        @objc dynamic func matched() {
             lock.lock()
             anything = true
             lock.unlock()
         }
 
-        func interrupted() {
+        @objc dynamic func interrupted() {
             lock.lock()
             cut = true
             lock.unlock()
         }
 
-        var refused: Bool {
+        @objc dynamic var refused: Bool {
             lock.lock()
             defer { lock.unlock() }
             return cut && !anything

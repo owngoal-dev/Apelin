@@ -54,7 +54,7 @@ final class TransferImportController: TableController {
         self?.cell(for: item.row)
     }
 
-    private func updateRows() {
+    @objc private dynamic func updateRows() {
         dataSource.headerTitle = { [weak self] id in self?.sections.first { $0.id == id }?.header }
         dataSource.footerTitle = { [weak self] id in self?.sections.first { $0.id == id }?.footer }
         dataSource.update(sections.map { section in
@@ -84,9 +84,9 @@ final class TransferImportController: TableController {
     private var inspection: TransferInspection?
     private var sections: [Section] = []
     private var loader: Task<Void, Never>?
-    private var isStarting = false
+    @objc private dynamic var isStarting = false
 
-    private lazy var importItem: UIBarButtonItem = .init(
+    @objc private dynamic lazy var importItem: UIBarButtonItem = .init(
         title: String(localized: "Import"),
         primaryAction: UIAction { [weak self] _ in self?.startImport() },
     ).then {
@@ -94,7 +94,7 @@ final class TransferImportController: TableController {
         $0.isEnabled = false
     }
 
-    private lazy var nameField: UITextField = .init().then {
+    @objc private dynamic lazy var nameField: UITextField = .init().then {
         $0.font = .preferredFont(forTextStyle: .body)
         $0.adjustsFontForContentSizeCategory = true
         $0.clearButtonMode = .whileEditing
@@ -137,7 +137,7 @@ final class TransferImportController: TableController {
 
     // MARK: - Reading
 
-    private func inspect() {
+    @objc private dynamic func inspect() {
         dataSource.beginLoad()
         loader = Task { [weak self, file] in
             guard let descriptor = file.duplicate() else {
@@ -159,7 +159,7 @@ final class TransferImportController: TableController {
         }
     }
 
-    private func show(_ failure: String) {
+    @objc private dynamic func show(_ failure: String) {
         sections = []
         tableView.backgroundView = EmptyStateView(symbolName: "exclamationmark.triangle", title: String(localized: "Unable to Import"), text: failure)
         updateRows()
@@ -319,7 +319,7 @@ final class TransferImportController: TableController {
         return rows
     }
 
-    private func updateImportItem() {
+    @objc private dynamic func updateImportItem() {
         guard let inspection, inspection.importable, !isStarting else {
             importItem.isEnabled = false
             return
@@ -350,7 +350,7 @@ final class TransferImportController: TableController {
 
     // MARK: - Importing
 
-    private func startImport() {
+    @objc private dynamic func startImport() {
         guard let inspection, inspection.importable, !isStarting else { return }
         let kind = inspection.summary.kind
         let name = kind == .project ? nameField.text?.trimmingCharacters(in: .whitespaces) : nil

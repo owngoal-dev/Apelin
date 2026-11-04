@@ -65,7 +65,7 @@
                 self.stream = stream
             }
 
-            func cancel() {
+            @objc dynamic func cancel() {
                 stream.cancel()
             }
         }

@@ -41,7 +41,7 @@ final class DaemonClient: ApelinTransport, @unchecked Sendable {
     }
 
     private let queue = DispatchQueue(label: "wiki.qaq.apelin.client")
-    private var firstMiss: Date?
+    @objc private dynamic var firstMiss: Date?
     private var state = State.unknown
     private var helloWaiters: [(xpc_connection_t?) -> Void] = []
 
@@ -104,19 +104,19 @@ final class DaemonClient: ApelinTransport, @unchecked Sendable {
     }
 
     /// On `queue`. Joins the hello in progress, or starts one.
-    private func ensureHello(_ completion: @escaping (xpc_connection_t?) -> Void) {
+    @objc private dynamic func ensureHello(_ completion: @escaping (xpc_connection_t?) -> Void) {
         helloWaiters.append(completion)
         guard helloWaiters.count == 1 else { return }
         attempt()
     }
 
-    private func finishHello(_ connection: xpc_connection_t?) {
+    @objc private dynamic func finishHello(_ connection: xpc_connection_t?) {
         let waiters = helloWaiters
         helloWaiters = []
         waiters.forEach { $0(connection) }
     }
 
-    private func attempt() {
+    @objc private dynamic func attempt() {
         guard let connection = AppProtocol.serviceName.withCString({
             appCreateMachServiceConnection($0, queue, 0)
         }) else {
@@ -157,7 +157,7 @@ final class DaemonClient: ApelinTransport, @unchecked Sendable {
         }
     }
 
-    private func missed() {
+    @objc private dynamic func missed() {
         let first = firstMiss ?? Date()
         firstMiss = first
         guard Date().timeIntervalSince(first) < Self.gracePeriod else {
@@ -169,7 +169,7 @@ final class DaemonClient: ApelinTransport, @unchecked Sendable {
     }
 
     /// On `queue`. The connection is gone; the next call says hello again.
-    private func dropped(_ connection: xpc_connection_t) {
+    @objc private dynamic func dropped(_ connection: xpc_connection_t) {
         dispatchPrecondition(condition: .onQueue(queue))
         if case let .connected(current) = state, current === connection {
             xpc_connection_cancel(connection)
@@ -185,9 +185,9 @@ private struct WaitField: Decodable {
 
 private final class Once: @unchecked Sendable {
     private let lock = PthreadLock()
-    private var claimed = false
+    @objc private dynamic var claimed = false
 
-    func claim() -> Bool {
+    @objc dynamic func claim() -> Bool {
         lock.withLock {
             defer { claimed = true }
             return !claimed

@@ -7,14 +7,14 @@ import UIKit
 final class ComposerAttachmentsBar: ComposerSectionView, UICollectionViewDataSource,
     UICollectionViewDelegateFlowLayout
 {
-    var onRemove: ((UUID) -> Void)?
+    @objc dynamic var onRemove: ((UUID) -> Void)?
     var onPreview: ((ComposerAttachment) -> Void)?
     private let inset = UIEdgeInsets(top: 10, left: 10, bottom: 0, right: 10)
 
     private var items: [ComposerAttachment] = []
     private let collectionView = UICollectionView(frame: .zero, collectionViewLayout: UICollectionViewFlowLayout())
 
-    override func initializeViews() {
+    @objc override dynamic func initializeViews() {
         super.initializeViews()
         clipsToBounds = true
         let layout = collectionView.collectionViewLayout as! UICollectionViewFlowLayout
@@ -41,11 +41,11 @@ final class ComposerAttachmentsBar: ComposerSectionView, UICollectionViewDataSou
         collectionView.frame = CGRect(x: 0, y: inset.top, width: bounds.width, height: 80)
     }
 
-    func collectionView(_: UICollectionView, numberOfItemsInSection _: Int) -> Int {
+    @objc dynamic func collectionView(_: UICollectionView, numberOfItemsInSection _: Int) -> Int {
         items.count
     }
 
-    func collectionView(
+    @objc dynamic func collectionView(
         _ collectionView: UICollectionView,
         cellForItemAt indexPath: IndexPath,
     ) -> UICollectionViewCell {
@@ -59,11 +59,11 @@ final class ComposerAttachmentsBar: ComposerSectionView, UICollectionViewDataSou
         return cell
     }
 
-    func collectionView(_: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+    @objc dynamic func collectionView(_: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         onPreview?(items[indexPath.item])
     }
 
-    func collectionView(
+    @objc dynamic func collectionView(
         _: UICollectionView,
         layout _: UICollectionViewLayout,
         sizeForItemAt indexPath: IndexPath,
@@ -77,7 +77,7 @@ private final class AttachmentCell: UICollectionViewCell {
     private let nameLabel = UILabel()
     private let textLabel = UILabel()
     private let deleteButton = UIButton(type: .system)
-    var remove: (() -> Void)?
+    @objc dynamic var remove: (() -> Void)?
 
     override init(frame: CGRect) {
         super.init(frame: frame)

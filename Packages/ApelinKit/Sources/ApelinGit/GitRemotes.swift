@@ -38,7 +38,7 @@ public extension GitRepository {
 
     /// Points the remote `name` at `url`, as `git remote set-url` does, and
     /// takes away a `pushurl` of its own, so a push goes where a fetch does.
-    func setRemoteURL(_ name: String, url: String) throws {
+    @objc dynamic func setRemoteURL(_ name: String, url: String) throws {
         let remote = try lookupRemote(name)
         git_remote_free(remote)
         guard !url.utf8.contains(0) else { throw GitError(.invalid, "bad remote URL") }
@@ -49,7 +49,7 @@ public extension GitRepository {
     }
 
     /// Whether libgit2 takes `name` for a remote's name.
-    static func isValidRemoteName(_ name: String) -> Bool {
+    @objc static dynamic func isValidRemoteName(_ name: String) -> Bool {
         GitLibrary.ensure()
         var valid: Int32 = 0
         return !name.utf8.contains(0) && !name.hasPrefix("-") && git_remote_name_is_valid(&valid, name) == 0 && valid != 0

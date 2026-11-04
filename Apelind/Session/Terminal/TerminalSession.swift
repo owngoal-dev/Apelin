@@ -65,9 +65,9 @@ final class TerminalSession: @unchecked Sendable {
     private var readSource: DispatchSourceRead?
     private var exitSource: DispatchSourceProcess?
     private var peers: [Int32: DispatchSourceRead] = [:]
-    private var onOutput: ((Data) -> Void)?
-    private var onExit: ((Int32) -> Void)?
-    private var alive = true
+    @objc dynamic private var onOutput: ((Data) -> Void)?
+    @objc dynamic private var onExit: ((Int32) -> Void)?
+    @objc dynamic private var alive = true
 
     private init(pid: pid_t, master: Int32, queue: DispatchQueue) {
         self.pid = pid
@@ -197,7 +197,7 @@ final class TerminalSession: @unchecked Sendable {
 
     /// Starts reading. `onOutput` and `onExit` run on the session's queue;
     /// `onExit` once, with the wait status.
-    func start(onOutput: @escaping (Data) -> Void, onExit: @escaping (Int32) -> Void) {
+    @objc dynamic func start(onOutput: @escaping (Data) -> Void, onExit: @escaping (Int32) -> Void) {
         queue.async { [self] in
             self.onOutput = onOutput
             self.onExit = onExit
@@ -214,11 +214,11 @@ final class TerminalSession: @unchecked Sendable {
     }
 
     /// The user's typing.
-    func write(_ data: Data) {
+    @objc dynamic func write(_ data: Data) {
         queue.async { [self] in writeAll(data) }
     }
 
-    func resize(columns: UInt16, rows: UInt16) {
+    @objc dynamic func resize(columns: UInt16, rows: UInt16) {
         queue.async { [self] in
             guard alive else { return }
             var size = winsize(ws_row: rows, ws_col: columns, ws_xpixel: 0, ws_ypixel: 0)
@@ -249,7 +249,7 @@ final class TerminalSession: @unchecked Sendable {
     }
 
     /// SIGHUP to the shell's process group, SIGKILL after `grace`.
-    func terminate(grace: TimeInterval = 2) {
+    @objc dynamic func terminate(grace: TimeInterval = 2) {
         queue.async { [self] in
             guard alive else { return }
             kill(-pid, SIGHUP)
@@ -264,7 +264,7 @@ final class TerminalSession: @unchecked Sendable {
 
     // MARK: Private (on the queue)
 
-    private func drain() {
+    @objc dynamic private func drain() {
         var chunk = Data()
         var buffer = [UInt8](repeating: 0, count: 4096)
         while chunk.count < Self.deliveryBytes {
@@ -302,7 +302,7 @@ final class TerminalSession: @unchecked Sendable {
         }
     }
 
-    private func readPeer(_ peer: Int32) {
+    @objc dynamic private func readPeer(_ peer: Int32) {
         var buffer = [UInt8](repeating: 0, count: 4096)
         let count = buffer.withUnsafeMutableBytes { recv(peer, $0.baseAddress, $0.count, 0) }
         if count > 0 {
@@ -312,7 +312,7 @@ final class TerminalSession: @unchecked Sendable {
         }
     }
 
-    private func writeAll(_ data: Data) {
+    @objc dynamic private func writeAll(_ data: Data) {
         guard alive else { return }
         data.withUnsafeBytes { bytes in
             var written = 0
@@ -339,7 +339,7 @@ final class TerminalSession: @unchecked Sendable {
     private static let reapAttempts = 25
 
     /// NOTE_EXIT can arrive before the child is a zombie, so the reap is polled.
-    private func pollReap(attempt: Int) {
+    @objc dynamic private func pollReap(attempt: Int) {
         guard alive else { return }
         var status: Int32 = 0
         let result = waitpid(pid, &status, WNOHANG)
@@ -362,7 +362,7 @@ final class TerminalSession: @unchecked Sendable {
         queue.asyncAfter(deadline: .now() + 0.2) { [weak self] in self?.pollReap(attempt: attempt + 1) }
     }
 
-    private static func cStrings(_ values: [String]) -> UnsafeMutablePointer<UnsafeMutablePointer<CChar>?> {
+    @objc dynamic private static func cStrings(_ values: [String]) -> UnsafeMutablePointer<UnsafeMutablePointer<CChar>?> {
         let array = UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>.allocate(capacity: values.count + 1)
         for (index, value) in values.enumerated() {
             array[index] = strdup(value)
@@ -371,7 +371,7 @@ final class TerminalSession: @unchecked Sendable {
         return array
     }
 
-    private static func freeCStrings(_ array: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>, count: Int) {
+    @objc dynamic private static func freeCStrings(_ array: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>, count: Int) {
         for index in 0 ..< count {
             free(array[index])
         }

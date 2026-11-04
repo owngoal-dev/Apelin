@@ -8,13 +8,13 @@ import UIKit
 class WelcomeListPage: UIViewController, UITableViewDelegate {
     let tableView = FirstFillTableView(frame: .zero, style: .insetGrouped)
     let flow: WelcomeFlow
-    private var action: (() -> Void)?
-    var secondaryTitle: String? {
+    @objc private dynamic var action: (() -> Void)?
+    @objc dynamic var secondaryTitle: String? {
         nil
     }
 
-    func secondaryAction() {}
-    private(set) lazy var actionBar = WelcomeActionBar(
+    @objc dynamic func secondaryAction() {}
+    @objc private(set) dynamic lazy var actionBar = WelcomeActionBar(
         title: String(localized: "Next"),
         secondaryTitle: secondaryTitle,
         action: { [weak self] in self?.action?() },
@@ -45,7 +45,7 @@ class WelcomeListPage: UIViewController, UITableViewDelegate {
         tableView.delegate = self
     }
 
-    func next(_ action: @escaping () -> Void) {
+    @objc dynamic func next(_ action: @escaping () -> Void) {
         self.action = action
     }
 

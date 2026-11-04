@@ -20,14 +20,14 @@ final class ReceivedTokensView: UIView {
     private let label = LTXAnimatableLabel()
     private var climb = TokenClimb(at: 0)
     private var shownFigure: Int?
-    private var timer: Timer?
+    @objc dynamic private var timer: Timer?
     private static let spacing: CGFloat = 3
     /// How often a climbing figure is drawn again.
     private static let step: TimeInterval = 0.1
     /// As the title is drawn when it is finished.
     private static let color = UIColor.label.withAlphaComponent(0.5)
 
-    var font = UIFont.preferredFont(forTextStyle: .body) {
+    @objc dynamic var font = UIFont.preferredFont(forTextStyle: .body) {
         didSet { applyFont() }
     }
 
@@ -51,7 +51,7 @@ final class ReceivedTokensView: UIView {
     }
 
     /// Shows `tokens` at once.
-    func show(_ tokens: Int) {
+    @objc dynamic func show(_ tokens: Int) {
         stopClimbing()
         climb = TokenClimb(at: tokens)
         draw(tokens, rolls: false)
@@ -59,7 +59,7 @@ final class ReceivedTokensView: UIView {
 
     /// Climbs from the figure to `tokens`, to arrive `duration` from now;
     /// off screen or under Reduce Motion it is there at once.
-    func climb(to tokens: Int, within duration: TimeInterval) {
+    @objc dynamic func climb(to tokens: Int, within duration: TimeInterval) {
         guard window != nil, !UIAccessibility.isReduceMotionEnabled else {
             show(tokens)
             return
@@ -68,7 +68,7 @@ final class ReceivedTokensView: UIView {
         tick()
     }
 
-    private func tick() {
+    @objc dynamic private func tick() {
         let now = CACurrentMediaTime()
         draw(climb.figure(at: now), rolls: true)
         if climb.hasArrived(at: now) {
@@ -86,7 +86,7 @@ final class ReceivedTokensView: UIView {
         }
     }
 
-    private func stopClimbing() {
+    @objc dynamic private func stopClimbing() {
         timer?.invalidate()
         timer = nil
     }
@@ -100,24 +100,24 @@ final class ReceivedTokensView: UIView {
     }
 
     /// The count as it is drawn, grouped in the reader's locale: 1,234.
-    static func figure(_ tokens: Int) -> String {
+    @objc dynamic static func figure(_ tokens: Int) -> String {
         tokens.formatted(.number)
     }
 
     /// What VoiceOver reads as the title's value.
-    static func spoken(_ tokens: Int) -> String {
+    @objc dynamic static func spoken(_ tokens: Int) -> String {
         tokens == 1
             ? String(localized: "1 token received")
             : String(localized: "\(figure(tokens)) tokens received")
     }
 
     /// The figure the climb arrives at, the space and the arrow.
-    var contentWidth: CGFloat {
+    @objc dynamic var contentWidth: CGFloat {
         let figure = NSAttributedString(string: Self.figure(climb.target), attributes: [.font: figureFont])
         return ceil(figure.size().width + Self.spacing + symbol.intrinsicContentSize.width)
     }
 
-    var lineHeight: CGFloat {
+    @objc dynamic var lineHeight: CGFloat {
         ceil(max(symbol.intrinsicContentSize.height, figureFont.lineHeight))
     }
 
@@ -145,13 +145,13 @@ final class ReceivedTokensView: UIView {
         font = .preferredFont(forTextStyle: .body)
     }
 
-    private var figureFont: UIFont {
+    @objc dynamic private var figureFont: UIFont {
         .monospacedDigitSystemFont(ofSize: font.pointSize, weight: .regular)
     }
 
     /// The arrow is drawn at the figure's font, so the two keep their sizes
     /// to each other at every text size.
-    private func applyFont() {
+    @objc dynamic private func applyFont() {
         symbol.preferredSymbolConfiguration = UIImage.SymbolConfiguration(font: figureFont)
         if let shownFigure {
             draw(shownFigure, rolls: false, force: true)
@@ -159,7 +159,7 @@ final class ReceivedTokensView: UIView {
         setNeedsLayout()
     }
 
-    private func draw(_ figure: Int, rolls: Bool, force: Bool = false) {
+    @objc dynamic private func draw(_ figure: Int, rolls: Bool, force: Bool = false) {
         guard force || figure != shownFigure else { return }
         shownFigure = figure
         let paragraph = NSMutableParagraphStyle()

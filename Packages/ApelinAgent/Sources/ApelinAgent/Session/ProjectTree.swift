@@ -31,9 +31,9 @@ struct ProjectTree {
         let kind: Kind
         var children: [Node] = []
         /// Its entries were read.
-        var opened = false
+        @objc dynamic var opened = false
         /// Every entry it has, ignored ones aside, is listed.
-        var complete = true
+        @objc dynamic var complete = true
 
         init(name: String, kind: Kind) {
             self.name = name

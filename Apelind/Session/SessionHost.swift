@@ -36,7 +36,7 @@ final class SessionHost: @unchecked Sendable {
     private let proxy: WorkerChannel
     private var lastReport: WorkReport?
     /// `session.pid` in the state directory: this process's ID while it runs.
-    private var pidFile: URL {
+    @objc dynamic private var pidFile: URL {
         stateDirectory.appendingPathComponent("session.pid")
     }
 
@@ -111,7 +111,7 @@ final class SessionHost: @unchecked Sendable {
         resumers[.environment] = { record in await restart.resume(record) }
     }
 
-    func run() -> Never {
+    @objc dynamic func run() -> Never {
         signal(SIGPIPE, SIG_IGN)
         var metadata = stat()
         guard fstat(WorkerMain.channelDescriptor, &metadata) == 0, metadata.st_mode & S_IFMT == S_IFSOCK else {
@@ -239,7 +239,7 @@ final class SessionHost: @unchecked Sendable {
         try? proxy.sendControl(WorkerControl.work, body: report)
     }
 
-    private func shutdown() {
+    @objc dynamic private func shutdown() {
         // Every event is on disk as it comes, and every record change the
         // events do not tell (TaskRegistry); nothing is left to flush.
         Task {

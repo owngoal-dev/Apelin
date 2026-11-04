@@ -24,7 +24,7 @@ final class TemplatesController: TableController {
         self?.cell(in: table, template: row.template)
     }
 
-    private func updateRows() {
+    @objc private dynamic func updateRows() {
         dataSource.headerTitle = { [weak self] id in self?.sections.first { $0.id == id }?.extensionInfo.displayName }
         dataSource.footerTitle = { [weak self] id in self?.footer(for: id) }
         dataSource.update(sections.map { ($0.id, $0.rows) })
@@ -48,7 +48,7 @@ final class TemplatesController: TableController {
         load()
     }
 
-    @objc private func load() {
+    @objc(apelin_load) private dynamic func load() {
         loader?.cancel()
         dataSource.beginLoad()
         loader = Task { [weak self] in
@@ -76,7 +76,7 @@ final class TemplatesController: TableController {
         }
     }
 
-    private func footer(for id: String) -> String? {
+    @objc private dynamic func footer(for id: String) -> String? {
         guard let item = sections.first(where: { $0.id == id })?.extensionInfo else { return nil }
         let description = switch item.kind {
         case .workspace: String(localized: "Start with an empty workspace. No SDK or toolchain is required.")

@@ -26,13 +26,13 @@ class ComposerView: ComposerSectionView {
     private var currentDraft = ComposerDraft()
 
     let shadowContainer = UIView()
-    private var glassEffectView: UIVisualEffectView?
+    @objc dynamic private var glassEffectView: UIVisualEffectView?
     /// Over the ground and everything on it, taking only drags; its colour
     /// shows while one is over it.
     let dropContainer = ComposerDropView()
     let dropColorView = UIView()
 
-    lazy var sectionSubviews: [ComposerSectionView] = [
+    @objc dynamic lazy var sectionSubviews: [ComposerSectionView] = [
         approvalSection,
         attachmentsBar,
         inputEditor,
@@ -43,8 +43,8 @@ class ComposerView: ComposerSectionView {
     let spacing: CGFloat = 10
 
     weak var delegate: Delegate?
-    private var submissionID: UUID?
-    var fittingHeightConstraint: NSLayoutConstraint = .init()
+    @objc dynamic private var submissionID: UUID?
+    @objc dynamic var fittingHeightConstraint: NSLayoutConstraint = .init()
 
     private let handlerColor: UIColor = .init {
         switch $0.userInterfaceStyle {
@@ -177,7 +177,7 @@ class ComposerView: ComposerSectionView {
         return height > 0 ? band.frame.maxY + spacing : y
     }
 
-    func updateHeightConstraint(_ height: CGFloat) {
+    @objc dynamic func updateHeightConstraint(_ height: CGFloat) {
         guard fittingHeightConstraint.constant != height else { return }
         fittingHeightConstraint.isActive = false
         fittingHeightConstraint = heightAnchor.constraint(equalToConstant: height)
@@ -193,7 +193,7 @@ class ComposerView: ComposerSectionView {
     /// `UIScrollView.scrollToBottom(animated:)` ambiguous with ListView's
     /// across the whole target, and Litext keeps an internal one by that
     /// name too.
-    private var hostingViewController: UIViewController? {
+    @objc dynamic private var hostingViewController: UIViewController? {
         var responder = next
         while let current = responder {
             if let controller = current as? UIViewController {
@@ -213,12 +213,12 @@ class ComposerView: ComposerSectionView {
         updateModelBarVisibility()
     }
 
-    private func updateModelBarVisibility() {
+    @objc dynamic private func updateModelBarVisibility() {
         modelBar.setVisible(!approvalSection.isPresentingRequest && !controlPanel.isPanelOpen.value)
     }
 
     /// What is typed, trimmed.
-    var text: String {
+    @objc dynamic var text: String {
         (inputEditor.textView.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
@@ -238,7 +238,7 @@ class ComposerView: ComposerSectionView {
 
     /// The ground under the composer's bands: glass on iOS 26, a white card
     /// with a soft shadow before it.
-    private func applyShadowStyle() {
+    @objc dynamic private func applyShadowStyle() {
         if let glassEffectView {
             shadowContainer.backgroundColor = .clear
             shadowContainer.layer.shadowOpacity = 0
@@ -252,7 +252,7 @@ class ComposerView: ComposerSectionView {
         }
     }
 
-    private func updateShadowGeometry() {
+    @objc dynamic private func updateShadowGeometry() {
         if let glassEffectView {
             shadowContainer.layer.shadowPath = nil
             glassEffectView.frame = shadowContainer.frame
@@ -265,7 +265,7 @@ class ComposerView: ComposerSectionView {
     }
 
     /// Back to empty and at rest.
-    func resetValues() {
+    @objc dynamic func resetValues() {
         currentDraft = ComposerDraft()
         attachmentsBar.show([])
         controlPanel.close()
@@ -289,7 +289,7 @@ class ComposerView: ComposerSectionView {
 
     /// The keyboard up on the text, as a tap on it would bring it; not
     /// while an approval covers the input.
-    func beginEditing() {
+    @objc dynamic func beginEditing() {
         guard !approvalSection.isPresentingRequest else { return }
         inputEditor.textView.becomeFirstResponder()
     }
@@ -301,7 +301,7 @@ class ComposerView: ComposerSectionView {
         publishNewEditorStatus()
     }
 
-    func submitValues() {
+    @objc dynamic func submitValues() {
         var draft = draft
         draft.text = text
         guard !draft.text.isEmpty || !draft.attachments.isEmpty, submissionID == nil, let delegate else { return }
@@ -322,7 +322,7 @@ class ComposerView: ComposerSectionView {
         }
     }
 
-    func publishNewEditorStatus() {
+    @objc dynamic func publishNewEditorStatus() {
         assert(Thread.isMainThread)
         inputEditor.hasAttachments = !currentDraft.attachments.isEmpty
         delegate?.onComposerUpdateDraft(draft)
@@ -330,41 +330,41 @@ class ComposerView: ComposerSectionView {
 }
 
 extension ComposerView: ComposerInputView.Delegate {
-    func onComposerInputCameraButtonTapped() {
+    @objc dynamic func onComposerInputCameraButtonTapped() {
         delegate?.onComposerCameraTapped()
     }
 
-    func onComposerInputMoreButtonTapped() {
+    @objc dynamic func onComposerInputMoreButtonTapped() {
         endEditing(true)
         controlPanel.toggle()
     }
 
-    func onComposerInputBeginEditing() {
+    @objc dynamic func onComposerInputBeginEditing() {
         controlPanel.close()
         delegate?.onComposerBeginEditing()
     }
 
-    func onComposerInputPasteAsAttachmentTapped() {
+    @objc dynamic func onComposerInputPasteAsAttachmentTapped() {
         delegate?.onComposerPasteAsAttachmentTapped()
     }
 
-    func onComposerInputSubmitButtonTapped() {
+    @objc dynamic func onComposerInputSubmitButtonTapped() {
         submitValues()
     }
 
-    func onComposerInputEndEditing() {
+    @objc dynamic func onComposerInputEndEditing() {
         publishNewEditorStatus()
     }
 
-    func onComposerInputPastingLargeTextAsDocument(content: String) {
+    @objc dynamic func onComposerInputPastingLargeTextAsDocument(content: String) {
         delegate?.onComposerPastedLongText(content)
     }
 
-    func onComposerInputPastingImage(image: UIImage) {
+    @objc dynamic func onComposerInputPastingImage(image: UIImage) {
         delegate?.onComposerPastedImage(image)
     }
 
-    func onComposerInputTextChanged(text: String) {
+    @objc dynamic func onComposerInputTextChanged(text: String) {
         dropColorView.alpha = 0
         publishNewEditorStatus()
         if text.isEmpty {

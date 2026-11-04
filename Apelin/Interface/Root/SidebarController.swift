@@ -26,10 +26,10 @@ final class SidebarController: UIViewController {
     /// New Chat, which puts a drawer away; a conversation that follows a
     /// project switch, a deletion or the launch changes behind it.
     var onSelect: ((ChatSummary?, _ picked: Bool) -> Void)?
-    var onProjectsLoaded: (() -> Void)?
+    @objc dynamic var onProjectsLoaded: (() -> Void)?
     /// A message to send in the conversation just picked, as if typed.
-    var onSendPrompt: ((String) -> Void)?
-    private(set) var hasLoadedProjects = false
+    @objc dynamic var onSendPrompt: ((String) -> Void)?
+    @objc private(set) dynamic var hasLoadedProjects = false
     var runtime: ChatRuntime!
 
     func select(_ summary: ChatSummary) {
@@ -44,7 +44,7 @@ final class SidebarController: UIViewController {
         onSelect?(summary, false)
     }
 
-    func refresh() {
+    @objc dynamic func refresh() {
         let previous = Dictionary(uniqueKeysWithValues: chats.map { ($0.id, $0) })
         chats = runtime.summaries.filter { $0.projectName == project?.name }
         let pinChanged = chats.contains { chat in
@@ -97,9 +97,9 @@ final class SidebarController: UIViewController {
 
     /// What the search field holds; the list shows the conversations whose
     /// title has it, ignoring case and diacritics.
-    private var query = ""
+    @objc private dynamic var query = ""
 
-    private lazy var searchController = UISearchController(searchResultsController: nil).then {
+    @objc private dynamic lazy var searchController = UISearchController(searchResultsController: nil).then {
         $0.searchResultsUpdater = self
         $0.obscuresBackgroundDuringPresentation = false
         $0.searchBar.placeholder = String(localized: "Search chats")
@@ -107,7 +107,7 @@ final class SidebarController: UIViewController {
 
     /// The picked conversation, kept across a change to the list, which
     /// moves rows between sections and would drop the table's selection.
-    private var selectedID: UUID?
+    @objc private dynamic var selectedID: UUID?
 
     /// "Today" and "Yesterday" in the reader's language, capitalised as a
     /// heading starts: French, Italian and Spanish write them in lower case
@@ -122,7 +122,7 @@ final class SidebarController: UIViewController {
     /// The other days' headings, capitalised the same way ("Lundi").
     private static let dayHeading = Date.FormatStyle(capitalizationContext: .beginningOfSentence)
 
-    private lazy var newChatButton: UIButton = {
+    @objc(apelin_newChatButton) private dynamic lazy var newChatButton: UIButton = {
         var configuration = UIButton.Configuration.plain()
         configuration.title = String(localized: "New Chat")
         configuration.image = UIImage(systemName: "square.and.pencil")
@@ -141,7 +141,7 @@ final class SidebarController: UIViewController {
         )
     }()
 
-    private lazy var projectMenuButton: UIBarButtonItem = {
+    @objc private dynamic lazy var projectMenuButton: UIBarButtonItem = {
         let item = UIBarButtonItem(
             image: UIImage(systemName: "folder"),
             menu: UIMenu(children: [UIDeferredMenuElement.uncached { [weak self] completion in
@@ -155,7 +155,7 @@ final class SidebarController: UIViewController {
 
     /// The plus: a new conversation, as the toolbar's New Chat starts one,
     /// or a new project.
-    private lazy var newMenuButton: UIBarButtonItem = {
+    @objc(apelin_newMenuButton) private dynamic lazy var newMenuButton: UIBarButtonItem = {
         let newChat = UIAction(
             title: String(localized: "New Chat"),
             image: UIImage(systemName: "square.and.pencil"),
@@ -304,7 +304,7 @@ final class SidebarController: UIViewController {
         chats.first { $0.id == id }
     }
 
-    private func applySnapshot(changedRows: [UUID] = [], restoreSelection: Bool = true, animateMove: Bool = false) {
+    @objc private dynamic func applySnapshot(changedRows: [UUID] = [], restoreSelection: Bool = true, animateMove: Bool = false) {
         var snapshot = NSDiffableDataSourceSnapshot<Section, UUID>()
         let shown = query.isEmpty ? chats : chats.filter {
             $0.displayTitle.range(of: query, options: [.caseInsensitive, .diacriticInsensitive]) != nil
@@ -347,7 +347,7 @@ final class SidebarController: UIViewController {
         }
     }
 
-    private func selectPicked() {
+    @objc private dynamic func selectPicked() {
         if let selectedID, let indexPath = dataSource.indexPath(for: selectedID) {
             tableView.selectRow(at: indexPath, animated: false, scrollPosition: .none)
         }
@@ -355,7 +355,7 @@ final class SidebarController: UIViewController {
 
     /// An empty conversation at the top of today, picked and shown: the
     /// project's untouched one if it has one, so empty rows never pile up.
-    func startNewChat(picked: Bool = true) {
+    @objc dynamic func startNewChat(picked: Bool = true) {
         let chat = runtime.newChat(project: project?.name, preferring: selectedID)
         refresh()
         selectedID = chat.id
@@ -370,12 +370,12 @@ final class SidebarController: UIViewController {
         }
     }
 
-    private func togglePin(_ id: UUID) {
+    @objc private dynamic func togglePin(_ id: UUID) {
         runtime.togglePin(id)
         refresh()
     }
 
-    private func stop(_ id: UUID) {
+    @objc private dynamic func stop(_ id: UUID) {
         Task {
             do { try await runtime.stop(id) }
             catch { presentNotice(title: "Unable to Stop", message: error.readableMessage) }
@@ -417,7 +417,7 @@ final class SidebarController: UIViewController {
     /// Stops it if it is working by then, as Stop does, closes its session,
     /// removes its history and leaves the page to what is picked next. A
     /// stop that fails leaves the run to the close, which ends it too.
-    private func delete(_ id: UUID) {
+    @objc(apelin_delete:) private dynamic func delete(_ id: UUID) {
         Task {
             if runtime.records[id]?.summary.isWorking == true {
                 try? await runtime.stop(id)
@@ -452,7 +452,7 @@ final class SidebarController: UIViewController {
 
     // MARK: - The project
 
-    private func showProject() {
+    @objc private dynamic func showProject() {
         title = project?.displayTitle ?? String(localized: "Apelin")
         projectMenuButton.image = project.flatMap { ProjectIcon.menuImage(for: $0) } ?? UIImage(systemName: "folder")
         projectMenuButton.accessibilityValue = project?.displayTitle ?? String(localized: "General Chat")
@@ -463,7 +463,7 @@ final class SidebarController: UIViewController {
     /// the picker, which also makes a new one. Each says how many of its
     /// conversations wait unread, as General Chat and More Projects do for
     /// theirs (`ChatUnread`); the menu is built again each time it opens.
-    private func projectMenu() -> UIMenu {
+    @objc private dynamic func projectMenu() -> UIMenu {
         let open = project?.name
         let byName = Dictionary(projects.map { ($0.name, $0) }) { first, _ in first }
         let chats = runtime.summaries
@@ -504,7 +504,7 @@ final class SidebarController: UIViewController {
         ])
     }
 
-    @objc private func projectsChanged() {
+    @objc private dynamic func projectsChanged() {
         Task { await refreshProjects() }
     }
 
@@ -533,7 +533,7 @@ final class SidebarController: UIViewController {
         } catch { presentNotice(title: "Projects Unavailable", message: error.readableMessage) }
     }
 
-    private func openNewProject() {
+    @objc private dynamic func openNewProject() {
         let page = NewProjectController()
         page.onCreate = { [weak self] project, firstPrompt in
             self?.openCreatedProject(project, firstPrompt: firstPrompt)
@@ -553,7 +553,7 @@ final class SidebarController: UIViewController {
         }
     }
 
-    private func openProjectPicker() {
+    @objc private dynamic func openProjectPicker() {
         let picker = ProjectPickerController(projects: projects, current: project?.name)
         picker.onPick = { [weak self] project in self?.switchProject(to: project) }
         picker.onCreate = { [weak self] project, firstPrompt in
@@ -574,7 +574,7 @@ final class SidebarController: UIViewController {
 }
 
 extension SidebarController: UISearchResultsUpdating {
-    func updateSearchResults(for searchController: UISearchController) {
+    @objc dynamic func updateSearchResults(for searchController: UISearchController) {
         let text = (searchController.searchBar.text ?? "").trimmingCharacters(in: .whitespaces)
         guard text != query else { return }
         query = text
@@ -586,23 +586,23 @@ extension SidebarController: UISearchResultsUpdating {
 extension SidebarController: UITableViewDelegate {
     /// Keep empty groups available as move destinations without showing a
     /// heading or leaving a gap in the list.
-    func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
+    @objc dynamic func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
         tableView.numberOfRows(inSection: section) == 0 ? .leastNormalMagnitude : UITableView.automaticDimension
     }
 
-    func tableView(_ tableView: UITableView, heightForFooterInSection section: Int) -> CGFloat {
+    @objc dynamic func tableView(_ tableView: UITableView, heightForFooterInSection section: Int) -> CGFloat {
         tableView.numberOfRows(inSection: section) == 0 ? .leastNormalMagnitude : UITableView.automaticDimension
     }
 
     /// Again on the row already picked, which puts a drawer away.
-    func tableView(_: UITableView, didSelectRowAt indexPath: IndexPath) {
+    @objc dynamic func tableView(_: UITableView, didSelectRowAt indexPath: IndexPath) {
         selectedID = dataSource.itemIdentifier(for: indexPath)
         onSelect?(selectedID.flatMap(chat), true)
     }
 
     // MARK: Pin, stop and delete
 
-    func tableView(
+    @objc dynamic func tableView(
         _: UITableView,
         leadingSwipeActionsConfigurationForRowAt indexPath: IndexPath,
     ) -> UISwipeActionsConfiguration? {
@@ -612,7 +612,7 @@ extension SidebarController: UITableViewDelegate {
 
     /// Never nil, which would put UIKit's default Delete on the row, one
     /// that does nothing here.
-    func tableView(
+    @objc dynamic func tableView(
         _: UITableView,
         trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath,
     ) -> UISwipeActionsConfiguration? {
@@ -668,12 +668,12 @@ extension SidebarController: UITableViewDelegate {
 
     /// A swipe that ends after the list changed under it, as deleting the
     /// picked conversation does, leaves no row highlighted.
-    func tableView(_: UITableView, didEndEditingRowAt _: IndexPath?) {
+    @objc dynamic func tableView(_: UITableView, didEndEditingRowAt _: IndexPath?) {
         applySnapshot()
     }
 
     /// The swipes' actions, for a long press and a pointer.
-    func tableView(
+    @objc dynamic func tableView(
         _: UITableView,
         contextMenuConfigurationForRowAt indexPath: IndexPath,
         point _: CGPoint,

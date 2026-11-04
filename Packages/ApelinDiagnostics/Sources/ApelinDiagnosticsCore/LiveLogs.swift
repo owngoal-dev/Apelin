@@ -23,10 +23,10 @@ public final class LiveLogListener: @unchecked Sendable {
     private let condition = NSCondition()
     private let deliver: @Sendable (LogEntry) -> Bool
     private let deadline: Date
-    private var done = false
+    @objc private dynamic var done = false
     private var failure: DiagnosticsError?
-    private var dropped = false
-    private var onEnd: (() -> Void)?
+    @objc private dynamic var dropped = false
+    @objc private dynamic var onEnd: (() -> Void)?
 
     /// `deadline` ends the listen by itself.
     public init(deadline: Date, deliver: @escaping @Sendable (LogEntry) -> Bool) {
@@ -36,7 +36,7 @@ public final class LiveLogListener: @unchecked Sendable {
 
     /// Run once when the listen ends however it ends, outside the lock: the
     /// source closes what it opened here.
-    public func onEnd(_ body: @escaping () -> Void) {
+    @objc public dynamic func onEnd(_ body: @escaping () -> Void) {
         condition.lock()
         let already = done
         if !already {
@@ -67,7 +67,7 @@ public final class LiveLogListener: @unchecked Sendable {
 
     /// The source lost entries (the system ended its stream before the
     /// window did): the stream is no longer complete, and says so when it ends.
-    public func markDropped() {
+    @objc public dynamic func markDropped() {
         condition.lock()
         dropped = true
         condition.unlock()
@@ -91,7 +91,7 @@ public final class LiveLogListener: @unchecked Sendable {
     }
 
     /// Blocks until the listen is over or `date` passes, whichever is first.
-    public func settle(until date: Date) {
+    @objc public dynamic func settle(until date: Date) {
         condition.lock()
         while !done, condition.wait(until: date) {}
         condition.unlock()

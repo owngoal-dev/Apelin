@@ -44,11 +44,11 @@ public final class DiagnosticJournal: @unchecked Sendable {
     public let previousURL: URL
     private let rotationBytes: Int
     private let lock = NSLock()
-    private var descriptor: Int32 = -1
+    @objc private dynamic var descriptor: Int32 = -1
     private var identity: (device: dev_t, inode: ino_t)?
-    private var size = 0
+    @objc private dynamic var size = 0
     /// The category of the last line written to the open file.
-    private var category: String?
+    @objc private dynamic var category: String?
     private let formatter = DiagnosticJournal.formatter("yyyy-MM-dd_HH-mm-ss")
 
     /// The journal `name` in `folder`, which must exist; nothing is opened
@@ -101,7 +101,7 @@ public final class DiagnosticJournal: @unchecked Sendable {
 
     /// What the journal holds, the rotated file first, each read up to
     /// twice `rotationBytes` without following a link.
-    public func contents() -> String {
+    @objc public dynamic func contents() -> String {
         lock.lock()
         defer { lock.unlock() }
         return [previousURL, url].compactMap { Self.read($0, limit: 2 * rotationBytes) }.joined()
@@ -109,7 +109,7 @@ public final class DiagnosticJournal: @unchecked Sendable {
 
     /// The journal's last `bytes` — of the rotated file too when the
     /// current one is shorter — from the first whole line in them.
-    public func tail(bytes: Int) -> String {
+    @objc public dynamic func tail(bytes: Int) -> String {
         lock.lock()
         defer { lock.unlock() }
         var text = Self.read(url, last: bytes) ?? ""
@@ -126,7 +126,7 @@ public final class DiagnosticJournal: @unchecked Sendable {
     /// a journal and its rotated file going together, never `sparing`'s.
     /// One whose current file is gone still counts by its rotated one.
     /// Only regular files count: a link is neither followed nor removed.
-    public static func prune(folder: URL, keeping: Int = retainedJournals, sparing: String? = nil) {
+    @objc public static dynamic func prune(folder: URL, keeping: Int = retainedJournals, sparing: String? = nil) {
         let names = (try? FileManager.default.contentsOfDirectory(atPath: folder.path)) ?? []
         // a journal was last written when its current file was; its
         // predecessor only stands in when that file is gone
@@ -156,7 +156,7 @@ public final class DiagnosticJournal: @unchecked Sendable {
 
     /// A formatter fixed to en_US_POSIX and the Gregorian calendar, as
     /// Dog's, so the reader's calendar or clock cannot change a line.
-    public static func formatter(_ format: String) -> DateFormatter {
+    @objc public static dynamic func formatter(_ format: String) -> DateFormatter {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.calendar = Calendar(identifier: .gregorian)
@@ -169,7 +169,7 @@ public final class DiagnosticJournal: @unchecked Sendable {
     /// The file open and ready for `bytes` more: opened again when the one
     /// open is no longer at `url`, rotated first when it would grow past
     /// `rotationBytes`.
-    private func prepare(adding bytes: Int) -> Bool {
+    @objc private dynamic func prepare(adding bytes: Int) -> Bool {
         if descriptor >= 0, !isStillAtURL() {
             closeFile()
         }
@@ -186,13 +186,13 @@ public final class DiagnosticJournal: @unchecked Sendable {
         return true
     }
 
-    private func isStillAtURL() -> Bool {
+    @objc private dynamic func isStillAtURL() -> Bool {
         var metadata = stat()
         guard lstat(url.path, &metadata) == 0, let identity else { return false }
         return metadata.st_dev == identity.device && metadata.st_ino == identity.inode
     }
 
-    private func openFile() -> Bool {
+    @objc private dynamic func openFile() -> Bool {
         let opened = open(url.path, O_WRONLY | O_APPEND | O_CREAT | O_NOFOLLOW | O_CLOEXEC, 0o600)
         guard opened >= 0 else { return false }
         var metadata = stat()
@@ -210,7 +210,7 @@ public final class DiagnosticJournal: @unchecked Sendable {
         return true
     }
 
-    private func closeFile() {
+    @objc private dynamic func closeFile() {
         if descriptor >= 0 {
             close(descriptor)
         }
@@ -220,12 +220,12 @@ public final class DiagnosticJournal: @unchecked Sendable {
         category = nil
     }
 
-    private static func read(_ url: URL, limit: Int) -> String? {
+    @objc private static dynamic func read(_ url: URL, limit: Int) -> String? {
         read(url) { size in (0, min(size, limit)) }
     }
 
     /// The last `bytes` of the file at `url`.
-    private static func read(_ url: URL, last bytes: Int) -> String? {
+    @objc private static dynamic func read(_ url: URL, last bytes: Int) -> String? {
         read(url) { size in (max(0, size - bytes), min(size, bytes)) }
     }
 

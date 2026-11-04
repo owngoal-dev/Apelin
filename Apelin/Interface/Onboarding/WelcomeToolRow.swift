@@ -13,7 +13,7 @@ final class WelcomeToolRow: UITableViewCell {
     private let words = UIStackView()
     private let wordsBox = MaskedBox()
     private let shimmer = CAGradientLayer()
-    private var loading = false
+    @objc private dynamic var loading = false
 
     init() {
         super.init(style: .default, reuseIdentifier: nil)
@@ -68,7 +68,7 @@ final class WelcomeToolRow: UITableViewCell {
 
     deinit { NotificationCenter.default.removeObserver(self) }
 
-    func configure(title: String, detail: String, loading: Bool, installed: Bool) {
+    @objc dynamic func configure(title: String, detail: String, loading: Bool, installed: Bool) {
         titleLabel.text = title
         detailLabel.text = detail
         self.loading = loading
@@ -84,7 +84,7 @@ final class WelcomeToolRow: UITableViewCell {
         updateShimmer()
     }
 
-    @objc private func updateShimmer() {
+    @objc private dynamic func updateShimmer() {
         shimmer.removeAllAnimations()
         guard loading, window != nil, !UIAccessibility.isReduceMotionEnabled else { wordsBox.layer.mask = nil; return }
         wordsBox.layer.mask = shimmer

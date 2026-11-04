@@ -55,7 +55,7 @@ class WelcomeController: UIViewController {
         $0.distribution = .fill
     }
 
-    private var featureRows: [UIView] = []
+    @objc private dynamic var featureRows: [UIView] = []
 
     init(flow: WelcomeFlow) {
         self.flow = flow
@@ -103,7 +103,7 @@ class WelcomeController: UIViewController {
         }
     }
 
-    private func setupLayout() {
+    @objc private dynamic func setupLayout() {
         let actionBar = WelcomeActionBar(title: String(localized: "Next")) { [weak self] in
             self?.showNextPage()
         }
@@ -133,7 +133,7 @@ class WelcomeController: UIViewController {
         }
     }
 
-    private func setupContent() {
+    @objc private dynamic func setupContent() {
         let icon = UIImageView(image: AlertControllerConfiguration.alertImage).then {
             $0.contentMode = .scaleAspectFill
             $0.layer.cornerRadius = 14
@@ -207,7 +207,7 @@ class WelcomeController: UIViewController {
         stackView.addArrangedSubview(spacer)
     }
 
-    private func showNextPage() {
+    @objc private dynamic func showNextPage() {
         flow.showEnvironment()
     }
 }

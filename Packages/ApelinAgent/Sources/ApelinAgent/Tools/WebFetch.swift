@@ -231,7 +231,7 @@ struct WebFetch: Sendable {
 /// Hands every redirect back unfollowed, so `WebFetch.load` checks where
 /// it leads first.
 private final class RedirectHold: NSObject, URLSessionTaskDelegate, Sendable {
-    func urlSession(
+    @objc dynamic func urlSession(
         _: URLSession,
         task _: URLSessionTask,
         willPerformHTTPRedirection _: HTTPURLResponse,

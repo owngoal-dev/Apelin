@@ -15,7 +15,7 @@ import UniformTypeIdentifiers
 final class ComposerAttachmentImport: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate,
     PHPickerViewControllerDelegate, UIDocumentPickerDelegate
 {
-    private weak var presenter: UIViewController?
+    @objc dynamic private weak var presenter: UIViewController?
     private let receive: (ComposerAttachment) -> Void
 
     init(presenter: UIViewController, receive: @escaping (ComposerAttachment) -> Void) {
@@ -23,7 +23,7 @@ final class ComposerAttachmentImport: NSObject, UIImagePickerControllerDelegate,
         self.receive = receive
     }
 
-    func camera() {
+    @objc dynamic func camera() {
         guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
             presenter?.presentNotice(
                 title: "Camera Unavailable",
@@ -38,7 +38,7 @@ final class ComposerAttachmentImport: NSObject, UIImagePickerControllerDelegate,
         presenter?.present(picker, animated: true)
     }
 
-    func photos() {
+    @objc dynamic func photos() {
         var configuration = PHPickerConfiguration()
         configuration.selectionLimit = 4
         configuration.filter = .images
@@ -47,14 +47,14 @@ final class ComposerAttachmentImport: NSObject, UIImagePickerControllerDelegate,
         presenter?.present(picker, animated: true)
     }
 
-    func files() {
+    @objc dynamic func files() {
         let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.data, .image, .text, .pdf, .audio])
         picker.allowsMultipleSelection = true
         picker.delegate = self
         presenter?.present(picker, animated: true)
     }
 
-    func imagePickerController(
+    @objc dynamic func imagePickerController(
         _ picker: UIImagePickerController,
         didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any],
     ) {
@@ -64,7 +64,7 @@ final class ComposerAttachmentImport: NSObject, UIImagePickerControllerDelegate,
         }
     }
 
-    func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+    @objc dynamic func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
         picker.dismiss(animated: true)
     }
 
@@ -80,7 +80,7 @@ final class ComposerAttachmentImport: NSObject, UIImagePickerControllerDelegate,
         }
     }
 
-    func documentPicker(_: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+    @objc dynamic func documentPicker(_: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
         Task { @MainActor [self] in
             for url in urls {
                 do {
@@ -105,7 +105,7 @@ final class ComposerAttachmentImport: NSObject, UIImagePickerControllerDelegate,
     /// except that an image goes in as a photo does (`importImage`), as
     /// FlowDown's own import treats one. Bound to the draft that took the
     /// drop, as a picker is.
-    func drop(_ providers: [NSItemProvider]) {
+    @objc dynamic func drop(_ providers: [NSItemProvider]) {
         for provider in providers {
             provider.loadFileRepresentation(forTypeIdentifier: UTType.item.identifier) { [self] url, error in
                 // the system deletes its copy once this returns
@@ -164,7 +164,7 @@ final class ComposerAttachmentImport: NSObject, UIImagePickerControllerDelegate,
         )
     }
 
-    func importImage(_ image: UIImage) {
+    @objc dynamic func importImage(_ image: UIImage) {
         guard let data = image.jpegData(compressionQuality: 0.85), data.count <= 32 * 1024 * 1024 else {
             presenter?.presentNotice(
                 title: "Unable to Import Image",
@@ -175,12 +175,12 @@ final class ComposerAttachmentImport: NSObject, UIImagePickerControllerDelegate,
         receive(ComposerAttachment(name: String(localized: "Image") + ".jpeg", data: data, text: nil, isImage: true))
     }
 
-    func importText(_ text: String, name: String = String(localized: "Pasted Text")) {
+    @objc dynamic func importText(_ text: String, name: String = String(localized: "Pasted Text")) {
         guard !text.isEmpty else { return }
         receive(ComposerAttachment(name: name + ".txt", data: Data(text.utf8), text: text))
     }
 
-    func paste() {
+    @objc dynamic func paste() {
         let pasteboard = UIPasteboard.general
         if let image = pasteboard.image {
             importImage(image)
@@ -189,7 +189,7 @@ final class ComposerAttachmentImport: NSObject, UIImagePickerControllerDelegate,
         }
     }
 
-    func web() {
+    @objc dynamic func web() {
         let alert = UIAlertController(
             title: String(localized: "Capture Web Content"),
             message: String(localized: "Enter the webpage address to attach its text."),

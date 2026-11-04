@@ -26,7 +26,7 @@ final class WelcomeProjectPage: WelcomeListPage {
     }
 
     private var extensions: [DevelopmentExtension] = [.emptyWorkspace]
-    private var creating = false
+    @objc private dynamic var creating = false
     private var loader: Task<Void, Never>?
     private lazy var dataSource = TableDataSource<Section, String, Item>(
         tableView: tableView,
@@ -73,7 +73,7 @@ final class WelcomeProjectPage: WelcomeListPage {
         }
     }
 
-    private func updateRows() {
+    @objc private dynamic func updateRows() {
         let createdID = flow.project == nil ? nil : flow.projectTemplateID
         dataSource.update([(.introduction, [.introduction])] + extensions.map { item in
             (.kind(item.id), item.templates.map { Item.template(Row(template: $0, kind: item.kind, created: $0.id == createdID)) })
@@ -93,7 +93,7 @@ final class WelcomeProjectPage: WelcomeListPage {
         return cell
     }
 
-    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+    @objc dynamic func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
         guard case let .template(row)? = dataSource.value(at: indexPath) else { return }
         if flow.project != nil {

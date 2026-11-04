@@ -6,7 +6,7 @@ import UIKit
 /// at the trailing end of its title line, the title's first line fading out
 /// before it; a running summary's newest call is the line under it.
 final class ChatActivityRow: ListRowView {
-    var onToggle: (() -> Void)?
+    @objc dynamic var onToggle: (() -> Void)?
     private let header = ThinkingStatusLabel()
     /// Holds the title, and while the count shows fades its first line out
     /// before it (`titleMask`), so a long title runs under the count rather
@@ -19,9 +19,9 @@ final class ChatActivityRow: ListRowView {
     private let bannerView = ToolCallBannerView()
     /// The message this row shows: only a change to it animates, never the
     /// row taking another message out of the pool.
-    private var shownID: UUID?
+    @objc dynamic private var shownID: UUID?
     /// Whether the count is meant to be on screen, while it fades too.
-    private var showsReceived = false
+    @objc dynamic private var showsReceived = false
     private static let sizingHeader = ThinkingStatusLabel()
     /// Between the title's fade and the count.
     private static let receivedSpacing: CGFloat = 6
@@ -137,7 +137,7 @@ final class ChatActivityRow: ListRowView {
 
     /// Across the title's first line, drawn at its trailing end; the title
     /// fades out before it, however long the title is.
-    private func layoutReceived(in content: CGRect) {
+    @objc dynamic private func layoutReceived(in content: CGRect) {
         guard !received.isHidden else { return }
         let line = ceil(header.font.lineHeight)
         let height = received.lineHeight
@@ -167,7 +167,7 @@ final class ChatActivityRow: ListRowView {
     private static let clearingFade = [UIColor.black.cgColor, UIColor.clear.cgColor]
 
     /// The title's first line fading before the count, or whole.
-    private func setTitleFade(_ fades: Bool, animated: Bool) {
+    @objc dynamic private func setTitleFade(_ fades: Bool, animated: Bool) {
         CATransaction.begin()
         CATransaction.setDisableActions(!animated)
         CATransaction.setAnimationDuration(0.2)
@@ -253,7 +253,7 @@ final class ChatActivityRow: ListRowView {
         return false
     }
 
-    @objc private func toggle() {
+    @objc dynamic private func toggle() {
         onToggle?()
     }
 }

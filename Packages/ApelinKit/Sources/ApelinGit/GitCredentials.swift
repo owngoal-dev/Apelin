@@ -62,7 +62,7 @@ final class RemoteCallbacks {
     var lease: (ref: String, expectedCommit: String)?
     /// Told, for each reference a push is about to update, what the remote
     /// has it at (nil: it has none), before anything is sent.
-    var remoteCommit: ((String, String?) -> Void)?
+    @objc dynamic var remoteCommit: ((String, String?) -> Void)?
     private(set) var updates: [GitRefUpdate] = []
     private(set) var rejections: [(ref: String, status: String)] = []
     /// The updates a push was about to send, each with the commit the remote
@@ -70,9 +70,9 @@ final class RemoteCallbacks {
     private(set) var negotiated: [(ref: String, from: String?)] = []
     private(set) var leaseRefusal: LeaseRefusal?
 
-    private var offered = false
-    private var refusedBy: String?
-    private var unanswered: String?
+    @objc private dynamic var offered = false
+    @objc private dynamic var refusedBy: String?
+    @objc private dynamic var unanswered: String?
 
     init(credentials: GitCredentialLookup?) {
         self.credentials = credentials

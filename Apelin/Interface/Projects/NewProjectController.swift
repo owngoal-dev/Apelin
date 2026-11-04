@@ -12,7 +12,7 @@ import UIKit
 final class NewProjectController: TableController, UITextFieldDelegate {
     /// The project made, and the message its first conversation sends, if any.
     var onCreate: ((ProjectSummary, _ firstPrompt: String?) -> Void)?
-    var onCanCreateChange: ((Bool) -> Void)?
+    @objc dynamic var onCanCreateChange: ((Bool) -> Void)?
     private let dismissesOnCreate: Bool
     private let preferredTemplateID: String?
 
@@ -54,16 +54,16 @@ final class NewProjectController: TableController, UITextFieldDelegate {
     )
 
     private var choices = [NewProjectController.emptyWorkspace]
-    private var selectedID = NewProjectController.emptyWorkspace.template.id
+    @objc private dynamic var selectedID = NewProjectController.emptyWorkspace.template.id
     private var draft = ProjectCreationDraft()
-    private var loading = false
+    @objc private dynamic var loading = false
 
     private let nameField = UITextField()
-    private lazy var nameCell = Self.cell(containing: nameField)
+    @objc private dynamic lazy var nameCell = Self.cell(containing: nameField)
     private let repositoryField = UITextField()
-    private lazy var repositoryCell = Self.cell(containing: repositoryField)
+    @objc private dynamic lazy var repositoryCell = Self.cell(containing: repositoryField)
 
-    private static func cell(containing field: UITextField) -> UITableViewCell {
+    @objc private dynamic static func cell(containing field: UITextField) -> UITableViewCell {
         UITableViewCell(style: .default, reuseIdentifier: nil).then { cell in
             cell.selectionStyle = .none
             cell.isAccessibilityElement = false
@@ -97,7 +97,7 @@ final class NewProjectController: TableController, UITextFieldDelegate {
         }
     }
 
-    var canCreate: Bool {
+    @objc dynamic var canCreate: Bool {
         !loading && draft.isValid
     }
 
@@ -192,12 +192,12 @@ final class NewProjectController: TableController, UITextFieldDelegate {
         return (available.first { $0.kind == .workspace } ?? available[0]).template.id
     }
 
-    private lazy var createButton = UIBarButtonItem(
+    @objc private dynamic lazy var createButton = UIBarButtonItem(
         title: String(localized: "Create"),
         primaryAction: UIAction { [weak self] _ in self?.createProject() },
     )
 
-    private lazy var creatingIndicator = UIBarButtonItem(customView: UIActivityIndicatorView(style: .medium).then {
+    @objc private dynamic lazy var creatingIndicator = UIBarButtonItem(customView: UIActivityIndicatorView(style: .medium).then {
         $0.startAnimating()
         $0.isAccessibilityElement = true
         $0.accessibilityLabel = String(localized: "Creating Project…")
@@ -205,7 +205,7 @@ final class NewProjectController: TableController, UITextFieldDelegate {
 
     /// The repository field shows above the workspace section while the
     /// empty workspace is ticked.
-    private func updateRows() {
+    @objc private dynamic func updateRows() {
         var sections: [(Section, [Row])] = [(.name, [.name])]
         for kind in DevelopmentExtensionKind.displayOrder {
             let rows = choices.filter { $0.kind == kind }
@@ -219,13 +219,13 @@ final class NewProjectController: TableController, UITextFieldDelegate {
         dataSource.update(sections, reconfigure: true)
     }
 
-    private var importsRepository: Bool {
+    @objc private dynamic var importsRepository: Bool {
         selectedID == Self.emptyWorkspace.template.id
     }
 
     /// The address typed, when the empty workspace takes one; nil when
     /// nothing is typed.
-    private var repositoryAddress: String? {
+    @objc private dynamic var repositoryAddress: String? {
         guard importsRepository else { return nil }
         let address = (repositoryField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         return address.isEmpty ? nil : address
@@ -233,7 +233,7 @@ final class NewProjectController: TableController, UITextFieldDelegate {
 
     /// Only the basics: HTTPS, a host, and no user or token written into it,
     /// which would go into the conversation. The agent reports the rest.
-    private static func isImportable(_ address: String) -> Bool {
+    @objc private dynamic static func isImportable(_ address: String) -> Bool {
         guard let url = URLComponents(string: address), url.scheme?.lowercased() == "https",
               let host = url.host, !host.isEmpty, url.user == nil, url.password == nil else { return false }
         return true
@@ -258,7 +258,7 @@ final class NewProjectController: TableController, UITextFieldDelegate {
 
     /// A template's name and summary are its extension's English; the
     /// catalogue has the shipped ones, and anything else stays as written.
-    private static func catalogText(_ text: String) -> String {
+    @objc private dynamic static func catalogText(_ text: String) -> String {
         String(localized: String.LocalizationValue(text))
     }
 
@@ -284,19 +284,19 @@ final class NewProjectController: TableController, UITextFieldDelegate {
         updateRows()
     }
 
-    @objc private func nameChanged() {
+    @objc private dynamic func nameChanged() {
         draft.edit(nameField.text ?? "")
         updateCreate()
     }
 
-    private func updateCreate() {
+    @objc private dynamic func updateCreate() {
         createButton.isEnabled = canCreate
         onCanCreateChange?(canCreate)
     }
 
     /// While the request is out the page holds still: no edits, no other
     /// template, no close, and the spinner where Create was.
-    private func setCreating(_ creating: Bool) {
+    @objc private dynamic func setCreating(_ creating: Bool) {
         loading = creating
         navigationItem.rightBarButtonItem = creating ? creatingIndicator : createButton
         navigationItem.leftBarButtonItem?.isEnabled = !creating
@@ -306,14 +306,14 @@ final class NewProjectController: TableController, UITextFieldDelegate {
         updateCreate()
     }
 
-    func textFieldShouldReturn(_: UITextField) -> Bool {
+    @objc dynamic func textFieldShouldReturn(_: UITextField) -> Bool {
         if canCreate {
             createProject()
         }
         return false
     }
 
-    func createProject() {
+    @objc dynamic func createProject() {
         guard canCreate, let entry = choices.first(where: { $0.template.id == selectedID }) else { return }
         let address = repositoryAddress
         if let address, !Self.isImportable(address) {

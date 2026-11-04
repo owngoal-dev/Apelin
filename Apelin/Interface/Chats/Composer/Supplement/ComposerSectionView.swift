@@ -11,7 +11,7 @@ class ComposerSectionView: UIView {
     var cancellables: Set<AnyCancellable> = .init()
 
     /// How far the band reaches past the composer's spacing on each side.
-    var horizontalAdjustment: CGFloat = 0 {
+    @objc dynamic var horizontalAdjustment: CGFloat = 0 {
         didSet { setNeedsLayout() }
     }
 
@@ -40,13 +40,13 @@ class ComposerSectionView: UIView {
     }
 
     /// Builds the band's subviews, from `init`. Overrides call `super` first.
-    func initializeViews() {
+    @objc dynamic func initializeViews() {
         setNeedsLayout()
     }
 
     /// Inside an animation the layout waits for the block's own, so bands
     /// that change together are placed once, at their final heights.
-    func subviewHeightDidChange() {
+    @objc dynamic func subviewHeightDidChange() {
         setNeedsLayout()
         if UIView.inheritedAnimationDuration == 0 {
             layoutIfNeeded()

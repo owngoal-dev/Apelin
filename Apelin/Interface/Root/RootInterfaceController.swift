@@ -21,18 +21,18 @@ final class RootInterfaceController: UIViewController {
     let navigator = DetailNavigator()
     private let sidebar = SidebarController()
     private let chatRuntime = ChatRuntime()
-    private var restoredChat = false
-    private var opensChatAfterWelcome = false
+    @objc private dynamic var restoredChat = false
+    @objc private dynamic var opensChatAfterWelcome = false
     /// An `apelin://` link that came before the conversations were read,
     /// or an import that came during the welcome.
     private var pendingLink: ApelinLink?
     /// A link is being looked up: the launch's own restore waits for it.
-    private var isResolvingLink = false
-    private lazy var sidebarNavigation = UINavigationController(rootViewController: sidebar)
+    @objc private dynamic var isResolvingLink = false
+    @objc private dynamic lazy var sidebarNavigation = UINavigationController(rootViewController: sidebar)
     /// The conversation page, made once and handed each conversation picked.
     /// Its Delete Conversation… goes through the sidebar's Delete, which
     /// leaves the page to what is picked next.
-    private lazy var chatController: ChatController = {
+    @objc private dynamic lazy var chatController: ChatController = {
         let page = ChatController()
         page.runtime = chatRuntime
         page.onDelete = { [weak self, weak page] id in
@@ -55,12 +55,12 @@ final class RootInterfaceController: UIViewController {
     private let shade = DrawerShade()
 
     /// Wide, the sidebar's button hides it.
-    private var isSidebarHidden = false
+    @objc private dynamic var isSidebarHidden = false
     /// Narrow, how far the drawer is out: 0 closed, 1 open, between while a
     /// pan moves it.
-    private var drawerProgress: CGFloat = 0
+    @objc private dynamic var drawerProgress: CGFloat = 0
     /// The progress a pan started from.
-    private var panStart: CGFloat = 0
+    @objc private dynamic var panStart: CGFloat = 0
     /// The layout last applied, to notice the window crossing between the two.
     private var laidOutAsDrawer: Bool?
 
@@ -71,18 +71,18 @@ final class RootInterfaceController: UIViewController {
     /// sidebar comes out over the page, as a split view's does in an iPad's
     /// portrait. Read on every layout: the window changes width under the
     /// running app.
-    private var isDrawer: Bool {
+    @objc private dynamic var isDrawer: Bool {
         let width = viewIfLoaded?.bounds.width ?? 0
         return traitCollection.horizontalSizeClass == .compact
             || (width > 0 && width < Self.sidebarWidth + Self.minimumPageWidth)
     }
 
-    private var drawerWidth: CGFloat {
+    @objc private dynamic var drawerWidth: CGFloat {
         min(view.bounds.width - Self.drawerMargin, Self.maximumDrawerWidth)
     }
 
     /// Whether the sidebar is on screen, beside the page or over it.
-    private var isSidebarShown: Bool {
+    @objc private dynamic var isSidebarShown: Bool {
         isDrawer ? drawerProgress > 0 : !isSidebarHidden
     }
 
@@ -122,7 +122,7 @@ final class RootInterfaceController: UIViewController {
 
     /// A restored chat already names its project. A fresh phone chat must
     /// wait for the sidebar's saved project, rather than racing it into General.
-    private func restoreChatIfReady() {
+    @objc private dynamic func restoreChatIfReady() {
         guard !WelcomeFlow.shouldPresent, chatRuntime.isLoaded, !isResolvingLink else { return }
         if let link = pendingLink {
             pendingLink = nil
@@ -143,7 +143,7 @@ final class RootInterfaceController: UIViewController {
     }
 
     /// The conversation shown last, to show again at launch.
-    private static var savedChatID: UUID? {
+    @objc private dynamic static var savedChatID: UUID? {
         UserDefaults.standard.string(forKey: "chat.selectedID").flatMap(UUID.init(uuidString:))
     }
 
@@ -219,14 +219,14 @@ final class RootInterfaceController: UIViewController {
 
     /// Space freed while the app was away lets the chats kept in memory
     /// be written; space still short is said again only after a save worked.
-    @objc private func enteredForeground() {
+    @objc private dynamic func enteredForeground() {
         chatRuntime.retryUnsaved()
         StorageWarning.checkFreeSpace(from: self)
     }
 
     /// What streamed or was typed since the last write goes to disk before
     /// the app is suspended, rather than at the end of its interval.
-    @objc private func enteredBackground() {
+    @objc private dynamic func enteredBackground() {
         let task = UIApplication.shared.beginBackgroundTask(withName: "Save Chats")
         chatRuntime.saveNow {
             UIApplication.shared.endBackgroundTask(task)
@@ -236,7 +236,7 @@ final class RootInterfaceController: UIViewController {
     /// Out of the reader's sight, the conversation on the page is no longer
     /// looked at: a reply that comes meanwhile leaves it unread, until the
     /// app is back in front with it.
-    @objc private func resignedActive() {
+    @objc private dynamic func resignedActive() {
         chatRuntime.viewedChat = nil
     }
 
@@ -245,13 +245,13 @@ final class RootInterfaceController: UIViewController {
     /// that page is the column's, no drawer is out over it and the app is
     /// in front. A sheet over the page does not count: nothing tells the
     /// page when one goes, and its conversation is still the page under it.
-    @objc private func syncViewedChat() {
+    @objc private dynamic func syncViewedChat() {
         let page = navigator.topViewController as? ChatController
         let isLooking = UIApplication.shared.applicationState == .active && !(isDrawer && drawerProgress > 0)
         chatRuntime.viewedChat = isLooking ? page?.chat?.id : nil
     }
 
-    func presentWelcome() {
+    @objc dynamic func presentWelcome() {
         guard presentedViewController == nil else { return }
         WelcomeFlow.present(from: self) { [weak self] project in
             guard let self else { return }
@@ -291,7 +291,7 @@ final class RootInterfaceController: UIViewController {
     /// Places both columns for the current state; inside an animation
     /// block, it is what the animation moves to. Worked out left to right
     /// and mirrored right to left.
-    private func layoutColumns() {
+    @objc private dynamic func layoutColumns() {
         let bounds = view.bounds
         if isDrawer {
             let width = drawerWidth
@@ -329,7 +329,7 @@ final class RootInterfaceController: UIViewController {
 
     /// By bounds and center, which hold under a transform, then the
     /// transform: a pan moves only the transform.
-    private func place(_ subview: UIView, in frame: CGRect, shift: CGFloat) {
+    @objc private dynamic func place(_ subview: UIView, in frame: CGRect, shift: CGFloat) {
         subview.bounds = CGRect(origin: .zero, size: frame.size)
         subview.center = CGPoint(x: frame.midX, y: frame.midY)
         subview.transform = CGAffineTransform(translationX: shift, y: 0)
@@ -337,13 +337,13 @@ final class RootInterfaceController: UIViewController {
 
     /// What is out of sight is out of reach too: an offscreen sidebar is
     /// hidden, and a page under an open drawer is not read.
-    private func syncVisibility() {
+    @objc private dynamic func syncVisibility() {
         sidebarNavigation.view.isHidden = !isSidebarShown
         shade.isHidden = !isDrawer || drawerProgress == 0
         navigator.view.accessibilityElementsHidden = isDrawer && drawerProgress > 0
     }
 
-    private func animateLayout(velocity: CGFloat = 0, completion: (() -> Void)? = nil) {
+    @objc private dynamic func animateLayout(velocity: CGFloat = 0, completion: (() -> Void)? = nil) {
         // shown before it moves in; hidden only once it is out
         sidebarNavigation.view.isHidden = false
         shade.isHidden = !isDrawer
@@ -364,7 +364,7 @@ final class RootInterfaceController: UIViewController {
 
     // MARK: - Showing and hiding the sidebar
 
-    func setDrawerOpen(_ open: Bool, velocity: CGFloat = 0) {
+    @objc dynamic func setDrawerOpen(_ open: Bool, velocity: CGFloat = 0) {
         guard isDrawer else { return }
         // the keyboard goes with the column it typed into
         (open ? navigator.view : sidebarNavigation.view).endEditing(true)
@@ -375,7 +375,7 @@ final class RootInterfaceController: UIViewController {
         syncViewedChat()
     }
 
-    private func toggleSidebar() {
+    @objc private dynamic func toggleSidebar() {
         if isDrawer {
             setDrawerOpen(drawerProgress == 0)
         } else {
@@ -385,7 +385,7 @@ final class RootInterfaceController: UIViewController {
         }
     }
 
-    @objc private func panDrawer(_ pan: UIPanGestureRecognizer) {
+    @objc private dynamic func panDrawer(_ pan: UIPanGestureRecognizer) {
         let width = drawerWidth
         guard width > 0 else { return }
         switch pan.state {
@@ -534,12 +534,12 @@ final class RootInterfaceController: UIViewController {
     /// trailing side while the sidebar, which has one, is out of sight.
     /// One item per screen: a bar button item has one view, and a push
     /// draws the departing and the arriving bar together.
-    private func syncBarItems() {
+    @objc private dynamic func syncBarItems() {
         guard let top = navigator.topViewController else { return }
         syncBarItems(on: top)
     }
 
-    private func syncBarItems(on controller: UIViewController) {
+    @objc private dynamic func syncBarItems(on controller: UIViewController) {
         let item = controller.navigationItem
         let isRoot = navigator.viewControllers.first === controller
         var leading = (item.leftBarButtonItems ?? []).filter { !($0 is RootBarItem) }
@@ -593,7 +593,7 @@ final class RootInterfaceController: UIViewController {
 }
 
 extension RootInterfaceController: UINavigationControllerDelegate {
-    func navigationController(
+    @objc dynamic func navigationController(
         _: UINavigationController,
         willShow viewController: UIViewController,
         animated _: Bool,
@@ -609,7 +609,7 @@ extension RootInterfaceController: UIGestureRecognizerDelegate {
     /// selection's handles, content scrolled sideways (a code block, a
     /// table, the attachments) that this pan would move, and the swipe back
     /// on a pushed page.
-    func gestureRecognizerShouldBegin(_ gesture: UIGestureRecognizer) -> Bool {
+    @objc dynamic func gestureRecognizerShouldBegin(_ gesture: UIGestureRecognizer) -> Bool {
         guard let pan = gesture as? UIPanGestureRecognizer, isDrawer, presentedViewController == nil else {
             return false
         }
@@ -652,7 +652,7 @@ private extension UIScrollView {
 /// Over the page while the drawer is out: dims it, and a tap on it puts
 /// the drawer away. VoiceOver reads it as that button.
 private final class DrawerShade: UIView {
-    var onClose: (() -> Void)?
+    @objc dynamic var onClose: (() -> Void)?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -668,7 +668,7 @@ private final class DrawerShade: UIView {
         fatalError("Use init(frame:)")
     }
 
-    @objc private func close() {
+    @objc private dynamic func close() {
         onClose?()
     }
 

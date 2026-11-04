@@ -28,7 +28,7 @@ final class ShimmerLayer: CAGradientLayer {
 
     /// Starts the sweep again from the leading edge (`fit`'s). The animation
     /// outlives a trip to the background, which would otherwise remove it.
-    func start() {
+    @objc dynamic func start() {
         let animation = CABasicAnimation(keyPath: "locations")
         animation.fromValue = [-0.4, -0.2, 0]
         animation.toValue = [1, 1.2, 1.4]
@@ -38,14 +38,14 @@ final class ShimmerLayer: CAGradientLayer {
         add(animation, forKey: "shimmer")
     }
 
-    func stop() {
+    @objc dynamic func stop() {
         removeAllAnimations()
     }
 
     /// Covers the leading `width` points of `bounds`, the right-hand ones
     /// when `rightToLeft`, and sweeps from that edge, without an implicit
     /// animation of the frame.
-    func fit(width: CGFloat, in bounds: CGRect, rightToLeft: Bool = false) {
+    @objc dynamic func fit(width: CGFloat, in bounds: CGRect, rightToLeft: Bool = false) {
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         let leading = CGRect(

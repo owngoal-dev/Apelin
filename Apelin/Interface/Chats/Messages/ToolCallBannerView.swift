@@ -19,7 +19,7 @@ final class ToolCallBannerView: UIView {
     private var shown: ToolCallBanner?
 
     /// How far the ground reaches past each side, set by the row.
-    var groundBleed = UIEdgeInsets.zero {
+    @objc dynamic var groundBleed = UIEdgeInsets.zero {
         didSet {
             if groundBleed != oldValue {
                 setNeedsLayout()
@@ -64,7 +64,7 @@ final class ToolCallBannerView: UIView {
         }
     }
 
-    func reset() {
+    @objc dynamic func reset() {
         shown = nil
         label.layer.removeAllAnimations()
         label.attributedText = nil

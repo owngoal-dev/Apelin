@@ -30,9 +30,9 @@ final class WelcomeGitHubPage: WelcomeListPage {
     }
 
     private lazy var repositories = DistributionRepositoryFlow(presenter: self) { [weak self] in self?.load() }
-    private var login: String?
+    @objc private dynamic var login: String?
     private var linkedRepository: DistributionRepository?
-    private var isPreparingCreation = false
+    @objc private dynamic var isPreparingCreation = false
     private var loader: Task<Void, Never>?
     deinit { loader?.cancel() }
 
@@ -48,7 +48,7 @@ final class WelcomeGitHubPage: WelcomeListPage {
         load()
     }
 
-    private func load() {
+    @objc(apelin_load) private dynamic func load() {
         loader?.cancel()
         dataSource.beginLoad()
         loader = Task { [weak self] in
@@ -112,7 +112,7 @@ final class WelcomeGitHubPage: WelcomeListPage {
         return cell
     }
 
-    func tableView(_: UITableView, viewForHeaderInSection section: Int) -> UIView? {
+    @objc dynamic func tableView(_: UITableView, viewForHeaderInSection section: Int) -> UIView? {
         switch dataSource.sectionIdentifier(for: section) {
         case .introduction?, .account?:
             nil
@@ -123,7 +123,7 @@ final class WelcomeGitHubPage: WelcomeListPage {
         }
     }
 
-    func tableView(_: UITableView, viewForFooterInSection section: Int) -> UIView? {
+    @objc dynamic func tableView(_: UITableView, viewForFooterInSection section: Int) -> UIView? {
         guard dataSource.sectionIdentifier(for: section) == .publishing else { return nil }
         return text(
             .groupedFooter(),
@@ -131,7 +131,7 @@ final class WelcomeGitHubPage: WelcomeListPage {
         )
     }
 
-    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+    @objc dynamic func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
         switch dataSource.value(at: indexPath) {
         case .signIn?:

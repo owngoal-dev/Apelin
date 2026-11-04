@@ -451,9 +451,9 @@ enum AgentRunCode {
 private final class CappedReader: @unchecked Sendable {
     private let done = DispatchSemaphore(value: 0)
     private let stopped = SharedFlag()
-    private var data = Data()
-    private var overflow = false
-    private var cut = false
+    @objc dynamic private var data = Data()
+    @objc dynamic private var overflow = false
+    @objc dynamic private var cut = false
 
     init(descriptor: Int32, cap: Int) {
         Thread.detachNewThread { [self] in
@@ -508,17 +508,17 @@ private final class CappedReader: @unchecked Sendable {
 /// thread adds its own and removes it once reaped; a stop kills them.
 private final class RunningGroups: @unchecked Sendable {
     private let lock = PthreadLock()
-    private var sessions: [pid_t: String] = [:]
-    private var stops: [String: Int] = [:]
+    @objc dynamic private var sessions: [pid_t: String] = [:]
+    @objc dynamic private var stops: [String: Int] = [:]
 
-    func stopCount(session: String) -> Int {
+    @objc dynamic func stopCount(session: String) -> Int {
         lock.withLock { stops[session, default: 0] }
     }
 
     /// Adds `group`, killing it at once when `session` was stopped after
     /// its call took `stopsSeen`: a stop that came while the call was
     /// being checked or spawned still ends it.
-    func insert(_ group: pid_t, session: String, stopsSeen: Int) {
+    @objc dynamic func insert(_ group: pid_t, session: String, stopsSeen: Int) {
         lock.withLock {
             sessions[group] = session
             if stops[session, default: 0] != stopsSeen {
@@ -528,11 +528,11 @@ private final class RunningGroups: @unchecked Sendable {
         }
     }
 
-    func remove(_ group: pid_t) {
+    @objc dynamic func remove(_ group: pid_t) {
         lock.withLock { sessions[group] = nil }
     }
 
-    func stop(session: String) {
+    @objc dynamic func stop(session: String) {
         lock.withLock {
             stops[session, default: 0] += 1
             for (group, owner) in sessions where owner == session {
@@ -542,7 +542,7 @@ private final class RunningGroups: @unchecked Sendable {
         }
     }
 
-    func stopAll() {
+    @objc dynamic func stopAll() {
         lock.withLock {
             for group in sessions.keys {
                 kill(-group, SIGKILL)
@@ -554,12 +554,12 @@ private final class RunningGroups: @unchecked Sendable {
 
 private final class SharedFlag: @unchecked Sendable {
     private let lock = PthreadLock()
-    private var value = false
-    func set() {
+    @objc dynamic private var value = false
+    @objc dynamic func set() {
         lock.withLock { value = true }
     }
 
-    var isSet: Bool {
+    @objc dynamic var isSet: Bool {
         lock.withLock { value }
     }
 }

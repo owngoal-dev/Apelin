@@ -83,7 +83,7 @@ final class ProgressRing: UIView {
 
     /// A layer takes a colour resolved once; the view resolves it again
     /// whenever the tint or the appearance moves.
-    private func recolor() {
+    @objc private dynamic func recolor() {
         track.strokeColor = UIColor.secondaryLabel.withAlphaComponent(0.2).resolvedColor(with: traitCollection).cgColor
         arc.strokeColor = tintColor.resolvedColor(with: traitCollection).cgColor
         glyph.tintColor = tintColor

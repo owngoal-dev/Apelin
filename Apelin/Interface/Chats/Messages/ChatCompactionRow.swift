@@ -6,9 +6,9 @@ import UIKit
 /// from (`ChatCompactionController`). A session that did not keep the
 /// summary leaves only the line.
 final class ChatCompactionRow: ListRowView {
-    var onOpen: (() -> Void)?
+    @objc dynamic var onOpen: (() -> Void)?
     private let label = UILabel()
-    private var opensSummary = false
+    @objc dynamic private var opensSummary = false
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -50,12 +50,12 @@ final class ChatCompactionRow: ListRowView {
         return true
     }
 
-    @objc private func open() {
+    @objc dynamic private func open() {
         guard opensSummary else { return }
         onOpen?()
     }
 
-    private static var title: String {
+    @objc dynamic private static var title: String {
         String(localized: "Compacted")
     }
 

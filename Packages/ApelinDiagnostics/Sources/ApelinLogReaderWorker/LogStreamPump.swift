@@ -156,16 +156,16 @@ public final class LogStreamPump: @unchecked Sendable {
 
     private final class Counter: @unchecked Sendable {
         private let lock = PthreadLock()
-        private var count = 0
+        @objc private dynamic var count = 0
 
-        func increment() -> Int {
+        @objc dynamic func increment() -> Int {
             lock.withLock {
                 count += 1
                 return count
             }
         }
 
-        var value: Int {
+        @objc dynamic var value: Int {
             lock.withLock { count }
         }
     }

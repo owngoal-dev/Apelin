@@ -192,5 +192,5 @@ extension DiagnosticsService {
 }
 
 private final class OutcomeBox: @unchecked Sendable {
-    var error: Error?
+    @objc dynamic var error: Error?
 }

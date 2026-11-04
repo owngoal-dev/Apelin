@@ -329,7 +329,7 @@ public extension GitRepository {
 
     /// Every file and link below the folder `path` that is not in the index,
     /// without following a link.
-    private func untrackedFiles(under path: String, tracked: Set<String>) -> [String] {
+    @objc private dynamic func untrackedFiles(under path: String, tracked: Set<String>) -> [String] {
         guard let walk = FileManager.default.enumerator(atPath: workdir.appendingPathComponent(path).path) else { return [] }
         var files: [String] = []
         while let relative = walk.nextObject() as? String {
@@ -399,7 +399,7 @@ public extension GitRepository {
 
     /// Adds the work tree's file or link at `path` to `index`; one that is
     /// gone, or a folder now, is not.
-    private func addWorkTreeFile(_ path: String, to index: OpaquePointer?) throws {
+    @objc private dynamic func addWorkTreeFile(_ path: String, to index: OpaquePointer?) throws {
         var metadata = stat()
         guard lstat(workdir.appendingPathComponent(path).path, &metadata) == 0 else { return }
         let kind = metadata.st_mode & S_IFMT
@@ -418,7 +418,7 @@ public extension GitRepository {
 
     /// `refs/heads/apelin-backup/<yyyyMMdd-HHmmss>` at `commit`, a number
     /// after it when that is taken. Answers the branch's name.
-    private func makeBackupBranch(_ commit: String, now: Date) throws -> String {
+    @objc private dynamic func makeBackupBranch(_ commit: String, now: Date) throws -> String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.dateFormat = "yyyyMMdd-HHmmss"

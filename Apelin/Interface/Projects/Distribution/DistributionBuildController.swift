@@ -69,21 +69,21 @@ final class DistributionBuildController: TableController {
     /// The build's `distribution.*` warnings about the package it wrote.
     private var findings: [ProjectDiagnostic] = []
     private var work: Task<Void, Never>?
-    private var outcome: String?
+    @objc private dynamic var outcome: String?
     private var finishedState: TaskState?
     private lazy var stepCells = Dictionary(uniqueKeysWithValues: Stage.stages(for: method).map { ($0, TaskStepCell(stage: String($0.rawValue))) })
-    private var logLines: [String] = []
-    private weak var logPage: TaskLogController?
+    @objc private dynamic var logLines: [String] = []
+    @objc private dynamic weak var logPage: TaskLogController?
     private var dataSource: TableDataSource<Section, Row, RowContent>!
     /// While the package is read back for Share Package or Publish to
     /// Repository: neither starts again until it is done.
-    private var isPreparingPackage = false {
+    @objc private dynamic var isPreparingPackage = false {
         didSet { distributeButton.isEnabled = !isPreparingPackage }
     }
 
     /// The menus read the page as they open, so neither is rebuilt when the
     /// build ends or a package is being read back.
-    private lazy var distributeButton: UIBarButtonItem = .init(
+    @objc private dynamic lazy var distributeButton: UIBarButtonItem = .init(
         title: String(localized: "Distribute"),
         menu: UIMenu(children: [UIDeferredMenuElement.uncached { [weak self] completion in
             guard let self else { completion([]); return }
@@ -94,7 +94,7 @@ final class DistributionBuildController: TableController {
         $0.style = .done
     }
 
-    private lazy var moreButton = UIBarButtonItem(
+    @objc private dynamic lazy var moreButton = UIBarButtonItem(
         image: UIImage(systemName: "ellipsis"),
         menu: UIMenu(children: [UIDeferredMenuElement.uncached { [weak self] completion in
             completion(self?.moreMenuElements() ?? [])
@@ -102,7 +102,7 @@ final class DistributionBuildController: TableController {
     ).then { $0.accessibilityLabel = String(localized: "More") }
 
     /// Distribute's choices once there is a package, then the log.
-    private func moreMenuElements() -> [UIMenuElement] {
+    @objc private dynamic func moreMenuElements() -> [UIMenuElement] {
         var elements: [UIMenuElement] = []
         if artifact != nil, work == nil {
             elements.append(UIMenu(options: .displayInline, children: distributionActions(anchor: moreButton)))
@@ -115,7 +115,7 @@ final class DistributionBuildController: TableController {
 
     /// Share Package and Publish to Repository; the share sheet points at
     /// `anchor`, the item whose menu they were chosen from.
-    private func distributionActions(anchor: UIBarButtonItem) -> [UIMenuElement] {
+    @objc private dynamic func distributionActions(anchor: UIBarButtonItem) -> [UIMenuElement] {
         let attributes: UIMenuElement.Attributes = isPreparingPackage ? .disabled : []
         return [
             UIAction(
@@ -205,7 +205,7 @@ final class DistributionBuildController: TableController {
         cell.accessibilityLabel = [value.text, value.secondaryText].compactMap(\.self).joined(separator: ", ")
     }
 
-    private func updateRows() {
+    @objc private dynamic func updateRows() {
         for item in Stage.stages(for: method) {
             let state: EnvironmentTaskProgress.StageState = if finishedState == .succeeded || item.rawValue < stage.rawValue {
                 .done
@@ -251,7 +251,7 @@ final class DistributionBuildController: TableController {
         dataSource.update(sections, reconfigure: true)
     }
 
-    private func updateNavigation() {
+    @objc private dynamic func updateNavigation() {
         let running = work != nil
         navigationController?.isModalInPresentation = running
         navigationItem.hidesBackButton = running
@@ -274,7 +274,7 @@ final class DistributionBuildController: TableController {
 
     // MARK: - The build
 
-    private func start() {
+    @objc private dynamic func start() {
         guard work == nil else { return }
         artifact = nil
         outcome = nil
@@ -371,7 +371,7 @@ final class DistributionBuildController: TableController {
         logPage?.update(logLines)
     }
 
-    private func openLog() {
+    @objc private dynamic func openLog() {
         let page = TaskLogController(lines: logLines)
         logPage = page
         navigationController?.pushViewController(page, animated: true)
@@ -389,7 +389,7 @@ final class DistributionBuildController: TableController {
         )
     }
 
-    private func sharePackage(from anchor: UIBarButtonItem) {
+    @objc private dynamic func sharePackage(from anchor: UIBarButtonItem) {
         guard let item, work == nil, !isPreparingPackage else { return }
         isPreparingPackage = true
         Task { [weak self] in
@@ -399,7 +399,7 @@ final class DistributionBuildController: TableController {
         }
     }
 
-    private func publish() {
+    @objc private dynamic func publish() {
         guard let item, work == nil, !isPreparingPackage else { return }
         isPreparingPackage = true
         Task { [weak self] in

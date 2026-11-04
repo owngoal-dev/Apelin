@@ -17,7 +17,7 @@ final class SessionLink: @unchecked Sendable {
     private let ledger: WorkLedger
     private let lock = PthreadLock()
     private var channel: WorkerChannel?
-    private var lastStart: Date?
+    @objc dynamic private var lastStart: Date?
 
     init(executable: String, queue: DispatchQueue, ledger: WorkLedger) {
         self.executable = executable
@@ -92,7 +92,7 @@ final class SessionLink: @unchecked Sendable {
     }
 
     /// Asks the session host to persist and exit, and waits a moment for it.
-    func shutdown() {
+    @objc dynamic func shutdown() {
         let channel = lock.withLock { self.channel }
         guard let channel, !channel.isClosed else { return }
         try? channel.sendControl(WorkerControl.shutdown)

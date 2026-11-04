@@ -26,9 +26,9 @@ extension ComposerInputView {
             ]
         }
 
-        var onReturnKeyPressed: () -> Void = {}
-        var onCommandReturnKeyPressed: () -> Void = {}
-        var onImagePasted: (UIImage) -> Void = { _ in }
+        @objc dynamic var onReturnKeyPressed: () -> Void = {}
+        @objc dynamic var onCommandReturnKeyPressed: () -> Void = {}
+        @objc dynamic var onImagePasted: (UIImage) -> Void = { _ in }
 
         override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
             if action == #selector(paste(_:)) {
@@ -58,29 +58,29 @@ extension ComposerInputView {
             super.paste(sender)
         }
 
-        @objc private func insertNewLine() {
+        @objc dynamic private func insertNewLine() {
             insertText("\n")
         }
 
-        @objc private func returnPressed() {
+        @objc dynamic private func returnPressed() {
             onReturnKeyPressed()
         }
 
-        @objc private func commandReturnPressed() {
+        @objc dynamic private func commandReturnPressed() {
             onCommandReturnKeyPressed()
         }
     }
 }
 
 extension ComposerInputView: UITextViewDelegate {
-    func textViewDidBeginEditing(_ textView: UITextView) {
+    @objc dynamic func textViewDidBeginEditing(_ textView: UITextView) {
         delegate?.onComposerInputBeginEditing()
         updateTextHeight()
         delegate?.onComposerInputTextChanged(text: textView.text)
         switchToRequiredStatus()
     }
 
-    func textViewDidEndEditing(_ textView: UITextView) {
+    @objc dynamic func textViewDidEndEditing(_ textView: UITextView) {
         clearAttributedText()
         updateTextHeight()
         delegate?.onComposerInputTextChanged(text: textView.text)
@@ -88,14 +88,14 @@ extension ComposerInputView: UITextViewDelegate {
         switchToRequiredStatus()
     }
 
-    func textViewDidChange(_ textView: UITextView) {
+    @objc dynamic func textViewDidChange(_ textView: UITextView) {
         updatePlaceholderAlpha()
         updateTextHeight()
         delegate?.onComposerInputTextChanged(text: textView.text)
         switchToRequiredStatus()
     }
 
-    func textView(
+    @objc dynamic func textView(
         _ textView: UITextView,
         editMenuForTextIn _: NSRange,
         suggestedActions: [UIMenuElement],
@@ -120,7 +120,7 @@ extension ComposerInputView: UITextViewDelegate {
         return UIMenu(children: suggestedActions + actions)
     }
 
-    func textView(_ textView: UITextView, shouldChangeTextIn _: NSRange, replacementText text: String) -> Bool {
+    @objc dynamic func textView(_ textView: UITextView, shouldChangeTextIn _: NSRange, replacementText text: String) -> Bool {
         if text == "\n", !ComposerBehavior.useConfirmationOnSend {
             textView.resignFirstResponder()
             delegate?.onComposerInputSubmitButtonTapped()
@@ -129,11 +129,11 @@ extension ComposerInputView: UITextViewDelegate {
         return true
     }
 
-    func updatePlaceholderAlpha() {
+    @objc dynamic func updatePlaceholderAlpha() {
         placeholderLabel.alpha = textView.text.isEmpty ? 1 : 0
     }
 
-    func updateTextHeight() {
+    @objc dynamic func updateTextHeight() {
         let attrText = textView.attributedText ?? .init()
         let textHeight = TextMeasurement.shared.measureSize(
             of: attrText,
@@ -143,7 +143,7 @@ extension ComposerInputView: UITextViewDelegate {
         doWithAnimation { self.textHeight.send(decision) }
     }
 
-    func clearAttributedText() {
+    @objc dynamic func clearAttributedText() {
         let currentText = textView.text
         textView.attributedText = NSAttributedString(
             string: currentText ?? "",

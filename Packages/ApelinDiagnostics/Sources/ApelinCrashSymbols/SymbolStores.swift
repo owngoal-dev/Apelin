@@ -63,7 +63,7 @@ public final class DSYMStore: DSYMLookup, @unchecked Sendable {
     }
 
     /// Bumped by every import and removal; symbolication caches key on it.
-    public var revision: Int {
+    @objc public dynamic var revision: Int {
         lock.withLock { index.revision }
     }
 
@@ -128,7 +128,7 @@ public final class DSYMStore: DSYMLookup, @unchecked Sendable {
         return imported
     }
 
-    public func remove(uuid: String) throws {
+    @objc public dynamic func remove(uuid: String) throws {
         let changed = lock.withLock {
             guard index.records.contains(where: { $0.id == uuid }) else { return false }
             index.records.removeAll { $0.id == uuid }
@@ -143,7 +143,7 @@ public final class DSYMStore: DSYMLookup, @unchecked Sendable {
     }
 
     /// The stored DWARF file for an image UUID.
-    public func url(forUUID uuid: String) -> URL? {
+    @objc public dynamic func url(forUUID uuid: String) -> URL? {
         let uuid = uuid.uppercased()
         return lock.withLock {
             guard index.records.contains(where: { $0.id == uuid }) else { return nil }
@@ -152,11 +152,11 @@ public final class DSYMStore: DSYMLookup, @unchecked Sendable {
         }
     }
 
-    private func storedURL(for uuid: String) -> URL {
+    @objc private dynamic func storedURL(for uuid: String) -> URL {
         directory.appendingPathComponent("\(uuid.uppercased()).dwarf")
     }
 
-    private func save() {
+    @objc private dynamic func save() {
         guard let data = try? PropertyListEncoder().encode(index) else { return }
         try? data.write(to: indexURL, options: .atomic)
     }
@@ -164,7 +164,7 @@ public final class DSYMStore: DSYMLookup, @unchecked Sendable {
     /// Everything under `url` that might be a Mach-O: the file itself, the
     /// `Contents/Resources/DWARF` of a `.dSYM`, or whatever a folder of dSYMs
     /// holds. Bounded, because a dropped folder can be the whole home directory.
-    static func machOFiles(at url: URL, depth: Int) -> [URL] {
+    @objc static dynamic func machOFiles(at url: URL, depth: Int) -> [URL] {
         let manager = FileManager.default
         var isDirectory: ObjCBool = false
         guard manager.fileExists(atPath: url.path, isDirectory: &isDirectory) else { return [] }

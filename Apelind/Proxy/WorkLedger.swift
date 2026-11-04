@@ -1,4 +1,5 @@
 import Dispatch
+import Foundation
 
 /// Whether apelind has work, and when it may exit.
 ///
@@ -15,9 +16,9 @@ final class WorkLedger: @unchecked Sendable {
     private let queue: DispatchQueue
     private let idleGrace: DispatchTimeInterval = .seconds(30)
     private let onIdle: () -> Void
-    private var connections = 0
-    private var requests = 0
-    private(set) var sessionBusy = false
+    @objc dynamic private var connections = 0
+    @objc dynamic private var requests = 0
+    @objc dynamic private(set) var sessionBusy = false
     private var idleTimer: DispatchWorkItem?
 
     init(queue: DispatchQueue, onIdle: @escaping () -> Void) {
@@ -25,41 +26,41 @@ final class WorkLedger: @unchecked Sendable {
         self.onIdle = onIdle
     }
 
-    private var isIdle: Bool {
+    @objc dynamic private var isIdle: Bool {
         connections == 0 && requests == 0 && !sessionBusy
     }
 
     /// Starts the clock: a launch that never sees a client still exits.
-    func start() {
+    @objc dynamic func start() {
         reevaluate()
     }
 
-    func connectionOpened() {
+    @objc dynamic func connectionOpened() {
         connections += 1
         reevaluate()
     }
 
-    func connectionClosed() {
+    @objc dynamic func connectionClosed() {
         connections -= 1
         reevaluate()
     }
 
-    func requestBegan() {
+    @objc dynamic func requestBegan() {
         requests += 1
         reevaluate()
     }
 
-    func requestEnded() {
+    @objc dynamic func requestEnded() {
         requests -= 1
         reevaluate()
     }
 
-    func sessionReported(busy: Bool) {
+    @objc dynamic func sessionReported(busy: Bool) {
         sessionBusy = busy
         reevaluate()
     }
 
-    private func reevaluate() {
+    @objc dynamic private func reevaluate() {
         dispatchPrecondition(condition: .onQueue(queue))
         idleTimer?.cancel()
         idleTimer = nil

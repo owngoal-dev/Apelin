@@ -7,7 +7,7 @@ final class ComposerApprovalSection: ComposerSectionView {
     /// the device owner's check there before anything is sent.
     var onDecision: ((ChatMessage, ApprovalDecision) -> Void)?
     private var request: ChatMessage?
-    var isPresentingRequest: Bool {
+    @objc dynamic var isPresentingRequest: Bool {
         request != nil
     }
 
@@ -15,14 +15,14 @@ final class ComposerApprovalSection: ComposerSectionView {
     /// Shown only for a command that runs as root, between the title and
     /// the detail, so it is read before the command.
     private let rootLabel = UILabel()
-    private var detailViews: [UIView] = []
+    @objc dynamic private var detailViews: [UIView] = []
     /// The title and detail: a request taller than half the window scrolls
     /// from its start, under buttons that stay in place.
     private let textScroll = UIScrollView()
     private let approveButton = UIButton(type: .system)
     private let denyButton = UIButton(type: .system)
 
-    override func initializeViews() {
+    @objc override dynamic func initializeViews() {
         super.initializeViews()
         clipsToBounds = true
         titleLabel.font = .preferredFont(forTextStyle: .headline)
@@ -170,7 +170,7 @@ final class ComposerApprovalSection: ComposerSectionView {
 
     /// Places the content for the current width and answers the height it needs.
     @discardableResult
-    private func layoutContent() -> CGFloat {
+    @objc dynamic private func layoutContent() -> CGFloat {
         let contentWidth = max(1, bounds.width)
         let titleHeight = ceil(
             titleLabel.sizeThatFits(CGSize(width: contentWidth, height: .greatestFiniteMagnitude)).height,
@@ -242,7 +242,7 @@ private final class ApprovalCodeBlock: UIView {
         fatalError("Use init(title:code:)")
     }
 
-    private func captionHeight(for width: CGFloat) -> CGFloat {
+    @objc dynamic private func captionHeight(for width: CGFloat) -> CGFloat {
         caption.isHidden ? 0 : ceil(caption.sizeThatFits(CGSize(width: max(1, width - 24), height: .greatestFiniteMagnitude)).height) + 12
     }
 

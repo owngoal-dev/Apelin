@@ -46,18 +46,18 @@ final class RepositoryImportController: TableController, UITextFieldDelegate {
         }
     }
 
-    private var isClosed = false
-    private var isImporting = false
+    @objc private dynamic var isClosed = false
+    @objc private dynamic var isImporting = false
     /// The projects are read: the names they take and which have this
     /// repository.
-    private var isLoaded = false
-    private var takenNames: [String] = []
+    @objc private dynamic var isLoaded = false
+    @objc private dynamic var takenNames: [String] = []
     private var existing: [ProjectSummary] = []
     /// The user typed a name: the one suggested no longer replaces it.
-    private var nameEdited = false
+    @objc private dynamic var nameEdited = false
 
     private let nameField = UITextField()
-    private lazy var nameCell = UITableViewCell(style: .default, reuseIdentifier: nil).then { cell in
+    @objc private dynamic lazy var nameCell = UITableViewCell(style: .default, reuseIdentifier: nil).then { cell in
         cell.selectionStyle = .none
         cell.isAccessibilityElement = false
         nameField.translatesAutoresizingMaskIntoConstraints = false
@@ -77,12 +77,12 @@ final class RepositoryImportController: TableController, UITextFieldDelegate {
         self?.cell(for: row)
     }
 
-    private lazy var importButton = UIBarButtonItem(
+    @objc private dynamic lazy var importButton = UIBarButtonItem(
         title: String(localized: "Import"),
         primaryAction: UIAction { [weak self] _ in self?.startImport() },
     ).then { $0.style = .done }
 
-    private lazy var importingIndicator = UIBarButtonItem(customView: UIActivityIndicatorView(style: .medium).then {
+    @objc private dynamic lazy var importingIndicator = UIBarButtonItem(customView: UIActivityIndicatorView(style: .medium).then {
         $0.startAnimating()
         $0.isAccessibilityElement = true
         $0.accessibilityLabel = String(localized: "Importing Project…")
@@ -179,7 +179,7 @@ final class RepositoryImportController: TableController, UITextFieldDelegate {
         }.value
     }
 
-    private func updateRows() {
+    @objc private dynamic func updateRows() {
         var sections: [(Section, [Row])] = [(.repository, [.address(request.address), .branch(request.branch)])]
         if !existing.isEmpty {
             sections.append((.existing, existing.map(Row.existing)))
@@ -188,15 +188,15 @@ final class RepositoryImportController: TableController, UITextFieldDelegate {
         dataSource.update(sections, reconfigure: true)
     }
 
-    private var trimmedName: String {
+    @objc private dynamic var trimmedName: String {
         (nameField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    private var canImport: Bool {
+    @objc private dynamic var canImport: Bool {
         isLoaded && !isImporting && ProjectName.validate(trimmedName) == nil
     }
 
-    private func updateImportButton() {
+    @objc private dynamic func updateImportButton() {
         importButton.isEnabled = canImport
     }
 
@@ -267,7 +267,7 @@ final class RepositoryImportController: TableController, UITextFieldDelegate {
         })
     }
 
-    func textFieldShouldReturn(_: UITextField) -> Bool {
+    @objc dynamic func textFieldShouldReturn(_: UITextField) -> Bool {
         if canImport {
             startImport()
         }
@@ -278,7 +278,7 @@ final class RepositoryImportController: TableController, UITextFieldDelegate {
 
     /// While it runs the sheet holds still: no edits, no close, the spinner
     /// where Import was. Cancel is the progress card's.
-    private func setImporting(_ importing: Bool) {
+    @objc private dynamic func setImporting(_ importing: Bool) {
         isImporting = importing
         navigationItem.rightBarButtonItem = importing ? importingIndicator : importButton
         navigationItem.leftBarButtonItem?.isEnabled = !importing
@@ -287,7 +287,7 @@ final class RepositoryImportController: TableController, UITextFieldDelegate {
         updateImportButton()
     }
 
-    private func startImport() {
+    @objc private dynamic func startImport() {
         guard canImport else { return }
         let name = trimmedName
         if takenNames.contains(where: { $0.caseInsensitiveCompare(name) == .orderedSame }) {
@@ -328,7 +328,7 @@ final class RepositoryImportController: TableController, UITextFieldDelegate {
     /// Why nothing was imported. A repository that wants a sign-in names
     /// the one Apelin takes for its host: Sign In with GitHub for
     /// github.com, a token the user gives the agent anywhere else.
-    private func report(_ error: Error) {
+    @objc private dynamic func report(_ error: Error) {
         if (error as? ApelinError)?.code == .conflict {
             // the name, taken since the projects were read; nothing was made
             presentNotice(title: "Name Already Used", message: error.readableMessage) { [weak self] in
@@ -367,7 +367,7 @@ final class RepositoryImportController: TableController, UITextFieldDelegate {
     }
 
     /// The sheet goes, then `then` runs: what it opens shows behind it.
-    private func close(then: @escaping () -> Void) {
+    @objc private dynamic func close(then: @escaping () -> Void) {
         isClosed = true
         guard let navigation = navigationController, navigation.presentingViewController != nil else {
             then()

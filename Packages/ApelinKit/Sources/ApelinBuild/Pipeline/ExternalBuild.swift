@@ -325,15 +325,15 @@ public enum ExternalBuild {
 /// Whether the timeout stopped the script, set from the timer's queue.
 private final class Timeout: @unchecked Sendable {
     private let lock = NSLock()
-    private var value = false
+    @objc private dynamic var value = false
 
-    var fired: Bool {
+    @objc dynamic var fired: Bool {
         lock.lock()
         defer { lock.unlock() }
         return value
     }
 
-    func fire() {
+    @objc dynamic func fire() {
         lock.lock()
         value = true
         lock.unlock()

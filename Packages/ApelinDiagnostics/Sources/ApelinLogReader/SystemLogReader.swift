@@ -82,7 +82,7 @@ public struct SystemLogReader: LogEvidenceSource, LiveLogSource {
         private let filter: LogFilter
         private let lock = NSLock()
         private var entries = [LogEntry]()
-        private var truncated = false
+        @objc private dynamic var truncated = false
 
         init(filter: LogFilter) {
             self.filter = filter

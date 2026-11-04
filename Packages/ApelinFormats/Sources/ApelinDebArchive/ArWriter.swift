@@ -16,7 +16,7 @@ final class ArWriter {
     }
 
     /// A member whose bytes are known up front.
-    func addMember(name: String, contents: Data) throws {
+    @objc dynamic func addMember(name: String, contents: Data) throws {
         try sink.write(header(name: name, size: Int64(contents.count)))
         try sink.write(contents)
         try pad(Int64(contents.count))
@@ -33,13 +33,13 @@ final class ArWriter {
         try pad(counter.byteCount)
     }
 
-    private func pad(_ size: Int64) throws {
+    @objc private dynamic func pad(_ size: Int64) throws {
         if size % 2 != 0 {
             try sink.write([0x0A])
         }
     }
 
-    private func header(name: String, size: Int64) throws -> [UInt8] {
+    @objc private dynamic func header(name: String, size: Int64) throws -> [UInt8] {
         guard name.utf8.count <= 16, name.utf8.allSatisfy({ (33 ... 126).contains($0) && $0 != 0x2F }) else {
             throw PackageFormatError.invalidEntry("ar member name \(name.debugDescription)")
         }
