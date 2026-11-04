@@ -55,6 +55,7 @@ import sys
 
 LC_SEGMENT_64 = 0x19
 LC_DYLD_CHAINED_FIXUPS = 0x80000034
+LC_UUID = 0x1B
 CPU_TYPE_ARM64 = 0x0100000C
 
 # Selectors the runtime, ARC or Foundation call by name.
@@ -105,6 +106,7 @@ class MachO:
         self.segments = []
         self.sections = {}
         self.chained = None
+        self.uuid = None
         ncmds = struct.unpack_from("<I", data, 16)[0]
         offset = 32
         for _ in range(ncmds):
@@ -121,6 +123,8 @@ class MachO:
                     self.sections[(segname, sectname)] = (addr, size)
             elif cmd == LC_DYLD_CHAINED_FIXUPS:
                 self.chained = struct.unpack_from("<II", data, offset + 8)
+            elif cmd == LC_UUID:
+                self.uuid = data[offset + 8 : offset + 24].hex()
             offset += cmdsize
         self.base = next(vmaddr for name, vmaddr, *_ in self.segments if name == "__TEXT")
         self.imports = []
@@ -313,13 +317,24 @@ def demangle(names, simplified):
     return dict(zip(names, output.splitlines()))
 
 
-def symbols_by_address(path):
-    """{address: [symbol]} from nm, falling back to a dSYM beside the binary."""
+def symbols_by_address(path, uuid):
+    """{address: [symbol]} from nm: the binary's own, and a dSYM beside it of the same UUID.
+
+    A packaged binary is stripped, so its members are named from the dSYM
+    (`<binary>.dSYM` or `<bundle>.dSYM` beside it); one of another build would
+    name the wrong members and is left out.
+    """
     candidates = [path]
     for dsym in (path + ".dSYM", os.path.dirname(path.rstrip("/")) + ".dSYM"):
         dwarf = os.path.join(dsym, "Contents", "Resources", "DWARF")
-        if os.path.isdir(dwarf):
-            candidates += [os.path.join(dwarf, name) for name in os.listdir(dwarf)]
+        if not os.path.isdir(dwarf):
+            continue
+        for name in sorted(os.listdir(dwarf)):
+            candidate = os.path.join(dwarf, name)
+            if MachO(candidate).uuid == uuid:
+                candidates.insert(0, candidate)
+            else:
+                print(f"warning: {candidate} is another build's dSYM (UUID differs); not used", file=sys.stderr)
     table = collections.defaultdict(list)
     for candidate in candidates:
         result = subprocess.run(["nm", "-U", candidate], capture_output=True, text=True)
@@ -327,8 +342,6 @@ def symbols_by_address(path):
             parts = line.split(" ", 2)
             if len(parts) == 3 and parts[1] in "tTsS":
                 table[int(parts[0], 16)].append(parts[2])
-        if table:
-            break
     return table
 
 
@@ -342,7 +355,7 @@ class Binary:
         for record in self.classes.values():
             record["name"] = full.get(record["raw_name"], record["raw_name"])
             record["simple"] = simple.get(record["raw_name"], record["raw_name"])
-        self.symbols = symbols_by_address(path)
+        self.symbols = symbols_by_address(path, self.macho.uuid)
         thunks = sorted({s for names in self.symbols.values() for s in names if s.startswith("_$s") and s.endswith("To")})
         self.member_names = demangle(thunks, True)
 
@@ -855,6 +868,12 @@ def main():
         ours = [r for r in binary.classes.values() if is_ours(r)]
         selectors = sum(len(r["instance"]) + len(r["class"]) for r in ours)
         print(f"== {os.path.relpath(path, arguments.products)}: {len(ours)} classes of ours, {selectors} selectors")
+        unnamed = sum(1 for r in ours for _, imp in r["instance"] + r["class"] if binary.member(imp) is None)
+        if unnamed:
+            # Without the member's name, an override cannot be told from a collision.
+            print(f"error: {unnamed} of its methods have no symbol: the binary is stripped and no dSYM "
+                  f"of its UUID is beside it (<binary>.dSYM or <bundle>.dSYM)", file=sys.stderr)
+            return 2
         findings = audit(binary, probe, actions, sources, baseline)
         for kind, class_name, selector, context, other, note in findings:
             reason = ACCEPTED.get((class_name.split(".")[-1], selector))

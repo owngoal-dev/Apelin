@@ -14,6 +14,11 @@
 # says how each is decided). With `--baseline`, the products of an earlier
 # build, a finding the class did not have there is marked NEW.
 #
+# A packaged binary is stripped: put its dSYM beside it (`apelind.dSYM`,
+# `Apelin.app.dSYM`, as the products folder and CI's `*_dSYMs.zip` hold them),
+# which is used only when its UUID is the binary's. Without one the audit
+# stops, since an override cannot be told from a collision by name alone.
+#
 # The Apple side comes from audit-objc-selectors-probe.m, built here for Mac
 # Catalyst and run once: Catalyst's UIKitCore carries iOS UIKit's private
 # methods closely enough. The edit actions come from UIResponder.h in the
