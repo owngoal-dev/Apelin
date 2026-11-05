@@ -637,7 +637,8 @@ struct AccountDeskTests {
         let kwwk = Set(providerDirectory.map(\.storeId))
         let apelin = Set(AgentProvider.allCases.map(\.storeID))
         #expect(kwwk.subtracting(apelin).isEmpty, "kwwk stores \(kwwk.subtracting(apelin).sorted()) with no provider")
-        #expect(apelin.subtracting(kwwk) == [CredentialProviderID.deepSeek])
+        #expect(apelin.subtracting(kwwk)
+            == Set([CredentialProviderID.deepSeek, TraeSite.china.id, TraeSite.international.id]))
         // A store id kwwk keeps as a typed key and does not sign in to is
         // a key form here.
         let subscriptions = Set(OAuthSubscriptions.providers.map(\.id))
@@ -652,7 +653,8 @@ struct AccountDeskTests {
     @Test
     func `each key form asks for a key first, as KWWKCli's does`() {
         #expect(SignInKeyForms.all.map(\.provider) == [
-            .anthropic, .openAI, .google, .deepSeek, .openCodeGo, .openCodeZen, .openRouter, .openAICompatible,
+            .anthropic, .openAI, .google, .deepSeek, .openCodeGo, .openCodeZen, .openRouter,
+            .openAICompatible,
         ])
         for form in SignInKeyForms.all {
             #expect(form.fields.first == KeyField(field: .apiKey, required: true, placeholder: form.fields.first?.placeholder))
