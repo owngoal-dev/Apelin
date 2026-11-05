@@ -11,6 +11,9 @@ public enum ProviderRegistration {
         modelOverride: String? = nil,
     ) async throws -> ResolvedAuth? {
         guard let credentials = try await manager.credentials(for: storeID) else { return nil }
+        if let site = TraeSite(storeID: storeID) {
+            return await TraeRegistration.resolve(site: site, credentials: credentials, modelOverride: modelOverride)
+        }
         if storeID == CredentialProviderID.deepSeek {
             let id = modelOverride ?? DeepSeekProvider.extra("defaultModel", in: credentials) ?? DeepSeekProvider.defaultModel
             let base = DeepSeekProvider.extra("baseUrl", in: credentials) ?? DeepSeekProvider.baseURL

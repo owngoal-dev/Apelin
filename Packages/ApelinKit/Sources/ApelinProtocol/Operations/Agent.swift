@@ -151,6 +151,10 @@ public enum AgentProvider: String, Codable, Sendable {
     case workBuddy
     /// WorkBuddy AI, the international build (`workbuddy-ai`).
     case workBuddyAI
+    /// Trae, ByteDance's IDE, China build (`trae`).
+    case trae
+    /// Trae International, the international build (`trae-intl`).
+    case traeIntl
     /// Kimi For Coding, Moonshot's coding plan (`kimi-coding`).
     case kimiCoding
     /// Kimi For Coding Global, the kimi.ai coding plan (`kimi-coding-ai`).
