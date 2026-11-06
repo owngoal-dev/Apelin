@@ -219,7 +219,7 @@ public final class ToolExtensionServer: @unchecked Sendable {
 
     /// Writes bytes straight onto the wire, bypassing every check. For the
     /// tests' misbehaving extension only.
-    @objc @_spi(Testing) public dynamic func writeRawForTesting(_ data: Data) {
+    @_spi(Testing) public func writeRawForTesting(_ data: Data) {
         writer?.write(data)
     }
 
@@ -231,7 +231,7 @@ public final class ToolExtensionServer: @unchecked Sendable {
         return negotiatedVersion ?? supportedVersions.max() ?? ToolProtocol.version
     }
 
-    @objc private dynamic func handle(line: Data) {
+    private func handle(line: Data) {
         let frame: ToolFrame
         do {
             frame = try ToolFrameCodec.decode(line)
@@ -598,7 +598,7 @@ public final class ToolExtensionServer: @unchecked Sendable {
 
     /// The request ID of a line that is JSON but not a frame, so the error
     /// can name the call it answers.
-    @objc private static dynamic func salvageRequestID(_ line: Data) -> String? {
+    private static func salvageRequestID(_ line: Data) -> String? {
         guard let object = try? JSONSerialization.jsonObject(with: line) as? [String: Any],
               let id = object["requestID"] as? String, ToolFrame.isValidRequestID(id)
         else { return nil }

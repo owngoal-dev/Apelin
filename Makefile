@@ -66,6 +66,7 @@ TRANSLATIONS_CHECK := $(ROOT_DIR)/Scripts/check-translations.py
 CATALOG_KEYS_CHECK := $(ROOT_DIR)/Scripts/check-catalog-keys.py
 SHELL_DELETES_CHECK := $(ROOT_DIR)/Scripts/check-shell-deletes.py
 PERSISTED_READS_CHECK := $(ROOT_DIR)/Scripts/check-persisted-reads.py
+OBJC_DATA_CHECK := $(ROOT_DIR)/Scripts/check-objc-data.py
 SYMBOL_CHECK        := $(ROOT_DIR)/Scripts/check-symbol-availability.py
 RPATH_CHECK         := $(ROOT_DIR)/Scripts/check-rpath-dependencies.py
 # The device harness: console scripts and suites on a vphone or a device,
@@ -182,7 +183,7 @@ endif
 
 shell_word = '$(subst ','\'',$(1))'
 
-.PHONY: checklist sdk-tier all help print-version print-build-number print-deb-path set-version check format harness build _package deb deb-roothide deb-rootless deb-all deb-extensions deb-agent-tools template-archive install vphone install-app vphone-app device-status device-install device-test device-run clean
+.PHONY: checklist sdk-tier all help print-version print-build-number print-deb-path set-version check format harness build _package deb deb-roothide deb-rootless deb-all deb-extensions deb-agent-tools template-archive install vphone install-app vphone-app device-status device-install device-test device-run old-runtime clean
 
 all: deb
 
@@ -249,7 +250,7 @@ check:
 	@test -d "$(PROJECT)" || { echo "error: Apelin.xcodeproj is missing" >&2; exit 66; }
 	@for script in "$(DEB_PACKAGER)" "$(DEVICE_INSTALLER)" "$(VERSION_APPLIER)" "$(XCODEBUILD_WRAPPER)" \
 		"$(LICENSE_COLLECTOR)" "$(ACCESSIBILITY_CHECK)" "$(STALE_STRINGS_CHECK)" "$(FORMAT_STRINGS_CHECK)" "$(TRANSLATIONS_CHECK)" \
-		"$(CATALOG_KEYS_CHECK)" "$(SHELL_DELETES_CHECK)" "$(PERSISTED_READS_CHECK)" \
+		"$(CATALOG_KEYS_CHECK)" "$(SHELL_DELETES_CHECK)" "$(PERSISTED_READS_CHECK)" "$(OBJC_DATA_CHECK)" \
 		"$(SYMBOL_CHECK)" "$(RPATH_CHECK)" "$(SCHEMA_FIXTURES_CHECK)" "$(TEMPLATES_CHECK)" \
 		"$(EXTENSIONS_PACKAGER)" "$(AGENT_TOOLS_BUILDER)" "$(DEVICE_TOOL)"; do \
 		test -x "$$script" || { echo "error: $${script#$(ROOT_DIR)/} is not executable" >&2; exit 66; }; \
@@ -396,6 +397,9 @@ check:
 	@# One saved entry that does not decode never takes the others with it,
 	@# nor turns into an empty state the next save writes (issue #33).
 	@"$(PERSISTED_READS_CHECK)" "$(ROOT_DIR)"
+	@# Data through an @objc dynamic thunk stays in the autorelease pool on
+	@# older iOS: unpacking a toolchain reached 5.5 GB there, and none here.
+	@"$(OBJC_DATA_CHECK)" "$(ROOT_DIR)"
 
 # The Mac half of "where things get tested": what can run without a device.
 # RoothideRoot against libroothide's own name rule, ExecutableWatch against a
@@ -632,6 +636,11 @@ vphone-app:
 	@host=$(call shell_word,$(VPHONE_HOST)); \
 	if [[ -z "$$host" ]]; then host="$$(VPHONE=$(call shell_word,$(VPHONE)) DEVICE_HOST= "$(DEVICE_TOOL)" address)" || exit 69; fi; \
 	$(MAKE) --no-print-directory install-app FLAVOR=roothide DEVICE_HOST="$$host" DEVICE_PORT=22
+
+# What only an old Foundation shows, on Apple's iOS 15.5 runtime, unbooted.
+# The first run downloads 5.4 GB; CI runs it, so no tag ships without it.
+old-runtime:
+	@"$(ROOT_DIR)/Scripts/old-runtime/check.sh"
 
 # The device half of "where things get tested", against what is installed:
 # nothing here builds. `make vphone` (or device-install after deb-all) first.

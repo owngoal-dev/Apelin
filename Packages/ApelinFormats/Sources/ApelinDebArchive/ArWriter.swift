@@ -16,7 +16,7 @@ final class ArWriter {
     }
 
     /// A member whose bytes are known up front.
-    @objc dynamic func addMember(name: String, contents: Data) throws {
+    func addMember(name: String, contents: Data) throws {
         try sink.write(header(name: name, size: Int64(contents.count)))
         try sink.write(contents)
         try pad(Int64(contents.count))

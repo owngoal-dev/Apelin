@@ -46,7 +46,7 @@ final class ReplacementRecord {
     /// Moves `path` aside (when it is there) and remembers what it is to hold
     /// once the checkout has written the repository's copy: `bytes`, or the
     /// repository's own when nil.
-    @objc dynamic func setAside(_ path: String, in directory: URL, settled bytes: Data?) throws {
+    func setAside(_ path: String, in directory: URL, settled bytes: Data?) throws {
         let original = directory.appendingPathComponent(path)
         var metadata = stat()
         var moved: URL?

@@ -515,7 +515,7 @@ public final class ToolHostClient: @unchecked Sendable {
         processEnded()
     }
 
-    @objc private dynamic func receive(_ line: Data) {
+    private func receive(_ line: Data) {
         let frame: ToolFrame
         do {
             frame = try ToolFrameCodec.decode(line)

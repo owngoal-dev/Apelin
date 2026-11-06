@@ -88,7 +88,7 @@ public final class LineWriter: @unchecked Sendable {
         _ = fcntl(descriptor, F_SETNOSIGPIPE, 1)
     }
 
-    @objc public dynamic func write(_ data: Data) {
+    public func write(_ data: Data) {
         lock.lock()
         defer { lock.unlock() }
         data.withUnsafeBytes { raw in

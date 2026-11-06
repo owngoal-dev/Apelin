@@ -451,7 +451,7 @@ enum AgentRunCode {
 private final class CappedReader: @unchecked Sendable {
     private let done = DispatchSemaphore(value: 0)
     private let stopped = SharedFlag()
-    @objc dynamic private var data = Data()
+    private var data = Data()
     @objc dynamic private var overflow = false
     @objc dynamic private var cut = false
 
