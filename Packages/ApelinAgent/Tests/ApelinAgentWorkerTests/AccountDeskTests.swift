@@ -638,7 +638,8 @@ struct AccountDeskTests {
         let apelin = Set(AgentProvider.allCases.map(\.storeID))
         #expect(kwwk.subtracting(apelin).isEmpty, "kwwk stores \(kwwk.subtracting(apelin).sorted()) with no provider")
         #expect(apelin.subtracting(kwwk)
-            == Set([CredentialProviderID.deepSeek, TraeSite.china.id, TraeSite.international.id]))
+            == Set([CredentialProviderID.deepSeek, TraeSite.china.id, TraeSite.international.id,
+                    RaccoonSite.work.id]))
         // A store id kwwk keeps as a typed key and does not sign in to is
         // a key form here.
         let subscriptions = Set(OAuthSubscriptions.providers.map(\.id))
