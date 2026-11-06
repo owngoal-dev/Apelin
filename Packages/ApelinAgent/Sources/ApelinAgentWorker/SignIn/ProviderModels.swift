@@ -56,6 +56,9 @@ enum ProviderModels {
     }
 
     static func list(_ provider: AgentProvider, credentials: OAuthCredentials) -> [String] {
+        if provider == .raccoon {
+            return RaccoonModels.fallback
+        }
         if TraeSite(storeID: provider.storeID) != nil {
             var models = TraeModels.fallback
             if case let .string(model)? = credentials.extras[AgentSignInField.defaultModel.rawValue], !model.isEmpty {
@@ -110,6 +113,9 @@ enum ProviderModels {
     }
 
     static func fetch(_ provider: AgentProvider, credentials: OAuthCredentials) async throws -> [String] {
+        if let site = RaccoonSite(storeID: provider.storeID) {
+            return await RaccoonModels.list(site: site, credentials: credentials)
+        }
         if let site = TraeSite(storeID: provider.storeID) {
             if let live = await TraeModels.live(site: site, credentials: credentials), !live.isEmpty {
                 return live

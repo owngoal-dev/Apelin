@@ -183,6 +183,12 @@ public enum AgentProvider: String, Codable, Sendable {
     /// OpenCode Zen, opencode.ai's pay-as-you-go gateway, with an OpenCode
     /// Console key (`opencode`).
     case openCodeZen
+
+    // Apelin's own registrations.
+
+    /// Raccoon, SenseTime's application, signed in to through its portal
+    /// (`raccoon`).
+    case raccoon
 }
 
 extension AgentProvider: CaseIterable {}
