@@ -1462,6 +1462,11 @@ No problem was found, so nothing else changed. Not run: 27.2 on a real
 device, or on an A12, where as with 27.0 the C family should work without
 Clang modules and Swift is refused.
 
+CI's own packages before their tags: 0.3.8 (31) on the iOS 26.4 iPhone
+vphone, smoke and 27.0 with Swift through its recorded address; 0.3.9 (32) on
+the iOS 27.0.1 iPhone vphone, smoke, the catalog, `t6-toolchain-beside` and
+`t4-toolchain-swift`.
+
 ## Kept releases and their Swift (2026-10-21)
 
 The owner kept 27.0, 16.4, 15.3, 15.0 and 14.2 and dropped 16.2, 14.3,
