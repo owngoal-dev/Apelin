@@ -47,7 +47,7 @@ enum RaccoonOAuth {
     /// The address the page redirects to; nothing here binds it.
     static let callbackScheme = "office-raccoon"
     static let callbackHost = "auth"
-    static let callbackPath = "/callback"
+    static let callbackPath = "/auth/callback"
 
     /// The credential's extras, read back by `RaccoonCredential`.
     static let officeIdentityExtra = "officeIdentity"
@@ -67,11 +67,16 @@ enum RaccoonOAuth {
         client: HTTPClient = URLSessionHTTPClient(),
     ) async throws -> OAuthCredentials {
         let state = try randomState()
-        let listener = try callbacks.loopback("127.0.0.1", 0, callbackPath)
+        // The page accepts a loopback redirect only on a port it can name, and
+        // kwwk's listener reports the port it was built with rather than the
+        // one the kernel hands it — so the port is chosen here, above 1023 as
+        // the page requires, and the listener is given that one.
+        let port = try freePort()
+        let listener = try callbacks.loopback("127.0.0.1", port, callbackPath)
         try await listener.listen()
         defer { listener.stop() }
 
-        let page = try authorizeURL(state: state)
+        let page = try authorizeURL(state: state, redirect: listener.redirectURI)
         callbacks.onProgress("Sign in to Raccoon in the browser, then paste the address it opens.")
         let parameters = try await present(page, callbacks: callbacks) {
             try await listener.waitForCallback()
@@ -105,12 +110,19 @@ enum RaccoonOAuth {
     /// `appname` is Chinese and must be percent-encoded: built through
     /// `URLComponents` rather than a string, which encodes it and the callback
     /// address's own `://` correctly.
-    static func authorizeURL(state: String) throws -> URL {
+    static func authorizeURL(state: String, redirect: String) throws -> URL {
         var components = URLComponents(string: origin + authorizePath)
         components?.queryItems = [
             URLQueryItem(name: "login_source", value: loginSource),
             URLQueryItem(name: "appname", value: appName),
             URLQueryItem(name: "state", value: state),
+            // Without these the page navigates to `office-raccoon://auth/callback`,
+            // a scheme Safari has no handler for: the page shows the signed-in
+            // view and never leaves it, and the code is lost. Naming the
+            // loopback makes the page deliver the code over http instead, which
+            // is the shape `desktop_callback=loopback` selects.
+            URLQueryItem(name: "redirect", value: redirect),
+            URLQueryItem(name: "desktop_callback", value: "loopback"),
         ]
         guard let url = components?.url else {
             throw RaccoonOAuthError("The Raccoon sign-in address could not be built.")
@@ -201,10 +213,46 @@ enum RaccoonOAuth {
 
     // MARK: - Small helpers
 
-    /// Sixteen random bytes as thirty-two hexadecimal digits.
+    /// A port nothing is listening on, above 1023 as the page requires.
+    ///
+    /// Bound once and released: the listener takes it a moment later, and the
+    /// window between the two is the same one every browser sign-in here has.
+    static func freePort() throws -> UInt16 {
+        let socketFD = socket(AF_INET, SOCK_STREAM, 0)
+        guard socketFD >= 0 else {
+            throw RaccoonOAuthError("The Raccoon sign-in could not reserve a local port.")
+        }
+        defer { close(socketFD) }
+        var address = sockaddr_in()
+        address.sin_family = sa_family_t(AF_INET)
+        address.sin_addr.s_addr = inet_addr("127.0.0.1")
+        address.sin_port = 0
+        let bound = withUnsafePointer(to: &address) { pointer in
+            pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                bind(socketFD, $0, socklen_t(MemoryLayout<sockaddr_in>.size))
+            }
+        }
+        guard bound == 0 else {
+            throw RaccoonOAuthError("The Raccoon sign-in could not reserve a local port.")
+        }
+        var resolved = sockaddr_in()
+        var size = socklen_t(MemoryLayout<sockaddr_in>.size)
+        let named = withUnsafeMutablePointer(to: &resolved) { pointer in
+            pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                getsockname(socketFD, $0, &size)
+            }
+        }
+        guard named == 0, resolved.sin_port != 0 else {
+            throw RaccoonOAuthError("The Raccoon sign-in could not reserve a local port.")
+        }
+        return UInt16(bigEndian: resolved.sin_port)
+    }
+
+    /// Thirty-two random bytes as sixty-four hexadecimal digits: the page
+    /// accepts a loopback redirect only with a state of exactly that shape.
     static func randomState() throws -> String {
         var generator = SystemRandomNumberGenerator()
-        return (0 ..< 16).map { _ in String(format: "%02x", UInt8.random(in: 0 ... 255, using: &generator)) }.joined()
+        return (0 ..< 32).map { _ in String(format: "%02x", UInt8.random(in: 0 ... 255, using: &generator)) }.joined()
     }
 
     /// `code` is a number on this gate's envelopes; `0` is success.
