@@ -50,14 +50,7 @@ public struct ToolchainCatalog: Sendable {
                 upstreamDigestAlgorithm: source.upstreamDigestAlgorithm,
             ))
         }
-        // Newest first, a package that names no version last.
-        let unknown = CommandLineToolsSupport.unknownVersion
-        return result.sorted {
-            if ($0.version == unknown) != ($1.version == unknown) {
-                return $1.version == unknown
-            }
-            return $0.version.compare($1.version, options: .numeric) == .orderedDescending
-        }
+        return CommandLineToolsSupport.catalog(adding: result)
     }
 
     /// The version a product's English distribution names, or nil.
@@ -351,7 +344,7 @@ private final class RangeReceiver: NSObject, URLSessionDataDelegate, @unchecked 
         completionHandler(partial ? .allow : .cancel)
     }
 
-    @objc dynamic func urlSession(_: URLSession, dataTask: URLSessionDataTask, didReceive chunk: Data) {
+    func urlSession(_: URLSession, dataTask: URLSessionDataTask, didReceive chunk: Data) {
         let over = lock.withLock { () -> Bool in
             guard !overrun else { return true }
             if data.count + chunk.count > expected {

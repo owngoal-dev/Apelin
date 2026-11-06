@@ -326,3 +326,56 @@ struct SupportTests {
         #expect(kinds["/usr/lib/libSystem.B.dylib"] == 0xC)
     }
 }
+
+/// A reviewed release stays reachable when Apple's catalog stops naming it,
+/// as 27.0 did once 27.2 came out, while the file was still being served.
+struct ReviewedPackageTests {
+    private func listed(_ productID: String, _ version: String) throws -> ToolchainSource {
+        try ToolchainSource(
+            productID: productID,
+            version: version,
+            url: #require(URL(string: "https://swcdn.apple.com/catalog/\(productID)/CLTools_Executables.pkg")),
+            size: 1,
+        )
+    }
+
+    @Test func `every reviewed release knows where its package is`() throws {
+        for release in CommandLineToolsSupport.releases {
+            #expect(!release.packages.isEmpty, "\(release.version) has no package")
+            for package in release.packages {
+                let source = try #require(package.source(version: release.version))
+                #expect(source.url.scheme == "https")
+                #expect(source.url.host?.hasSuffix(".apple.com") == true)
+                #expect(source.url.path.hasSuffix("/CLTools_Executables.pkg"))
+                #expect(source.url.path.contains(package.productID))
+                #expect(source.size > 0)
+                #expect(package.sha256.count == 64)
+                #expect(package.upstreamDigest.count == 40)
+                #expect(source.upstreamDigestAlgorithm == "xar-toc-sha1")
+                #expect(release.sources[package.productID] == package.sha256)
+            }
+        }
+    }
+
+    @Test func `a release Apple stopped listing is still offered`() throws {
+        let newer = try listed("142-50405", "27.2")
+        let catalog = try CommandLineToolsSupport.catalog(adding: [listed("082-41241", "16.4"), newer])
+        #expect(catalog.map(\.version) == ["27.2", "27.0", "16.4", "15.3", "15.0", "14.2"])
+        let kept = try #require(catalog.first { $0.productID == "082-83364" })
+        #expect(kept.url.absoluteString.hasPrefix("https://swcdn.apple.com/content/downloads/58/48/082-83364-"))
+        #expect(CommandLineToolsSupport.refusal(for: kept.version, productID: kept.productID) == nil)
+        #expect(CommandLineToolsSupport.refusal(for: newer.version, productID: newer.productID) != nil)
+    }
+
+    @Test func `the catalog's own address wins`() throws {
+        let moved = try listed("082-83364", "27.0")
+        let catalog = CommandLineToolsSupport.catalog(adding: [moved])
+        #expect(catalog.count(where: { $0.productID == moved.productID }) == 1)
+        #expect(catalog.first { $0.productID == moved.productID } == moved)
+    }
+
+    @Test func `a package that names no version sorts last`() throws {
+        let unknown = try listed("001-00000", CommandLineToolsSupport.unknownVersion)
+        #expect(CommandLineToolsSupport.catalog(adding: [unknown]).last == unknown)
+    }
+}
