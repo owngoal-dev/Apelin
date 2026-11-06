@@ -1465,7 +1465,10 @@ Clang modules and Swift is refused.
 CI's own packages before their tags: 0.3.8 (31) on the iOS 26.4 iPhone
 vphone, smoke and 27.0 with Swift through its recorded address; 0.3.9 (32) on
 the iOS 27.0.1 iPhone vphone, smoke, the catalog, `t6-toolchain-beside` and
-`t4-toolchain-swift`.
+`t4-toolchain-swift`; 0.4.0 (33, kwwk 0.1.112) on the iOS 26.4 iPhone vphone,
+smoke, the catalog and a real agent turn that called shell_run. A conversation
+holding a tool call with no name has not run on a device; kwwk's own tests
+cover it.
 
 ## Kept releases and their Swift (2026-10-21)
 
