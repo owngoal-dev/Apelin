@@ -135,6 +135,21 @@ Each was fixed with a test before the results above.
    `toolchainRemove` refused them forever ("no longer installed"), since
    the folder still existed. A tree with no regular file left now counts
    as gone in both (`ToolchainService.exists`), so the record is dropped.
+10. Users reported that 0.3.6 and 0.3.7 could not unpack a toolchain, and no
+    vphone showed it: on the iOS 26.4 iPhone and iPad vphones 0.3.6 and 0.3.7
+    set up 16.4, 15.3, 15.0 and 14.2 from the console and from the Settings
+    page, a fresh iPad included, and a worker paused for 100 s while it
+    unpacked went on. The reader's `Data` crossing `@objc dynamic` thunks stays
+    in the autorelease pool on an older Foundation: 2.4 GB for CLT 27.0 and
+    5.5 GB for 16.4 on the iOS 15.5 runtime, 102 and 104 MB with the members
+    plain, and nothing on the iOS 26.4 vphone (AGENTS.md ▸ Gotchas;
+    `make old-runtime`). The same day Apple's catalog turned out to have
+    dropped 27.0 for 27.2, which left 16.4, the largest package, at the top
+    of the list; reviewed releases now keep their own address. Build 280 of
+    that fix, roothide: smoke and a whole 27.0 setup with Swift, through the
+    recorded address, on the iOS 26.4 and 27.0.1 iPhone vphones and the iOS
+    26.4 iPad vphone; `t6-toolchain-beside` on both iPhones; and the first
+    setup of a device with no toolchain or SDK on the iPad, which picked 27.0.
 
 ## The image list is never read: three kernel panics
 
@@ -183,6 +198,13 @@ console now goes on after a restart only past a successful respring.
 
 ## Still to run on the owner's devices
 
+- [ ] A toolchain unpacked on a real device (2026-11-06, Bugs ▸ 10). The fix
+      was measured on the iOS 15.5 runtime and run on iOS 26 and 27 vphones;
+      no iOS 16, 17 or 18 Foundation has run it, and which of them holds the
+      bytes is not known. On the iPhone 15 Pro on iOS 17.3.1, or better an
+      iOS 16 device: Settings ▸ Toolchains ▸ From Apple… ▸ 16.4, the largest
+      package, reaches Toolchain Ready, and the staging folder holds no
+      leftover `extracted`.
 - [ ] roothide Bootstrap (2026-11-04, issue #35, AGENTS.md ▸ Toolchains;
       the Mac harness ran, and a roothide vphone with Bootstrap's mark
       written into its root by hand, which runs ad hoc code, showed the

@@ -18,16 +18,19 @@ every day and files an issue with what it prints.
 
 Usage: check-apple-catalog.py <repository root>
 
-Exit 0 when nothing needs doing, 1 when it printed something that does, 2 when
-Apple could not be read.
+Exit 0 when nothing needs doing, 65 when it printed something that does, 2
+when Apple could not be read; anything else is this script failing, which the
+workflow does not file.
 """
 
+import http.client
 import plistlib
 import re
 import sys
 import time
 import urllib.error
 import urllib.request
+import xml.parsers.expat
 
 CATALOG = (
     "https://swscan.apple.com/content/catalogs/others/index-27-26-15-14-13-12-10.16-10.15-10.14-10.13-10.12-10.11"
@@ -38,6 +41,9 @@ VERSION = re.compile(r'(?:Command Line Tools (?:for Xcode )?|"SU_VERS"\s*=\s*")(
 PACKAGE = re.compile(
     r'productID: "(?P<id>[^"]+)",\s*sha256: "[0-9a-f]{64}",\s*url: "(?P<url>[^"]+)",\s*size: (?P<size>[\d_]+),',
 )
+
+
+UNREACHABLE = (urllib.error.URLError, http.client.HTTPException, OSError)
 
 
 def fetch(url, headers=None):
@@ -52,8 +58,8 @@ def served_size(url):
         try:
             with fetch(url, {"Range": "bytes=0-0"}) as reply:
                 return int(reply.headers["Content-Range"].rsplit("/", 1)[1])
-        except urllib.error.URLError:
-            if attempt == 2:
+        except urllib.error.HTTPError as error:
+            if attempt == 2 or error.code not in (403, 404):
                 raise
             time.sleep(10)
 
@@ -103,7 +109,7 @@ def main():
     known = refused(text)
     try:
         products = listed()
-    except (urllib.error.URLError, TimeoutError, plistlib.InvalidFileException) as error:
+    except UNREACHABLE + (plistlib.InvalidFileException, xml.parsers.expat.ExpatError) as error:
         print(f"error: Apple's catalog could not be read: {error}", file=sys.stderr)
         return 2
 
@@ -111,9 +117,15 @@ def main():
     for product, (version, address, size) in sorted(packages.items()):
         try:
             length = served_size(address)
-        except urllib.error.URLError as error:
+        except urllib.error.HTTPError as error:
+            if error.code not in (403, 404):
+                print(f"error: {version} could not be read: {error}", file=sys.stderr)
+                return 2
             gone.append(f"- {version} (`{product}`): {error}")
             continue
+        except UNREACHABLE as error:
+            print(f"error: {version} could not be read: {error}", file=sys.stderr)
+            return 2
         if length != size:
             moved.append(f"- {version} (`{product}`): {length} bytes, reviewed at {size}")
     unreviewed = [
@@ -135,7 +147,7 @@ def main():
             print(f"{title}\n\n" + "\n".join(lines) + "\n")
     if needed and unlisted:
         print("Reviewed releases Apple no longer lists, offered from their recorded address:\n\n" + "\n".join(unlisted) + "\n")
-    return 1 if needed else 0
+    return 65 if needed else 0
 
 
 if __name__ == "__main__":

@@ -35,11 +35,11 @@ jobs:
           cat report.md
           echo "status=$status" >> "$GITHUB_OUTPUT"
           # Apple being out of reach is no finding, and a program error is
-          # not one to file: only 1 goes on to the issue.
-          [[ $status -eq 0 || $status -eq 1 ]]
+          # not one to file: only 65 goes on to the issue.
+          [[ $status -eq 0 || $status -eq 65 ]]
 
       - name: File what needs doing
-        if: steps.catalog.outputs.status == '1'
+        if: steps.catalog.outputs.status == '65'
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}

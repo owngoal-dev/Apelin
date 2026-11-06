@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail on an `@objc dynamic` member with `Data` in its signature.
+"""Fail on a `dynamic` member with `Data` in its signature.
 
 Swift then calls the member through `objc_msgSend`, and `Data` crosses as an
 `NSData` both ways. On an older iOS the Foundation the system ships turns it
@@ -10,9 +10,8 @@ vphone and no Mac shows it.
 
 0.3.6 made the toolchain reader `@objc dynamic`: on the iOS 15.5 runtime
 extracting Command Line Tools 16.4 went from a 104 MB peak to 5.5 GB, and
-apelin-environment was killed while it unpacked on users' devices. Of the
-types Swift bridges only `Data` does this; `Scripts/check-old-runtime.sh`
-measures it.
+users' devices could no longer unpack a toolchain. Of the types Swift bridges
+only `Data` does this; `make old-runtime` measures it.
 
 Leave such a member plain, whatever `AGENTS.md`'s rule on hooks says for the
 others. Nothing passes this check by a comment.
@@ -28,23 +27,24 @@ import sys
 
 SKIP_DIRS = {".git", ".build", ".swiftpm", "build", "DerivedData", "node_modules", ".claude", "Vendor"}
 SKIP_PATHS = ("Packages/Runestone/",)
-SOURCE_ROOTS = ("Apelin", "Apelind", "Workers", "Shared", "Widgets", "Packages")
+SOURCE_ROOTS = ("Apelin", "Apelind", "Workers", "Shared", "Widgets", "Packages", "Extensions")
 
-OBJC = re.compile(r"@objc\b(?:\([^)]*\))?")
+DYNAMIC = re.compile(r"\bdynamic\b")
 DATA = re.compile(r"\bData\b")
 KEYWORD = re.compile(r"\b(?:func|var|subscript)\b")
 
 
 def code_only(text):
     """The file with its strings emptied and its comments blanked, line for line."""
+    text = re.sub(r'""".*?"""', lambda match: "\n" * match.group().count("\n"), text, flags=re.S)
     text = re.sub(r'"(?:[^"\\\n]|\\.)*"', '""', text)
     text = re.sub(r"/\*.*?\*/", lambda match: "\n" * match.group().count("\n"), text, flags=re.S)
     return re.sub(r"//[^\n]*", "", text)
 
 
 def declaration(text, start):
-    """The text of the declaration whose attribute begins at `start`, as far as
-    its body: a function's signature, a property's type and initial value."""
+    """The text of the declaration `start` is inside, as far as its body: a
+    function's signature, a property's type and initial value."""
     depth = 0
     is_property = None
     index = start
@@ -70,12 +70,9 @@ def check(path, relative):
     with open(path, encoding="utf-8") as handle:
         text = code_only(handle.read())
     problems = []
-    for match in OBJC.finditer(text):
+    for match in DYNAMIC.finditer(text):
         found = declaration(text, match.start())
-        keyword = KEYWORD.search(found)
-        if keyword is None or "dynamic" not in found[: keyword.start()].split():
-            continue
-        if DATA.search(found):
+        if KEYWORD.search(found) and DATA.search(found):
             line = text.count("\n", 0, match.start()) + 1
             problems.append(f"{relative}:{line}: {' '.join(found.split())[:120]}")
     return problems
@@ -99,7 +96,7 @@ def main():
                     continue
                 problems += check(path, relative)
     if problems:
-        print("error: Data in an @objc dynamic signature, which holds the bytes in the", file=sys.stderr)
+        print("error: Data in a dynamic member's signature, which holds the bytes in the", file=sys.stderr)
         print("error: autorelease pool on older iOS; leave these plain (AGENTS.md):", file=sys.stderr)
         for problem in problems:
             print(f"  {problem}", file=sys.stderr)

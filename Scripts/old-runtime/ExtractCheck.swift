@@ -1,7 +1,7 @@
 // The real extractor over a real Apple package, on a thread with no pool that
 // drains, as apelin-environment runs it, with its peak footprint measured.
 // 0.3.6 and 0.3.7 reached 2.4 GB here on Command Line Tools 27.0 and 5.5 GB on
-// 16.4, more than any iPhone gives a process, and 100 MB on iOS 26.
+// 16.4, more than an iPhone gives a process; it belongs near 100 MB.
 import Darwin
 import Foundation
 

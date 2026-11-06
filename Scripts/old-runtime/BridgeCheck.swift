@@ -27,6 +27,8 @@ final class Calls: NSObject {
     let time = Date()
     let id = UUID()
     let bytes = Data(repeating: 1, count: 1024)
+    let octets = [UInt8](repeating: 1, count: 16)
+    let reference = NSData(bytes: [1, 2, 3, 4] as [UInt8], length: 4)
 
     @objc dynamic func returnsData() -> Data { Data([1, 2, 3, 4]) }
     @objc dynamic func returnsURL() -> URL { url }
@@ -36,9 +38,17 @@ final class Calls: NSObject {
     @objc dynamic func returnsArray() -> [String] { list }
     @objc dynamic func returnsDate() -> Date { time }
     @objc dynamic func returnsUUID() -> UUID { id }
+    @objc dynamic func returnsBytes() -> [UInt8] { octets }
+    @objc dynamic func returnsNSData() -> NSData { reference }
     @objc dynamic func takes(data: Data) -> Int { data.count }
     @objc dynamic func takes(url: URL) -> Int { url.path.utf8.count }
     @objc dynamic func takes(string: String) -> Int { string.utf8.count }
+    @objc dynamic func takes(bytes: [UInt8]) -> Int { bytes.count }
+    @objc dynamic func takes(table: [String: String]) -> Int { table.count }
+    @objc dynamic func takes(names: Set<String>) -> Int { names.count }
+    @objc dynamic func takes(list: [String]) -> Int { list.count }
+    @objc dynamic func takes(time: Date) -> Int { Int(time.timeIntervalSince1970) }
+    @objc dynamic func takes(id: UUID) -> Int { id.uuid.0 == 0 ? 0 : 1 }
 }
 
 let iterations = 400_000
@@ -68,8 +78,16 @@ Task.detached {
         ("Array returned", { calls.returnsArray().count }),
         ("Date returned", { Int(calls.returnsDate().timeIntervalSince1970) }),
         ("UUID returned", { calls.returnsUUID().uuid.0 == 0 ? 0 : 1 }),
+        ("[UInt8] returned", { calls.returnsBytes().count }),
+        ("NSData returned", { calls.returnsNSData().length }),
         ("URL argument", { calls.takes(url: calls.url) }),
         ("String argument", { calls.takes(string: calls.text) }),
+        ("[UInt8] argument", { calls.takes(bytes: calls.octets) }),
+        ("Dictionary argument", { calls.takes(table: calls.table) }),
+        ("Set argument", { calls.takes(names: calls.names) }),
+        ("Array argument", { calls.takes(list: calls.list) }),
+        ("Date argument", { calls.takes(time: calls.time) }),
+        ("UUID argument", { calls.takes(id: calls.id) }),
     ]
     for (name, body) in control {
         let left = bytesLeft(body)

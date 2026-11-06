@@ -21,7 +21,12 @@ sources=$repository/Packages/ApelinToolchain/Sources
 build=$(mktemp -d "${TMPDIR:-/tmp}/apelin-old-runtime.XXXXXX")
 home=$build/home
 mount=$build/image
-trap 'hdiutil detach -quiet "$mount" 2>/dev/null || true; rm -rf -- "${build:?}"' EXIT
+cleanup() {
+  hdiutil detach -quiet "$mount" 2>/dev/null || true
+  rm -rf -- "${build:?}"
+}
+trap cleanup EXIT
+trap 'exit 130' INT TERM
 mkdir -p "$cache" "$home/tmp" "$home/logs"
 
 if [[ ! -e $runtime/usr/lib/dyld_sim ]]; then
@@ -30,17 +35,18 @@ if [[ ! -e $runtime/usr/lib/dyld_sim ]]; then
   curl -fsSL --retry 3 -o "$cache/runtime.dmg" "$image"
   hdiutil attach -quiet -nobrowse -readonly -mountpoint "$mount" "$cache/runtime.dmg"
   python3 -I "$here/runtime-root.py" "$mount"/*.pkg "$runtime.partial"
-  hdiutil detach -quiet "$mount"
   mv "$runtime.partial" "$runtime"
+  hdiutil detach -quiet "$mount" || true
   rm -f -- "${cache:?}/runtime.dmg"
 fi
 
 # The newest reviewed package, the smallest of them to unpack.
 address=$(sed -n 's/.*url: "\(https:[^"]*\)".*/\1/p' "$sources/ApelinToolchain/Support.swift" | head -1)
-if [[ ! -s $cache/package.pkg ]]; then
+package=$cache/${${address:h:h:t}%%-A_*}.pkg
+if [[ ! -s $package ]]; then
   print "Fetching $address"
-  curl -fsSL --retry 3 -o "$cache/package.part" "$address"
-  mv "$cache/package.part" "$cache/package.pkg"
+  curl -fsSL --retry 3 -o "$package.part" "$address"
+  mv "$package.part" "$package"
 fi
 
 sdk=$(xcrun --sdk iphonesimulator --show-sdk-path)
@@ -70,5 +76,5 @@ simulated=(
   SIMULATOR_DEVICE_NAME=check HOME="$home" CFFIXED_USER_HOME="$home" TMPDIR="$home/tmp"
 )
 env "${simulated[@]}" "$build/bridge-check"
-env "${simulated[@]}" "$build/extract-check" "$cache/package.pkg" "$build/extracted"
+env "${simulated[@]}" "$build/extract-check" "$package" "$build/extracted"
 print "The old runtime passed."
