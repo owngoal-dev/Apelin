@@ -126,6 +126,31 @@
         "apple-a13": {}
       },
       "version": "27.0"
+    },
+    "142-50405": {
+      "baseLibcxxSymbols": [
+        "_ZNSt3__122__libcpp_verbose_abortEPKcz"
+      ],
+      "hostImages": 51,
+      "instructionWords": 58968683,
+      "selectedFeatureInstructions": {
+        "DotProd:sdot": 5,
+        "DotProd:udot": 4729,
+        "LRCPC:ldapr": 3986,
+        "LRCPC:ldaprb": 7896,
+        "SHA3:eor3": 97
+      },
+      "sourceSHA256": "fd76ca5e74717a4640c38422199216a1b6c60f7bf740c19254afdf793d3f4a47",
+      "unclassifiedWords": 0,
+      "unsupportedInstructions": {
+        "apple-a12": {
+          "eor3": 97,
+          "sdot": 5,
+          "udot": 4729
+        },
+        "apple-a13": {}
+      },
+      "version": "27.2"
     }
   },
   "schemaVersion": 1,

@@ -203,7 +203,7 @@ public enum CommandLineToolsSupport {
     /// the running iOS. From iOS 26 the numbering is shared (macOS 26.x is
     /// iOS 26.x), and every macOS version before 26 is older than any iOS 26
     /// on both scales, so the answer is the same for every argument on an
-    /// iOS 26 or later host. Only CLT 27.0 uses this rename.
+    /// iOS 26 or later host. Only CLT 27.0 and 27.2 use this rename.
     public static let swiftImportRenames: [String: String] = [
         "_$ss042_stdlib_isOSVersionAtLeastOrVariantVersiondE0yBi1_Bw_BwBwBwBwBwtF":
             "_$ss26_stdlib_isOSVersionAtLeastyBi1_Bw_BwBwtF",
@@ -212,6 +212,30 @@ public enum CommandLineToolsSupport {
     /// The reviewed releases, newest first.
     /// See `Documents/Research/2026-10-17-Toolchain-Retarget.md` ▸ Other releases.
     public static let releases: [CommandLineToolsRelease] = [
+        .init(
+            version: "27.2",
+            newestSDK: "27",
+            swift: .init(
+                version: "6.4.2",
+                minimumHost: "26.0",
+                cpuFeatures: ["FEAT_LRCPC", "FEAT_SHA3", "FEAT_DotProd"],
+                minimumHostBasis: "runtime-semantics",
+                verifiedHosts: ["26.4", "27.0.1"],
+            ),
+            swiftImportRenames: swiftImportRenames,
+            recommendedSDK: "27.0",
+            verifiedSDKs: ["26.4", "27.0", "27.1"],
+            verifiedSwiftSDKs: ["27.0", "27.1"],
+            packages: [.init(
+                productID: "142-50405",
+                sha256: "fd76ca5e74717a4640c38422199216a1b6c60f7bf740c19254afdf793d3f4a47",
+                url: "https://swcdn.apple.com/content/downloads/53/49/142-50405-A_WOBLDDXP4W/wk3d2yw94ir1jieuddcu9b9tffxrb09bq8/CLTools_Executables.pkg",
+                size: 351_228_115,
+                upstreamDigest: "3c54411a49b25492e548c7778deaf32846ebac47",
+            )],
+            staticInstructionFeatures: ["FEAT_LRCPC", "FEAT_SHA3", "FEAT_DotProd"],
+            requiredLibcxxSymbols: ["_ZNSt3__122__libcpp_verbose_abortEPKcz"],
+        ),
         .init(
             version: "27.0",
             newestSDK: "27",

@@ -1005,8 +1005,8 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   the package over twice; a task that ended without installing, or is gone,
   is submitted afresh.
   Setup takes the CLT releases `CommandLineToolsSupport.releases` lists —
-  27.0, 16.4, 15.3, 15.0 and 14.2 (owner, 2026-10-21; each set up and
-  self-tested on a device) — and refuses any other, before downloading,
+  27.2, 27.0, 16.4, 15.3, 15.0 and 14.2 (owner, 2026-10-21, 27.2 on
+  2026-11-06; each set up and self-tested on a device) — and refuses any other, before downloading,
   with the catalog's `unsupportedReason`: 12.4 for its arm64e C++, and
   16.2, 14.3, 13.4, 13.2 and 12.5, which passed but were dropped, as
   releases Apelin no longer sets up. `toolchainCatalog` lists only the kept
@@ -1053,8 +1053,8 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   iOS 17.3.1+, LRCPC), 15.0 (Swift 5.9) and 15.3 (Swift 5.10), both iOS
   17.3.1+ and LRCPC — swift-frontend's two SHA3 sites, BLAKE3 hash_many and
   the symbol-graph edge set, are off Apelin's build path, and an A12Z ran
-  every Swift case of both —, and 27.0 (Swift 6.4, iOS 26+,
-  LRCPC/SHA3/DotProd). 16.4 ships Swift 6.1.2 and does not offer it
+  every Swift case of both —, and 27.0 and 27.2 (Swift 6.4 and 6.4.2, iOS
+  26+, LRCPC/SHA3/DotProd). 16.4 ships Swift 6.1.2 and does not offer it
   (`swiftUnavailable`): its swift-driver imports macOS's zippered
   availability check, which no iOS runtime exports (dyld stops it on iOS
   17.3.1 and iPadOS 26.0.1), the 27.0 rename is right only from iOS 26,
@@ -1081,15 +1081,16 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   `ReleaseCompatibility` turns that table into the `compatibility` snapshot
   returned in `toolchainCatalog`, stored in the toolchain manifest and
   `ToolchainRecord`, and read by the build worker. Older records still decode.
-  CLT 16.4 and 27.0 also record their required C++ runtime symbol,
+  CLT 16.4, 27.0 and 27.2 also record their required C++ runtime symbol,
   `std::__1::__libcpp_verbose_abort`. Catalog, setup and project checks look
   for the symbol in the fixed system C++ library before any tool is run,
   rather than guessing an OS floor from SDK versions.
   SDK imports do not consult it: a valid SDK may be stored without a compatible
   toolchain. Setup prefers the recommended SDK when available, then falls back
   to the newest compatible one. Legacy Swift's 17.3.1 bound is explicitly a
-  verified-host policy, not an instruction-set requirement; CLT 27.0's 26.0
-  bound follows the semantics of its retargeted OS-version query. CPU features
+  verified-host policy, not an instruction-set requirement; the 26.0 bound of
+  CLT 27.0 and 27.2 follows the semantics of their retargeted OS-version
+  query. CPU features
   are evaluated independently. `cpuProfiles` covers A9/A9X and A10/A10X iPads,
   A11 iPhones, A12/A12X/A12Z, A13 and later, and M-series iPads, for explanation
   only; the kernel's feature flags remain the decision source. Static inventory

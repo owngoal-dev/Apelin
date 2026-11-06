@@ -139,7 +139,7 @@
       "before": [{"removeProject": "T4 Swift App"}],
       "after": [{"removeProject": "T4 Swift App"}],
       "timeout": 3600,
-      "manual": "sets up a second 27.0 toolchain, with Swift, beside the registered one (about 480 MB installed); remove it with toolchainRemove afterwards"
+      "manual": "sets up 27.2, with Swift, beside the registered toolchain (about 480 MB installed); remove it with toolchainRemove afterwards"
     },
     "t6-toolchain-beside": {
       "needs": ["installed-toolchain", "package:wiki.qaq.irisin>=4.7.3"],
