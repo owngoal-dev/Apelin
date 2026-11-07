@@ -78,7 +78,14 @@ final class PasteableLoopback: OAuthLoopbackListener, @unchecked Sendable {
                 parameters[item.name] = value
             }
         }
-        guard parameters["code"]?.isEmpty == false || parameters["error"]?.isEmpty == false else {
+        // A redirect carries one of these: the authorization code every
+        // kwwk flow takes, a provider error, or the two shapes Trae CN's page
+        // answers with (`authCodeInfo`, and its non-PKCE branch's
+        // `refreshToken`).
+        let carriesPayload = ["code", "error", "authCodeInfo", "refreshToken"].contains {
+            parameters[$0]?.isEmpty == false
+        }
+        guard carriesPayload else {
             throw ApelinError(
                 .badRequest,
                 "This address does not contain a sign-in code. Copy the full address from Safari and paste it again.",

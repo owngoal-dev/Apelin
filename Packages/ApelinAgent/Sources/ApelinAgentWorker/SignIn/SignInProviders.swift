@@ -14,7 +14,7 @@ public extension AgentProvider {
     static let signInOrder: [AgentProvider] = {
         let order: [AgentProvider] = [
             .openAICodex, .anthropicOAuth, .githubCopilot, .cursor, .antigravity,
-            .workBuddyAI, .workBuddy, .kimiCoding, .kimiCodingGlobal, .xai, .openRouter,
+            .workBuddyAI, .workBuddy, .trae, .traeIntl, .raccoon, .kimiCoding, .kimiCodingGlobal, .xai, .openRouter,
             .zai, .zaiCodingCN, .qoder, .qoderCN, .kiro, .devin,
             .openAI, .deepSeek, .openCodeGo, .openCodeZen, .google, .anthropic, .openAICompatible,
         ]
@@ -37,6 +37,9 @@ public extension AgentProvider {
         case .qoderCN: QoderSite.cn.id
         case .workBuddy: WorkBuddySite.china.id
         case .workBuddyAI: WorkBuddySite.international.id
+        case .trae: TraeSite.china.id
+        case .traeIntl: TraeSite.international.id
+        case .raccoon: "raccoon"
         case .kimiCoding: KimiSite.china.id
         case .kimiCodingGlobal: KimiSite.global.id
         case .xai: "xai"
@@ -59,7 +62,7 @@ public extension AgentProvider {
         case .githubCopilot, .kimiCoding, .kimiCodingGlobal, .xai:
             .deviceCode
         case .anthropicOAuth, .openAICodex, .cursor, .devin, .kiro, .antigravity, .qoder, .qoderCN, .workBuddy,
-             .workBuddyAI, .zai, .zaiCodingCN, .openRouter:
+             .workBuddyAI, .zai, .zaiCodingCN, .openRouter, .trae, .traeIntl, .raccoon:
             .browser
         case .anthropic, .openAICompatible, .openAI, .google, .deepSeek, .openCodeGo, .openCodeZen:
             .apiKey
@@ -172,7 +175,23 @@ public typealias SignInLogin = @Sendable (
 public enum KWWKSignIn {
     /// OAuth login is independent of which models the user enables afterward.
     public static let login: SignInLogin = { provider, callbacks, options in
-        try await OAuthSubscriptions.login(
+        // Trae's two builds are Apelin's own flow: kwwk has no login for
+        // either, and their loopback answers an `authCodeInfo` redirect
+        // rather than the `code=` shape kwwk's listener waits for. They
+        // differ in where the page is and which gate exchanges the code, so
+        // each one's values are its `Profile`.
+        // Raccoon is Apelin's own flow too: kwwk has no login for it, and its
+        // page redirects to a custom scheme rather than to a loopback.
+        if provider == .raccoon {
+            return try await RaccoonOAuth.login(callbacks: callbacks)
+        }
+        if let site = TraeSite(storeID: provider.storeID) {
+            return try await TraeOAuth.login(
+                profile: TraeOAuth.Profile.of(site),
+                callbacks: callbacks,
+            )
+        }
+        return try await OAuthSubscriptions.login(
             providerId: provider.storeID,
             callbacks: callbacks,
             kimiIdentity: options.kimiIdentity,
