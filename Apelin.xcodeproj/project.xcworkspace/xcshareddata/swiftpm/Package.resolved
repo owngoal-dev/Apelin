@@ -1,5 +1,5 @@
 {
-  "originHash" : "6746af138cd925033723efd9f74bf634ed3d6e2f077d9aec0ec4ee4208a81177",
+  "originHash" : "53501695ab0bada6c08533683df6594269dd3cc603488c3e21ec5314f96ea503",
   "pins" : [
     {
       "identity" : "alertcontroller",
@@ -104,8 +104,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/Lakr233/ListViewKit",
       "state" : {
-        "revision" : "2d9273cd108a4c5a1d9fd227bfb5916f551bb0cc",
-        "version" : "4.6.0"
+        "revision" : "decb380cd0c243a73005880eb8cb557a596bdd79",
+        "version" : "4.6.1"
       }
     },
     {
