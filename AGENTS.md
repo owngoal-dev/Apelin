@@ -2313,10 +2313,12 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   and that a wake comes first. A wake runs on either and answers what it
   left (`locked`, `screenOff`): a device without a passcode is past its
   lock screen, one with a passcode stays on it for the user to unlock.
-  Nothing in Apelin asks for, keeps or types a passcode: not icli 0.11.0's
-  `unlockDevice`, nor its `device passcode`, which the `apelin-icli` skill
-  tells the agent never to run. IcliKit 0.9.0 already has the press and the
-  wake, with the same iOS code as 0.11.0, so the pin stays. An agent's
+  Nothing in Apelin asks for, keeps or types a passcode: not icli's
+  `unlockDevice` (0.11.0 and later), nor its `device passcode`, which the
+  `apelin-icli` skill tells the agent never to run. The pinned IcliKit 1.0.0
+  has the press and the wake with the same iOS code as 0.9.0; it carries
+  `unlockDevice` too, never called, so apelin-diagnostics has no
+  `com.apple.keystore.device`. An agent's
   action never reaches Apelin itself (`AgentUIActionRules`): the host sets
   its `refusedBundleIDs` to `wiki.qaq.apelin`, whatever the agent sent, and
   apelin-diagnostics answers `denied` for a target on that list, before
