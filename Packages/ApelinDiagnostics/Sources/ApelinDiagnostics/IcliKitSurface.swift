@@ -137,7 +137,7 @@
             }
         }
 
-        /// What icli 0.9.0's `waitForElement` throws when its time runs out.
+        /// What icli's `waitForElement` throws when its time runs out (0.9.0 to 1.0.0).
         private static let elementWaitTimedOut = "element wait timed out"
 
         public func swipe(x1: Double, y1: Double, x2: Double, y2: Double, seconds: Double) throws -> [String: Any] {
