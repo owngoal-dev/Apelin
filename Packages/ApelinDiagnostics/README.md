@@ -172,7 +172,7 @@ rather than claim it is complete.
 
 ## icli
 
-Pinned `exact: "1.0.0"`. 0.9.1 through 1.0.0 added calls Apelin does not
+Depends on `from: "1.0.0"`; `Package.resolved` records 1.0.0. 0.9.1 through 1.0.0 added calls Apelin does not
 make (`kickstartService`, the `pointer` calls, the probe, `unlockDevice`,
 `withInterfaceGeometry`) and left the ones it makes as they were on iOS.
 Gaps found and filled in icli 0.9.0:
