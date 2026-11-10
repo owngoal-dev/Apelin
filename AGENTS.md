@@ -2315,7 +2315,7 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   lock screen, one with a passcode stays on it for the user to unlock.
   Nothing in Apelin asks for, keeps or types a passcode: not icli's
   `unlockDevice` (0.11.0 and later), nor its `device passcode`, which the
-  `apelin-icli` skill tells the agent never to run. The pinned IcliKit 1.0.0
+  `apelin-icli` skill tells the agent never to run. IcliKit 1.0.0
   has the press and the wake with the same iOS code as 0.9.0; it carries
   `unlockDevice` too, never called, so apelin-diagnostics has no
   `com.apple.keystore.device`. An agent's
