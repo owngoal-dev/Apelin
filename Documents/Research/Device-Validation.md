@@ -2932,3 +2932,68 @@ The release commit `108ba4d` built on the Mac (roothide, build 274), over
 
 No Google account has signed in: the Antigravity entry under Still to run
 stands.
+
+## A sign-in link, an install Irisin lost and kwwk 0.1.117 (2026-11-11, 0.4.1)
+
+The branch built on the Mac (roothide), over 0.4.0 on the iOS 26.4 iPhone
+vphone and over 0.3.8 on the iOS 26.4 iPad vphone: builds 295 and 297
+while the page was looked at, then build 298 of `d578e69`, which differs
+from 297 by one line that drew nothing. Both vphones were driven from
+their hosts, which have no Python and, one of them, no `sshpass`. This
+round `Scripts/device.py` itself ran there, with a standalone Python
+beside it, a stand-in for `sshpass` that answers through ssh's askpass
+hook, and one for `vphone-launchpad-cli` that answers its three calls from
+the machine's socket, so every script had its setup, checks and cleanup.
+
+- Issue #49, on both, builds 297 and 298: Settings ▸ Model Providers ▸
+  Claude Code shows Sign-In Link with `claude.ai` under it, the line about
+  another device and the redirect, and Paste Redirect Address: while it
+  waits with the bar's spinner, behind the system's sign-in prompt, and
+  with Continue once the prompt is declined. A tap on the plate put the
+  whole `https://claude.ai/oauth/authorize?…` address on the guest's
+  clipboard, said Link Copied and showed the tick. With the clipboard
+  empty, Paste Redirect Address said Nothing to Paste; with an address
+  that is no redirect on it, after iOS's own "would like to paste" prompt,
+  Address Not Accepted, and the page went on waiting with Continue. An
+  address with a code and the wrong state was taken and ended the sign-in
+  "Sign-In Failed, OAuth invalid response: anthropic OAuth state mismatch",
+  with Try Again. GitHub Copilot's page shows its code, then the plate
+  with `github.com` and "enter the code there", and no paste button. Dark
+  appearance on both, and the accessibility text size L on the iPhone: the
+  plate, the line and the buttons grow with the text, the page scrolls to
+  Continue, and Paste Redirect Address wraps to two lines.
+  Not run: iOS 16, which no vphone has, so that claude.ai refuses its
+  WebKit is the reporter's word; a sign-in finished from another device,
+  for want of a Claude account; and a page that returns to this device and
+  takes no pasted address (Kiro), which only `SignInElsewhereCheck` covers.
+- Issue #45's evidence, on both (Irisin 5.1.7 on the iPhone, 5.1.6 on the
+  iPad): the fixture package installed three times running with
+  `irisin-cli install --yes`, the second and third the version already
+  installed. `var/lib/dpkg/info/<package>.list` was a new file each time,
+  another inode with that install's time, so a list written since the
+  installation was recorded does say this install went through. The lost
+  transaction itself was not reproduced on a device: irisind called every
+  install here a success, `i3-chain`'s among them, and only the session
+  host's tests, against a fake irisind, take the new path.
+- kwwk 0.1.117: a message to the iPhone's OpenAI-compatible sign-in
+  (deepseek-v4-pro) was answered, on builds 297 and 298. No Claude,
+  Antigravity, Kiro or OpenRouter account is signed in on a vphone, so the
+  new catalog entries, the Claude Code client version, Kiro's region check
+  and OpenRouter's billed cost did not run.
+- The smoke suite (build 295): all seven on the iPhone. On the iPad `files`
+  was skipped (no tweak extension, toolchain or SDK), and `diagnostics`
+  failed once, its UI tree read right after the wake answering "AX element
+  query failed (-25215)", and passed when run again.
+- The regression suite, with the same result on builds 295, 297 and 298.
+  iPhone: 24 passed, `i3-chain` and `accounts` among them;
+  `t1-toolchain-setup` and `r2-resume-toolchain` were skipped (a toolchain
+  is registered) and `transfer-project` too (its project is the one
+  `i3-chain`'s cleanup removes); `t2-toolchain-remove` failed, refused
+  with `conflict` because the vphone's one registered toolchain is bound
+  by the projects earlier rounds left there. iPad: 12 passed and 15 were
+  skipped for want of an SDK, a toolchain or the extensions;
+  `i2-git-commit` failed at its one-commit squash preview, which answered
+  `badRequest`, "Set an author name and email in Settings ▸ Git", where
+  the script expects `conflict`. That vphone has no git author: with one
+  set the script passed, and the author was cleared again. The script
+  assumes an author its entry in `device-harness.json` does not ask for.

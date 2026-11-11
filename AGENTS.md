@@ -2235,11 +2235,28 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   1455, Devin's `127.0.0.1:59653`, OpenRouter's port 53693, Antigravity's
   `http://localhost:51121/oauth-callback`): kwwk's NIO listener in
   the worker, through kwwk's `loopback` seam (`PasteableLoopback`), answers
-  Safari on the same device, and is raced against the redirect address
-  pasted from Safari's address bar for a device where it cannot. No
-  ASWebAuthenticationSession: the redirect is a plain loopback URI, not a
-  scheme the app could claim, and Safari keeps the provider's own sign-in
-  cookies. Proven on the Mac by `AccountDeskTests` (fake flows and
+  a browser on the same device, and is raced against the redirect address
+  handed back as `callbackURL` for a browser that cannot reach it. The
+  page (`ProviderLoginController`) opens the provider's page by itself in
+  `SignInBrowser`, the system's sign-in browser, which shares Safari's
+  cookies; the redirect is a plain loopback URI, not a scheme the app
+  could claim, so that session waits on a scheme nothing redirects to and
+  is closed when the task ends. A page the device cannot show is signed in
+  to on another device (owner, 2026-11-11, #49: claude.ai refuses iOS 16's
+  WebKit, "your browser or device software is out of date", and the
+  sign-in could not be done at all): under a device code and on a browser
+  step the page's link sits on a plate that copies it (`LoginLinkView`:
+  its host shown, the whole address copied), with one line saying how a
+  browser there finishes the sign-in (`SignInProgress.Step.elsewhere`,
+  tested in `Tests/ChatTranscript`). A device code is entered there; a
+  page whose link carries the code, or which kwwk polls, is only signed in
+  to; a loopback flow's page ends that browser on a redirect it cannot
+  open, whose address Paste Redirect Address reads from the clipboard and
+  sends as `callbackURL` — a refusal is a notice, in the app's words for
+  `badRequest`, and the sign-in goes on waiting. A page that returns to a
+  listener on this device and takes no pasted address (Kiro: a loopback
+  address among its query's values) gets the plate and no line, since no
+  other device can finish it. Proven on the Mac by `AccountDeskTests` (fake flows and
   listener, an in-memory store, no secret in any event: a device code that
   is typed and one that is only checked, Kimi's device id, a loopback with
   a paste, Antigravity's own kwwk login up to its Google page, a polled

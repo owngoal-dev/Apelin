@@ -21,6 +21,13 @@ import UIKit
 /// flow waits the bar carries a spinner; signing in another way is a quiet
 /// underlined link.
 ///
+/// A page this device cannot show (claude.ai refuses iOS 16's WebKit, #49)
+/// is signed in to on another device: under the step's own content the
+/// page's link sits on a plate that copies it (`LoginLinkView`), with a
+/// line saying how that browser finishes the sign-in. Where the page ends
+/// on a redirect to the listener on this device, which that browser cannot
+/// open, Paste Redirect Address hands its address to the sign-in instead.
+///
 /// The flow is kwwk's and runs in apelin-agent; this page only shows what it
 /// asks for and hands back what the user types, once. The configuration
 /// editor also reads saved API-key fields directly; the key stays in a
@@ -48,6 +55,9 @@ final class ProviderLoginController: UIViewController {
     /// The page opened by itself: once per sign-in.
     @objc private dynamic var openedPage: URL?
     @objc private dynamic var isWaitingForContinue = false
+    /// A pasted redirect address is with the sign-in: until it is refused,
+    /// or the sign-in ends on it.
+    @objc private dynamic var isPasting = false
     /// The in-app browser on the provider's page.
     @objc private dynamic lazy var browser = SignInBrowser(anchor: view).then {
         $0.onClosedByUser = { [weak self] in self?.webClosedByUser() }
@@ -105,6 +115,19 @@ final class ProviderLoginController: UIViewController {
         $0.snp.makeConstraints { $0.height.greaterThanOrEqualTo(52) }
     }
 
+    /// Hands the sign-in the address another device's browser ended on.
+    private let pasteButton = UIButton(configuration: .gray()).then {
+        $0.configuration?.cornerStyle = .large
+        $0.configuration?.buttonSize = .large
+        $0.configuration?.image = UIImage(systemName: "doc.on.clipboard")
+        $0.configuration?.imagePadding = 8
+        $0.configuration?.preferredSymbolConfigurationForImage = UIImage.SymbolConfiguration(scale: .medium)
+        $0.configuration?.title = String(localized: "Paste Redirect Address")
+        // two lines at the larger text sizes
+        $0.configuration?.titleLineBreakMode = .byWordWrapping
+        $0.snp.makeConstraints { $0.height.greaterThanOrEqualTo(52) }
+    }
+
     /// The quiet ways out, under the button.
     private let links = UIStackView().then {
         $0.axis = .vertical
@@ -148,6 +171,7 @@ final class ProviderLoginController: UIViewController {
         navigationItem.largeTitleDisplayMode = .never
 
         primaryButton.addAction(UIAction { [weak self] _ in self?.primaryAction?() }, for: .primaryActionTriggered)
+        pasteButton.addAction(UIAction { [weak self] _ in self?.pasteRedirectAddress() }, for: .primaryActionTriggered)
 
         let header = UIStackView(arrangedSubviews: [iconView, titleLabel, subtitleLabel]).then {
             $0.axis = .vertical
@@ -226,6 +250,7 @@ final class ProviderLoginController: UIViewController {
         submitting = false
         openedPage = nil
         isWaitingForContinue = false
+        isPasting = false
         shownStep = nil
         render()
         let method = method == methods.first ? nil : method
@@ -299,6 +324,7 @@ final class ProviderLoginController: UIViewController {
     }
 
     @objc private dynamic func finished() {
+        isPasting = false
         onFinish?()
         // the provider's page has done its part either way
         browser.close()
@@ -348,7 +374,7 @@ final class ProviderLoginController: UIViewController {
         let step = progress.step
         let waiting: Bool = switch step {
         case .starting: true
-        case .deviceCode, .browser: !isWaitingForContinue
+        case .deviceCode, .browser: !isWaitingForContinue || isPasting
         case .keys: submitting
         case .ended: false
         }
@@ -392,10 +418,11 @@ final class ProviderLoginController: UIViewController {
             // the page opens by itself with the code on the clipboard, which
             // the keyboard offers to paste: no button, a link to open it again
             body.addArrangedSubview(DeviceCodeView(code: code))
+            addLink(to: page, finishing: step.elsewhere)
             primaryButton.isHidden = true
             openOnce(page, copying: pageHoldsCode ? nil : code)
         case let .browser(page, _):
-            body.isHidden = true
+            addLink(to: page, finishing: step.elsewhere)
             primaryButton.isHidden = true
             openOnce(page, copying: nil)
         case let .keys(keys):
@@ -461,11 +488,51 @@ final class ProviderLoginController: UIViewController {
         primaryAction = action
     }
 
-    /// Sign In waits for every required field, and spins while it is sent.
+    /// Sign In waits for every required field, and spins while it is sent;
+    /// so does Paste Redirect Address, with Continue off meanwhile.
     @objc private dynamic func updatePrimary() {
         keyForm?.isSubmitting = submitting
-        primaryButton.isEnabled = !submitting
+        primaryButton.isEnabled = !submitting && !isPasting
         primaryButton.configuration?.showsActivityIndicator = submitting
+        pasteButton.isEnabled = !isPasting
+        pasteButton.configuration?.showsActivityIndicator = isPasting
+    }
+
+    /// The page's link under the step's own content and, where a browser
+    /// on another device can finish the sign-in, how.
+    private func addLink(to page: URL, finishing elsewhere: SignInProgress.Step.Elsewhere?) {
+        body.addArrangedSubview(LoginLinkView(page: page))
+        guard let elsewhere else { return }
+        let hint = UILabel().then {
+            $0.font = .preferredFont(forTextStyle: .footnote)
+            $0.adjustsFontForContentSizeCategory = true
+            $0.textColor = .secondaryLabel
+            $0.textAlignment = .center
+            $0.numberOfLines = 0
+        }
+        hint.text = switch elsewhere {
+        case .code:
+            String(localized: """
+            If the page does not work on this device, open this link in a browser on another device \
+            and enter the code there.
+            """)
+        case .page:
+            String(localized: """
+            If the page does not work on this device, open this link in a browser on another device \
+            and sign in there.
+            """)
+        case .redirect:
+            String(localized: """
+            If the page does not work on this device, open this link in a browser on another device \
+            and sign in there. That browser ends on a page it cannot open. Copy that page’s address \
+            and paste it here.
+            """)
+        }
+        body.addArrangedSubview(hint)
+        if elsewhere == .redirect {
+            body.setCustomSpacing(16, after: hint)
+            body.addArrangedSubview(pasteButton)
+        }
     }
 
     /// A quiet way out: footnote-sized, grey and underlined.
@@ -524,6 +591,46 @@ final class ProviderLoginController: UIViewController {
         }
         primaryButton.isHidden = false
         setPrimary(String(localized: "Continue")) { [weak self] in self?.open(page, copying: code) }
+    }
+
+    /// The clipboard's text to the sign-in, as the address another device's
+    /// browser ended on. One that is no redirect is refused and the sign-in
+    /// goes on waiting; one that is taken ends it, either way.
+    @objc private dynamic func pasteRedirectAddress() {
+        guard let handle, !isPasting, !progress.isFinished else { return }
+        let pasteboard = UIPasteboard.general
+        let address = (pasteboard.string ?? pasteboard.url?.absoluteString ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !address.isEmpty else {
+            presentNotice(
+                title: "Nothing to Paste",
+                message: "Copy the address of the page the other browser ended on, then try again.",
+            )
+            return
+        }
+        isPasting = true
+        render()
+        Task { [weak self] in
+            do {
+                try await ApelinService.app.agentSignInRespond(taskID: handle.taskID, fields: [.callbackURL: address])
+            } catch {
+                guard let self, self.handle == handle else { return }
+                isPasting = false
+                render()
+                guard !progress.isFinished else { return }
+                if let error = error as? ApelinError, error.code == .badRequest {
+                    presentNotice(
+                        title: "Address Not Accepted",
+                        message: """
+                        This is not the address the other browser ended on after sign-in. Copy the full \
+                        address from its address bar and paste it again.
+                        """,
+                    )
+                } else {
+                    presentNotice(title: "Address Not Accepted", message: error.readableMessage)
+                }
+            }
+        }
     }
 
     /// What the user typed goes to the sign-in once and is not kept here.
