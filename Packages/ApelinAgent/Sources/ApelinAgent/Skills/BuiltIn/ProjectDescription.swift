@@ -104,6 +104,8 @@ extension BuiltInSkills {
           and `SileoDepiction` (the native depiction JSON, where a changelog
           tab comes from), each an `https://` URL of the icon's form. No
           template writes them; add one only with an address the user gave.
+          The apelin-package-depiction skill has the JSON and where to host
+          it.
         - Relations: `depends`, `recommends`, `suggests`, `conflicts`,
           `breaks`, `replaces` and `provides`, each item like `"name (>=
           1.0)"`, alternatives joined by ` | `; `dependsByBootstrap`

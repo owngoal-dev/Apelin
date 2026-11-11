@@ -3957,7 +3957,15 @@ force_with_lease, owner, 2026-10-31), and github.com through Sign In
 with GitHub. `apelin-package-repository` is the package
 repository (Distribution repository, below): its layout after
 owngoal-packages, the control fields a package needs, how Publish adds a
-release, and keeping old versions in check. `apelin-icli` (owner,
+release, and keeping old versions in check. `apelin-package-depiction`
+(owner, 2026-11-11, issue #44) is a package's page in a package manager:
+the `Depiction` and `SileoDepiction` control fields from
+`package.depiction` and `package.sileoDepiction`, added only with an
+address the user gave, where the files live (the package repository's
+`depictions/<package id>/`), and the native depiction's shape as Irisin's
+renderer reads it, with a page of two tabs, Details and Changelog, as its
+file `depiction.json`; a test holds that file to the views the skill names
+and that the prompt lists the skill without its body. `apelin-icli` (owner,
 2026-10-26) is running icli through shell_run: an argv, its help read
 first, Apelin's own tools where they exist, the commands its device
 acceptance ran as mobile, never its package, respring or uicache
