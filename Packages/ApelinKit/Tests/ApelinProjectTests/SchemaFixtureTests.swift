@@ -216,6 +216,20 @@ final class SchemaFixtureTests: XCTestCase {
             ("installed data file edited", append("Packaging/apelinhello.conf", "x=1\n"), false, true),
             ("dependency added", editJSON { set(&$0, ["package", "depends"], .array([.string("coreutils")])) }, false, true),
             ("icon set", editJSON { set(&$0, ["package", "icon"], .string("https://example.com/icon.png")) }, false, true),
+            (
+                "depiction set",
+                editJSON { set(&$0, ["package", "depiction"], .string("https://example.com/depictions/apelinhello/")) },
+                false,
+                true,
+            ),
+            (
+                "native depiction set",
+                editJSON {
+                    set(&$0, ["package", "sileoDepiction"], .string("https://example.com/depictions/apelinhello/depiction.json"))
+                },
+                false,
+                true,
+            ),
             ("install path changed", editJSON { set(&$0, ["package", "layout", "0", "path"], .string("/usr/local/bin/apelinhello")) }, false, true),
         ]
         for (name, edit, buildMoves, packagingMoves) in edits {

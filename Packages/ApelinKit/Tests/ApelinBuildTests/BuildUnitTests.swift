@@ -77,8 +77,9 @@ final class ToolDiagnosticsTests: XCTestCase {
 
 final class PackagerControlTests: XCTestCase {
     /// `package.icon` is the control's `Icon`, after `Name` as the
-    /// toolchain's deb has it; a package without one has no `Icon`.
-    func testTheIconIsWrittenOnlyWhenTheProjectHasOne() throws {
+    /// toolchain's deb has it; a package without one has no `Icon`. The
+    /// depictions follow it the same way.
+    func testTheIconAndTheDepictionsAreWrittenOnlyWhenTheProjectHasThem() throws {
         let scratch = try scratchDirectory()
         defer { try? FileManager.default.removeItem(at: scratch) }
         let (home, store) = try makeHome(in: scratch)
@@ -130,6 +131,30 @@ final class PackagerControlTests: XCTestCase {
         let without = try Packager(inputs: inputs, products: products, shell: "/bin/sh").control()
         XCTAssertNil(without["Icon"])
         XCTAssertFalse(try without.rendered().contains("Icon:"))
+
+        // `package.depiction` and `package.sileoDepiction` are the control's
+        // `Depiction` and `SileoDepiction`, after `Icon`, each only when the
+        // project has it (issue #44); no template writes either
+        XCTAssertNil(control["Depiction"])
+        XCTAssertNil(control["SileoDepiction"])
+        XCTAssertFalse(try control.rendered().contains("Depiction"))
+        let page = "https://example.github.io/repo/depictions/local.apelin.icon-tweak/"
+        let native = page + "depiction.json"
+        inputs.project.package.icon = icon
+        inputs.project.package.depiction = page
+        inputs.project.package.sileoDepiction = native
+        let depicted = try Packager(inputs: inputs, products: products, shell: "/bin/sh").control()
+        XCTAssertEqual(depicted.fields.map(\.name), [
+            "Package", "Version", "Architecture", "Description", "Name", "Icon", "Depiction", "SileoDepiction",
+            "Author", "Maintainer", "Section", "Depends",
+        ])
+        XCTAssertTrue(try depicted.rendered().contains("\nIcon: \(icon)\nDepiction: \(page)\nSileoDepiction: \(native)\n"))
+
+        inputs.project.package.depiction = nil
+        let nativeOnly = try Packager(inputs: inputs, products: products, shell: "/bin/sh").control()
+        XCTAssertNil(nativeOnly["Depiction"])
+        XCTAssertEqual(nativeOnly["SileoDepiction"], native)
+        XCTAssertFalse(try nativeOnly.rendered().contains("\nDepiction:"))
     }
 }
 

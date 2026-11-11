@@ -2942,7 +2942,13 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
 - **The deb** is written by `DebPackageWriter`, never dpkg-deb: the logical
   layout through `PackageLayout`, `Depends` from `firmware (>= deployment
   target)`, `depends` and `dependsByBootstrap`, `Icon` after `Name` from
-  `package.icon` (an https URL, none without it), maintainer scripts with
+  `package.icon` (an https URL, none without it), then `Depiction` and
+  `SileoDepiction` from `package.depiction` and `package.sileoDepiction`
+  (owner, 2026-11-11, issue #44: https URLs of the icon's form, each
+  written only when the project has it, no template's; the first is the
+  web page, the second the native depiction JSON Sileo and Irisin draw,
+  where a changelog tab comes from. Apelin passes the addresses on and
+  hosts nothing), maintainer scripts with
   `@PREFIX@`/`@ROOTFS@` filled and `sh -n` passing, `control.tar.gz`
   (`controlCompression = .gzip`, which the host reads) and `data.tar.zst`. ApelinDebArchive brings
   `libarchive.xcframework` into apelin-build, reviewed in `Licenses/`.

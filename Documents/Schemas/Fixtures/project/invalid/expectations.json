@@ -23,5 +23,10 @@
   "package-icon-space.json": "/package/icon: \"https://owngoal-dev.github.io/Apelin/icons/my tweak.png\" does not match",
   "package-icon-newline.json": "/package/icon: \"https://owngoal-dev.github.io/Apelin/icons/wiki.qaq.apelin.dev.tweak.png\\n\" does not match",
   "package-icon-too-long.json": "/package/icon: longer than 2048",
-  "package-icon-not-a-string.json": "/package/icon: expected string"
+  "package-icon-not-a-string.json": "/package/icon: expected string",
+  "package-depiction-http.json": "/package/depiction: \"http://example.github.io/repo/depictions/com.example.apelintweak/\" does not match",
+  "package-depiction-not-a-string.json": "/package/depiction: expected string",
+  "package-sileo-depiction-space.json": "/package/sileoDepiction: \"https://example.github.io/repo/depictions/my tweak/depiction.json\" does not match",
+  "package-sileo-depiction-newline.json": "/package/sileoDepiction: \"https://example.github.io/repo/depictions/com.example.apelintweak/depiction.json\\n\" does not match",
+  "package-sileo-depiction-too-long.json": "/package/sileoDepiction: longer than 2048"
 }
