@@ -265,6 +265,8 @@ actor InstallBridge {
             return
         }
         let staged = paths.staging.appendingPathComponent(installationID + ".deb")
+        // The package ID its source promised, before irisind names its own.
+        let expected = record.packageID
         defer {
             if record.status != .staged {
                 unlink(staged.path)
@@ -300,41 +302,25 @@ actor InstallBridge {
             )
             let receipt = Self.receipt(final)
             if final.state == .succeeded {
-                let reported = final.packageID ?? record.packageID
-                let expected = record.packageID
                 record = try await installations.update(installationID) {
                     $0.status = .installed
                     $0.receipt = receipt
-                    $0.packageID = reported
+                    $0.packageID = final.packageID ?? $0.packageID
                     if let version = final.version, !version.isEmpty {
                         $0.version = version
                     }
                 }
-                // irisind read a different package than its source promised:
-                // installed (and recorded, so it can be removed), but loudly.
-                guard reported == expected else {
-                    await registry.finish(
-                        taskID,
-                        .failed,
-                        message: "Installed \(reported) instead of \(expected). Details are saved in installation \(installationID).",
-                    )
-                    return
+                await finishInstalled(record, expecting: expected, taskID: taskID)
+            } else if landed(record) {
+                // irisind lost track of an install that went through: the
+                // package database has the last word.
+                record = try await installations.update(installationID) {
+                    $0.status = .installed
+                    $0.receipt = receipt
+                    $0.receipt?.confirmed = true
                 }
-                let result = InstallResult(
-                    installationID: installationID,
-                    transactionID: record.transactionID,
-                    packageID: record.packageID,
-                    version: record.version,
-                    artifactDigest: record.artifactDigest,
-                    projectID: record.projectID,
-                    buildID: record.buildID,
-                )
-                let resultValue = try? JSONValue(encoding: result)
-                await registry.append(taskID, kind: "result", payload: resultValue)
-                // The last event carries the result too, for a reader that only keeps the last.
-                await registry.append(taskID, kind: TaskEvent.stateKind, payload: .object([
-                    "state": .string(TaskState.succeeded.rawValue), "result": resultValue ?? .null,
-                ]))
+                await noteLanded(record, after: Self.unfinished(final), taskID: taskID)
+                await finishInstalled(record, expecting: expected, taskID: taskID)
             } else {
                 record = try await installations.update(installationID) {
                     $0.status = .failed
@@ -344,7 +330,8 @@ actor InstallBridge {
                 for conflict in inTheWay.found {
                     await registry.append(taskID, kind: "conflict", payload: try? JSONValue(encoding: conflict))
                 }
-                var message = final.failureText ?? "Irisin could not complete the installation. Try again."
+                var message = final.failureText ?? Self.unfinished(final)
+                    + ", and \(record.packageID) \(record.version) is not installed. Try again."
                 if let explanation = inTheWay.explanation {
                     message = final.failureText.map { "\(explanation) Irisin reported: \($0)" } ?? explanation
                 }
@@ -355,8 +342,86 @@ actor InstallBridge {
                 record.status = .failed
                 _ = try? await installations.update(installationID) { $0.status = .failed }
             }
+            // Submitted, then irisind could no longer be followed: it may
+            // have finished all the same.
+            if record.status == .submitted, landed(record),
+               let installed = try? await installations.update(installationID, {
+                   $0.status = .installed
+                   $0.receipt = InstallationRecord.Receipt(
+                       state: "unknown",
+                       failureText: Self.message(error),
+                       finishedAt: Date(),
+                       confirmed: true,
+                   )
+               })
+            {
+                record = installed
+                await noteLanded(record, after: Self.message(error), taskID: taskID)
+                await finishInstalled(record, expecting: expected, taskID: taskID)
+                return
+            }
             await registry.finish(taskID, .failed, message: Self.message(error))
         }
+    }
+
+    /// Whether the package database shows this install done, whatever
+    /// irisind answered: the package installed at the version submitted,
+    /// its file list written since the installation was recorded. A
+    /// reinstall of the version already there writes the list again, so it
+    /// counts; a package that was there all along does not.
+    private func landed(_ record: InstallationRecord) -> Bool {
+        guard let current = try? packages.installedPackages()[record.packageID], current.isInstalled,
+              current.version == record.version,
+              let written = fileLists.written(of: record.packageID)
+        else { return false }
+        // A file's time is kept to the second on some volumes.
+        return written.timeIntervalSince(record.createdAt) > -1
+    }
+
+    private func noteLanded(_ record: InstallationRecord, after problem: String, taskID: TaskID) async {
+        NSLog("apelind-session: %@ %@ is installed although: %@", record.packageID, record.version, problem)
+        await registry.append(taskID, kind: "stage", payload: .object([
+            "stage": .string("confirmed"),
+            "note": .string(
+                "\(problem). The package database shows \(record.packageID) \(record.version) installed, so the installation is recorded.",
+            ),
+        ]))
+    }
+
+    /// What irisind's last status says of an install it did not call a
+    /// success and gave no text for.
+    private static func unfinished(_ status: InstallTransactionStatus) -> String {
+        let exit = status.exitStatus.map { ", exit status \($0)" } ?? ""
+        return "Irisin ended the installation as \(status.state.rawValue)\(exit) without saying why"
+    }
+
+    /// The task's end for a record now installed.
+    private func finishInstalled(_ record: InstallationRecord, expecting expected: String, taskID: TaskID) async {
+        // irisind read a different package than its source promised:
+        // installed (and recorded, so it can be removed), but loudly.
+        guard record.packageID == expected else {
+            await registry.finish(
+                taskID,
+                .failed,
+                message: "Installed \(record.packageID) instead of \(expected). Details are saved in installation \(record.installationID).",
+            )
+            return
+        }
+        let result = InstallResult(
+            installationID: record.installationID,
+            transactionID: record.transactionID,
+            packageID: record.packageID,
+            version: record.version,
+            artifactDigest: record.artifactDigest,
+            projectID: record.projectID,
+            buildID: record.buildID,
+        )
+        let resultValue = try? JSONValue(encoding: result)
+        await registry.append(taskID, kind: "result", payload: resultValue)
+        // The last event carries the result too, for a reader that only keeps the last.
+        await registry.append(taskID, kind: TaskEvent.stateKind, payload: .object([
+            "state": .string(TaskState.succeeded.rawValue), "result": resultValue ?? .null,
+        ]))
     }
 
     // MARK: Remove

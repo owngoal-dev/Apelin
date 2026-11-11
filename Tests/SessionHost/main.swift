@@ -1403,7 +1403,12 @@ final class FakeIrisin: InstallService, @unchecked Sendable {
         var events: [InstallTransactionEvent] = []
         var polls = 0
         var failureText: String?
+        /// irisind lost track of it: `interrupted`, and no text.
+        var lost = false
     }
+
+    /// An install irisind loses track of, and whether its helper finished.
+    enum Lost { case installed, notInstalled }
 
     let root: String
     let lock = NSLock()
@@ -1414,6 +1419,10 @@ final class FakeIrisin: InstallService, @unchecked Sendable {
     var failNext = false
     /// What the next failure says, instead of a digest mismatch.
     var failNextText: String?
+    /// The next install ends `interrupted` with nothing said.
+    var loseNext: Lost?
+    /// When each package's file list was last written.
+    var listWritten: [String: Date] = [:]
     /// The end-to-end toolchain test lays a package's files down when it is
     /// installed (from the submitted descriptor) and takes them away when it
     /// is removed, as irisind would.
@@ -1443,6 +1452,23 @@ final class FakeIrisin: InstallService, @unchecked Sendable {
             }
             var events = [InstallTransactionEvent(sequence: 1, kind: "started", text: "started")]
             var failureText: String?
+            if let lost = loseNext {
+                loseNext = nil
+                if lost == .installed, let package = control?.packageID {
+                    installedVersions[package] = control?.version
+                    listWritten[package] = Date()
+                }
+                events.append(InstallTransactionEvent(sequence: 2, kind: "phase", text: "verifying", phase: "verifying"))
+                transactions[transaction] = Transaction(
+                    kind: "install",
+                    package: control?.packageID,
+                    version: control?.version,
+                    digest: sha256,
+                    events: events,
+                    lost: true,
+                )
+                return status(transaction, duplicate: false)
+            }
             if actual != "sha256:" + sha256 || failNext || !unpacked {
                 let text = failNextText ?? "the digest did not match"
                 failureText = text
@@ -1550,9 +1576,11 @@ final class FakeIrisin: InstallService, @unchecked Sendable {
         let shown = visible ?? 0
         let finished = shown == entry.events.count
         let exit = entry.events.last?.exitStatus
-        let state: InstallTransactionState = finished ? (exit == 0 ? .succeeded : .failed) : .running
+        let state: InstallTransactionState = finished
+            ? (entry.lost ? .interrupted : exit == 0 ? .succeeded : .failed) : .running
         if finished, state == .succeeded, entry.kind == "install", let package = entry.package {
             installedVersions[package] = entry.version
+            listWritten[package] = Date()
         }
         if finished, state == .succeeded, entry.kind == "remove", let package = entry.package {
             installedVersions[package] = nil
@@ -1562,8 +1590,8 @@ final class FakeIrisin: InstallService, @unchecked Sendable {
             kind: entry.kind,
             state: state,
             nextSequence: UInt64(shown + 1),
-            exitStatus: finished ? exit : nil,
-            packageID: entry.package,
+            exitStatus: finished ? (entry.lost ? 0 : exit) : nil,
+            packageID: entry.lost ? nil : entry.package,
             version: entry.version,
             failure: state == .failed ? "installationStopped" : nil,
             failureText: state == .failed ? entry.failureText ?? "the digest did not match" : nil,
@@ -1597,6 +1625,11 @@ struct FakeDatabase: InstalledPackageSource {
 /// The package database's file lists, as a test lays them out.
 struct FakeFileLists: PackageFileLists {
     var lists: [String: [String]] = [:]
+    var irisin: FakeIrisin?
+
+    func written(of packageID: String) -> Date? {
+        irisin?.lock.withLock { irisin?.listWritten[packageID] }
+    }
 
     func files(of packageID: String) throws -> [String] {
         lists[packageID] ?? []
@@ -1682,7 +1715,7 @@ do {
             artifacts: artifacts,
             installations: installations,
             packages: FakeDatabase(irisin: irisin, extra: extra),
-            fileLists: FakeFileLists(),
+            fileLists: FakeFileLists(irisin: irisin),
             approvals: approvals,
             pollInterval: 0.01,
         )
@@ -1978,6 +2011,40 @@ do {
     let failedListed = try await install.list(InstallationListRequest(packageID: "com.example.failing"), caller: .app)
     check(failedListed.installations.isEmpty, "a failed install is not listed")
     irisin.lock.withLock { irisin.installedVersions["com.example.failing"] = nil }
+
+    // irisind loses track of an install (issue #45). The package database
+    // decides: installed at this version with its list written since, it is
+    // an installation like any other; otherwise it failed, in plain words.
+    let lostDeb = data + "/lost.deb"
+    makeDeb(at: lostDeb, package: "com.example.lost", version: "2")
+    irisin.lock.withLock { irisin.loseNext = .installed }
+    let landed = try await install.install(InstallPackageRequest(artifactID: "file:lost.deb", digest: sha256(lostDeb)), caller: .app)
+    let landedBatch = try await waitForEnd(registry, landed)
+    check(landedBatch.state == .succeeded, "an install irisind lost track of succeeds when the package is installed (\(landedBatch.events.last?.payload?["message"]?.stringValue ?? ""))")
+    check(landedBatch.events.contains { $0.kind == "stage" && $0.payload?["stage"]?.stringValue == "confirmed" }, "it says the package database confirmed it")
+    let landedListed = try await install.list(InstallationListRequest(packageID: "com.example.lost"), caller: .app)
+    check(landedListed.installations.first.map { $0.version == "2" && $0.removable } == true, "it is listed at its version and removable (\(landedListed.installations))")
+
+    // The same version again, lost without installing: the copy already
+    // there, its list written before this installation, proves nothing.
+    try await Task.sleep(nanoseconds: 1_100_000_000)
+    irisin.lock.withLock {
+        irisin.listWritten["com.example.lost"] = Date(timeIntervalSinceNow: -60)
+        irisin.loseNext = .notInstalled
+    }
+    let stale = try await install.install(InstallPackageRequest(artifactID: "file:lost.deb", digest: sha256(lostDeb)), caller: .app)
+    let staleBatch = try await waitForEnd(registry, stale)
+    let staleMessage = staleBatch.events.last?.payload?["message"]?.stringValue ?? ""
+    check(staleBatch.state == .failed, "a lost install of the version already there fails when its list was not written again")
+    check(staleMessage == "Irisin ended the installation as interrupted, exit status 0 without saying why, and com.example.lost 2 is not installed. Try again.", "the failure says how irisind ended and that the package is not installed (\(staleMessage))")
+
+    // And lost with nothing installed at all.
+    let goneDeb = data + "/gone.deb"
+    makeDeb(at: goneDeb, package: "com.example.gone", version: "1")
+    irisin.lock.withLock { irisin.loseNext = .notInstalled }
+    let nothing = try await install.install(InstallPackageRequest(artifactID: "file:gone.deb", digest: sha256(goneDeb)), caller: .app)
+    let goneState = try await waitForEnd(registry, nothing).state
+    check(goneState == .failed, "a lost install that installed nothing fails")
 
     // A toolchain is the app's or the environment worker's to remove, never
     // the agent's, whatever its mode.
