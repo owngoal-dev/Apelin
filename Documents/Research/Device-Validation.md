@@ -2997,3 +2997,16 @@ the machine's socket, so every script had its setup, checks and cleanup.
   the script expects `conflict`. That vphone has no git author: with one
   set the script passed, and the author was cleared again. The script
   assumes an author its entry in `device-harness.json` does not ask for.
+
+## 0.4.2 release smoke (2026-11-11, CI build 140 of `bc0c800`)
+
+CI's roothide package of the release commit, before the tag, over build
+298 on the iOS 26.4 iPad vphone: it installed as 0.4.2 (140), the app and
+the daemon came up, and the smoke suite passed (`hello`, `terminal`,
+`logs`, `diagnostics`, `i3-image-check-refused`, `i1-smoke`), with `files`
+skipped for want of a tweak extension, toolchain or SDK. The release's
+`SHA256SUMS` names that same file.
+
+The iOS 26.4 iPhone vphone did not get it: its host runs one guest at a
+time, and another task had taken the slot by then. It ran the round above
+on build 298, the same code under the earlier version number.
