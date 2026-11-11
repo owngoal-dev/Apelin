@@ -79,3 +79,49 @@ struct SignInProgress {
         step = .ended(.failed, message: message)
     }
 }
+
+extension SignInProgress.Step {
+    /// How a sign-in is finished from a browser on another device, for a
+    /// page this device cannot show (claude.ai refuses iOS 16's WebKit, #49).
+    enum Elsewhere: Equatable {
+        /// The code is entered on the page there.
+        case code
+        /// Signing in on the page there is enough: the page's link carries
+        /// the code, or the flow asks the provider until the user is in.
+        case page
+        /// The page there ends on a redirect to the listener on this
+        /// device, which that browser cannot open; its address, pasted
+        /// here, stands in for it.
+        case redirect
+    }
+
+    /// Nil where there is no such way: nothing to open, or a page that
+    /// sends the browser back to a listener on this device and takes no
+    /// pasted address (Kiro, whose listener is kwwk's own).
+    var elsewhere: Elsewhere? {
+        switch self {
+        case let .deviceCode(_, _, pageHoldsCode):
+            pageHoldsCode ? .page : .code
+        case let .browser(page, acceptsCallbackURL):
+            if acceptsCallbackURL {
+                .redirect
+            } else if Self.returnsToThisDevice(page) {
+                nil
+            } else {
+                .page
+            }
+        case .starting, .keys, .ended:
+            nil
+        }
+    }
+
+    /// Whether the page names a loopback address to send the browser back
+    /// to, as a value of its query.
+    static func returnsToThisDevice(_ page: URL) -> Bool {
+        let items = URLComponents(url: page, resolvingAgainstBaseURL: false)?.queryItems ?? []
+        return items.contains { item in
+            guard let host = item.value.flatMap(URLComponents.init(string:))?.host?.lowercased() else { return false }
+            return ["localhost", "127.0.0.1", "::1", "[::1]"].contains(host)
+        }
+    }
+}

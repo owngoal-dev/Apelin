@@ -1127,3 +1127,5 @@ try checkChatUnread()
 checkForcePushCard()
 
 checkSquashCard()
+
+checkSignInElsewhere()
