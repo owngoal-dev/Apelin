@@ -123,9 +123,8 @@ final class ProviderLoginController: UIViewController {
         $0.configuration?.imagePadding = 8
         $0.configuration?.preferredSymbolConfigurationForImage = UIImage.SymbolConfiguration(scale: .medium)
         $0.configuration?.title = String(localized: "Paste Redirect Address")
-        $0.configuration?.titleLineBreakMode = .byWordWrapping
         // two lines at the larger text sizes
-        $0.configuration?.titleAlignment = .center
+        $0.configuration?.titleLineBreakMode = .byWordWrapping
         $0.snp.makeConstraints { $0.height.greaterThanOrEqualTo(52) }
     }
 
