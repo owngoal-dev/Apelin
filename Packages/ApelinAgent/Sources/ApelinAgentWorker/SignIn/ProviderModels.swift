@@ -9,9 +9,9 @@ import KWWKAI
 /// `fetch` reads the account's config, which names the models and their
 /// levels together, while the account list needs the same levels without a
 /// request of its own: what a fetch kept answers the list, and a model no
-/// fetch has covered yet falls back to the bundled rows. The TTL is the
-/// same as `RosterCache`'s — the config does not change often, and an
-/// account list is drawn every time Settings opens.
+/// fetch has covered yet falls back to the bundled rows. Ten minutes is
+/// what kwwk keeps a gate's own listing for: the config does not change
+/// often, and an account list is drawn every time Settings opens.
 final class WorkBuddyEffortCache: @unchecked Sendable {
     static let shared = WorkBuddyEffortCache()
 
@@ -19,8 +19,8 @@ final class WorkBuddyEffortCache: @unchecked Sendable {
     private var entries: [String: (efforts: [String: [AgentReasoningEffort]], at: Date)] = [:]
     private let lifetime: TimeInterval = 10 * 60
 
-    // Swift-only types: Objective-C cannot carry these dictionaries, so the
-    // accessors stay plain (AGENTS.md ▸ Hard rules).
+    /// Objective-C cannot carry these dictionaries, so the accessors stay
+    /// plain (AGENTS.md ▸ Hard rules).
     func efforts(for storeID: String) -> [String: [AgentReasoningEffort]]? {
         lock.withLock {
             guard let entry = entries[storeID], Date().timeIntervalSince(entry.at) < lifetime else { return nil }
@@ -56,17 +56,6 @@ enum ProviderModels {
     }
 
     static func list(_ provider: AgentProvider, credentials: OAuthCredentials) -> [String] {
-        if provider == .raccoon {
-            return RaccoonModels.fallback
-        }
-        if TraeSite(storeID: provider.storeID) != nil {
-            var models = TraeModels.fallback
-            if case let .string(model)? = credentials.extras[AgentSignInField.defaultModel.rawValue], !model.isEmpty {
-                models.removeAll { $0 == model }
-                models.insert(model, at: 0)
-            }
-            return models
-        }
         let catalog = catalogKey(provider, credentials: credentials)
         var models = catalog.map { ModelsCatalog.models(for: $0).map(\.id) } ?? []
         if case let .string(model)? = credentials.extras[AgentSignInField.defaultModel.rawValue], !model.isEmpty {
@@ -113,14 +102,17 @@ enum ProviderModels {
     }
 
     static func fetch(_ provider: AgentProvider, credentials: OAuthCredentials) async throws -> [String] {
-        if let site = RaccoonSite(storeID: provider.storeID) {
-            return await RaccoonModels.list(site: site, credentials: credentials)
+        // Trae's roster and Raccoon's catalogue are the account's own, read
+        // from its gate; kwwk's bundled rows are a seed for when the gate
+        // does not answer. The token goes as it is stored; a session renews
+        // its own.
+        if let site = TraeSite.site(id: provider.storeID) {
+            let live = try? await TraeModels.fetch(site: site, credentials: credentials)
+            return live?.map(\.id) ?? list(provider, credentials: credentials)
         }
-        if let site = TraeSite(storeID: provider.storeID) {
-            if let live = await TraeModels.live(site: site, credentials: credentials), !live.isEmpty {
-                return live
-            }
-            return list(provider, credentials: credentials)
+        if provider == .raccoon {
+            let live = try? await RaccoonModels.fetch(credentials: credentials)
+            return live?.map(\.id) ?? list(provider, credentials: credentials)
         }
         // WorkBuddy's plans answer their own model list, which is the one its
         // picker shows: the bundled rows are magpie's written-in picks and

@@ -474,13 +474,7 @@ public actor AccountDesk {
                 },
                 browser: SignInPresenter(signIn: run, reporter: reporter),
                 loopback: { host, port, path in
-                    // Trae's page answers with `authCodeInfo`, which kwwk's
-                    // listener does not resolve, and it binds a free port of
-                    // its own; every other flow takes the listener as it is.
-                    let factory = TraeSite(storeID: run.provider.storeID) != nil
-                        ? TraeOAuth.listener
-                        : listener
-                    let loopback = try PasteableLoopback(inner: factory(host, port, path))
+                    let loopback = try PasteableLoopback(inner: listener(host, port, path))
                     run.loopback = loopback
                     return loopback
                 },

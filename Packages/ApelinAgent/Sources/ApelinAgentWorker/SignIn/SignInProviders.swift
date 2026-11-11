@@ -39,7 +39,7 @@ public extension AgentProvider {
         case .workBuddyAI: WorkBuddySite.international.id
         case .trae: TraeSite.china.id
         case .traeIntl: TraeSite.international.id
-        case .raccoon: "raccoon"
+        case .raccoon: RaccoonOAuth.providerId
         case .kimiCoding: KimiSite.china.id
         case .kimiCodingGlobal: KimiSite.global.id
         case .xai: "xai"
@@ -175,23 +175,7 @@ public typealias SignInLogin = @Sendable (
 public enum KWWKSignIn {
     /// OAuth login is independent of which models the user enables afterward.
     public static let login: SignInLogin = { provider, callbacks, options in
-        // Trae's two builds are Apelin's own flow: kwwk has no login for
-        // either, and their loopback answers an `authCodeInfo` redirect
-        // rather than the `code=` shape kwwk's listener waits for. They
-        // differ in where the page is and which gate exchanges the code, so
-        // each one's values are its `Profile`.
-        // Raccoon is Apelin's own flow too: kwwk has no login for it, and its
-        // page redirects to a custom scheme rather than to a loopback.
-        if provider == .raccoon {
-            return try await RaccoonOAuth.login(callbacks: callbacks)
-        }
-        if let site = TraeSite(storeID: provider.storeID) {
-            return try await TraeOAuth.login(
-                profile: TraeOAuth.Profile.of(site),
-                callbacks: callbacks,
-            )
-        }
-        return try await OAuthSubscriptions.login(
+        try await OAuthSubscriptions.login(
             providerId: provider.storeID,
             callbacks: callbacks,
             kimiIdentity: options.kimiIdentity,

@@ -151,10 +151,13 @@ public enum AgentProvider: String, Codable, Sendable {
     case workBuddy
     /// WorkBuddy AI, the international build (`workbuddy-ai`).
     case workBuddyAI
-    /// Trae, ByteDance's IDE, China build (`trae`).
+    /// Trae CN, ByteDance's IDE, China build (`trae`).
     case trae
-    /// Trae International, the international build (`trae-intl`).
+    /// Trae, the international build (`trae-intl`).
     case traeIntl
+    /// Raccoon, SenseTime's office assistant, signed in to through its
+    /// portal (`raccoon`).
+    case raccoon
     /// Kimi For Coding, Moonshot's coding plan (`kimi-coding`).
     case kimiCoding
     /// Kimi For Coding Global, the kimi.ai coding plan (`kimi-coding-ai`).
@@ -183,12 +186,6 @@ public enum AgentProvider: String, Codable, Sendable {
     /// OpenCode Zen, opencode.ai's pay-as-you-go gateway, with an OpenCode
     /// Console key (`opencode`).
     case openCodeZen
-
-    // Apelin's own registrations.
-
-    /// Raccoon, SenseTime's application, signed in to through its portal
-    /// (`raccoon`).
-    case raccoon
 }
 
 extension AgentProvider: CaseIterable {}

@@ -154,13 +154,15 @@ struct NetworkRecoveryTests {
         #expect(waits.count == 2)
     }
 
-    @Test(.timeLimit(.minutes(1)))
-    func `an offline request is handed to kwwk once the route is back, not asked again here`() async throws {
-        let script = Script([Self.failure(NSURLErrorNotConnectedToInternet)])
+    /// An empty reply from the server (-1011) is one of them from kwwk
+    /// 0.1.118, which retries it as it does a lost connection.
+    @Test(.timeLimit(.minutes(1)), arguments: [NSURLErrorNotConnectedToInternet, NSURLErrorBadServerResponse])
+    func `an offline request is handed to kwwk once the route is back, not asked again here`(code: Int) async throws {
+        let script = Script([Self.failure(code)])
         let route = Route(missing: 5)
         let waits = Counter()
         let (events, final) = try await Self.run(script, path: route.path, waits: waits)
-        #expect(final.failure?.transportCode == NSURLErrorNotConnectedToInternet, "kwwk retries it, as before")
+        #expect(final.failure?.transportCode == code, "kwwk retries it, as before")
         #expect(events == ["start", "error"])
         #expect(route.checks > 5, "held until the route came back")
         #expect(script.calls == 1)
@@ -200,7 +202,7 @@ struct NetworkRecoveryTests {
         #expect(waits.count == 0)
     }
 
-    @Test(.timeLimit(.minutes(1)), arguments: [NSURLErrorServerCertificateUntrusted, NSURLErrorBadServerResponse])
+    @Test(.timeLimit(.minutes(1)), arguments: [NSURLErrorServerCertificateUntrusted, NSURLErrorBadURL])
     func `a certificate that will not do, and any other failure, passes straight through`(code: Int) async throws {
         let script = Script([Self.failure(code)])
         let waits = Counter()
