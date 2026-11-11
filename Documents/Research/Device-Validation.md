@@ -3010,3 +3010,28 @@ skipped for want of a tweak extension, toolchain or SDK. The release's
 The iOS 26.4 iPhone vphone did not get it: its host runs one guest at a
 time, and another task had taken the slot by then. It ran the round above
 on build 298, the same code under the earlier version number.
+
+## A package's depictions and their skill (2026-11-11, build 304)
+
+The code of `49ab2f8` built on the Mac (roothide, 0.4.2), over build 298
+on the iOS 26.4 iPhone vphone, issue #44:
+
+- The smoke suite passed, all seven.
+- A project made from the tweak template, given `package.depiction` and
+  `package.sileoDepiction`, passed `projectCheck` and a release
+  `buildStart`. `dpkg-deb -f` on the guest read the package's control:
+  `Icon`, then `Depiction` and `SileoDepiction` with the two addresses, as
+  written. The project, its build and its record were removed afterwards.
+- The skill, in a new General Chat (Strict, deepseek-v4-pro), asked only
+  how to give a tweak's page in a package manager a changelog tab and to
+  read the skill that covers it: the model called `apelin_skill_read` with
+  `apelin-package-depiction`, found by its description in the prompt's
+  list (the chat's journal has the call, 3,672 bytes in 78 lines), and
+  answered the skill's name, its file `depiction.json` and the two
+  members.
+
+Not run: a depiction served from a real address and drawn by Irisin or
+Sileo for a package built here (the addresses above are placeholders that
+answer nothing), the Strict install card after a member is added, and
+anything on the iPad vphone, which has no toolchain, SDK or signed-in
+provider.
