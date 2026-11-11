@@ -58,7 +58,7 @@ other hidden configuration.
 | `configurations` | `Debug` and `Release`, each `{optimization: "0"…"3"/"s"/"z", debugInfo, defines?, cFlags?, swiftFlags?, linkFlags?}`. A define's name may not start with `APELIN_`. A flag is one argv element starting with `-`; nothing here is ever given to a shell. |
 | `products` | 1–8 of `{id, type, name, sources, headerSearchPaths?, resources?, infoPlist?, entitlements?, installName?, objcARC?, frameworks?, weakFrameworks?, libraries?, frameworkSearchPaths?, librarySearchPaths?, extensionSupport?}`. `app` and `bundle` require `infoPlist`; only they may have `resources`; only `dylib` may set `installName` (default `@rpath/<name>.dylib`). `extensionSupport` names `{extension, component}` from an installed extension's manifest; the build adds that component's include directories, link-stub directories for the bootstrap being built and rpaths. Ids and names are unique (beyond the schema). |
 | `build.steps` | The typed steps, below. |
-| `package` | `{id, name, version, description, longDescription?, icon?, author, maintainer?, section, depends?, dependsByBootstrap?, recommends?, suggests?, conflicts?, breaks?, replaces?, provides?, layout, maintainerScripts?, tweakFilter?}`. |
+| `package` | `{id, name, version, description, longDescription?, icon?, depiction?, sileoDepiction?, author, maintainer?, section, depends?, dependsByBootstrap?, recommends?, suggests?, conflicts?, breaks?, replaces?, provides?, layout, maintainerScripts?, tweakFilter?}`. |
 
 ### Build steps
 
@@ -116,6 +116,15 @@ Swift gets the bootstrap and configuration names as `-D` conditions.
   extension's icon on Apelin's Pages,
   `https://owngoal-dev.github.io/Apelin/icons/<extension id>.png`; a project
   may keep it, name its own or drop it.
+- `depiction` and `sileoDepiction` are written as the control's `Depiction`
+  and `SileoDepiction`, after `Icon`, and nothing is written for one that is
+  absent. `Depiction` is the web page a package manager opens for the
+  package. `SileoDepiction` is the native depiction, a JSON document Sileo
+  and Irisin draw themselves: its tabs are where a changelog comes from,
+  which `Description` never fills. Each is an `https://` URL of the icon's
+  form. Apelin only passes the addresses on: the author hosts the page and
+  the JSON, for one in their package repository under
+  `depictions/<package id>/`. No template writes either.
 - `maintainerScripts` are project files; the packager substitutes `@PREFIX@`
   and `@ROOTFS@` and nothing else, requires `sh -n` to pass, and the install
   card shows them in full.
@@ -302,7 +311,7 @@ folder. No template script runs at creation.
 ## Fixtures
 
 ```
-Fixtures/project/valid/              one project per kind, plus cli-with-script
+Fixtures/project/valid/              one project per kind, plus cli-with-script and tweak-with-depictions
 Fixtures/project/invalid/            each with the error it must produce, in expectations.json
 Fixtures/extension/valid|invalid/    the same for manifests
 Fixtures/canonical-json.json         RFC 8785 vectors
@@ -317,7 +326,8 @@ table (source edited, new source under a glob, version bumped, members
 reordered, written on one line, formatted from one line, toolchain
 rebound, flag added, build script edited, entitlements
 edited, deployment target raised, postinst edited, installed data file
-edited, dependency added, icon set, install path changed), and requires each to move
+edited, dependency added, icon set, depiction set, native depiction set,
+install path changed), and requires each to move
 exactly the digests this file says it moves. `--update` rewrites
 `expected.json`; a changed digest changes every project's baseline, so read
 that diff before committing it.

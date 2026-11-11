@@ -1,0 +1,127 @@
+{
+  "schemaVersion": 1,
+  "projectID": "b9f769c1-39ae-52d4-a8fe-1b3f002b3470",
+  "kind": "tweak",
+  "template": {
+    "extensionID": "wiki.qaq.apelin.dev.tweak",
+    "templateID": "objc-hook",
+    "version": "0.1.1",
+    "digest": "sha256:f7aa0129fcb88ba57ea493d55f34828fd0bc1a435e5a0e3145dedf16118d4dc6"
+  },
+  "environment": {
+    "toolchain": {
+      "id": "clt-27.0-sample",
+      "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+    },
+    "sdk": {
+      "id": "iPhoneOS27.0-00000000",
+      "digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+    }
+  },
+  "language": "objc",
+  "deploymentTarget": "16.0",
+  "architectures": {
+    "rootless": [
+      "arm64",
+      "arm64e"
+    ],
+    "roothide": [
+      "arm64e"
+    ]
+  },
+  "configurations": {
+    "Debug": {
+      "optimization": "0",
+      "debugInfo": true,
+      "defines": {
+        "DEBUG": "1"
+      }
+    },
+    "Release": {
+      "optimization": "2",
+      "debugInfo": true
+    }
+  },
+  "products": [
+    {
+      "id": "tweak",
+      "type": "dylib",
+      "name": "ApelinTweak",
+      "sources": [
+        "Sources/*.m"
+      ],
+      "headerSearchPaths": [
+        "Sources"
+      ],
+      "objcARC": true,
+      "frameworks": [
+        "Foundation",
+        "UIKit"
+      ],
+      "libraries": [
+        "substrate"
+      ],
+      "extensionSupport": [
+        {
+          "extension": "wiki.qaq.apelin.dev.tweak",
+          "component": "substrate"
+        }
+      ]
+    }
+  ],
+  "build": {
+    "steps": [
+      {
+        "type": "compile",
+        "product": "tweak"
+      },
+      {
+        "type": "link",
+        "product": "tweak"
+      },
+      {
+        "type": "lipo",
+        "product": "tweak"
+      },
+      {
+        "type": "dsym",
+        "product": "tweak"
+      },
+      {
+        "type": "strip",
+        "product": "tweak",
+        "style": "non-global"
+      },
+      {
+        "type": "sign",
+        "product": "tweak",
+        "identity": "adhoc"
+      }
+    ]
+  },
+  "package": {
+    "id": "com.example.apelintweak",
+    "name": "Apelin Tweak",
+    "version": "0.0.1",
+    "description": "Built on this device with Apelin.",
+    "icon": "https://owngoal-dev.github.io/Apelin/icons/wiki.qaq.apelin.dev.tweak.png",
+    "depiction": "http://example.github.io/repo/depictions/com.example.apelintweak/",
+    "author": "Apelin User",
+    "section": "Tweaks",
+    "depends": [
+      "mobilesubstrate"
+    ],
+    "layout": [
+      {
+        "path": "/Library/MobileSubstrate/DynamicLibraries/ApelinTweak.dylib",
+        "product": "tweak"
+      }
+    ],
+    "tweakFilter": {
+      "dylib": "tweak",
+      "bundles": [
+        "com.apple.springboard"
+      ]
+    }
+  }
+}

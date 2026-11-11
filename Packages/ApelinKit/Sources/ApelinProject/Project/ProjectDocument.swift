@@ -298,6 +298,13 @@ public struct ProjectDocument: Codable, Sendable, Equatable {
         /// The control's `Icon`, an https URL; templates write their
         /// extension's icon on Apelin's Pages.
         public var icon: String?
+        /// The control's `Depiction`, the https address of the package's
+        /// web page.
+        public var depiction: String?
+        /// The control's `SileoDepiction`, the https address of the native
+        /// depiction: the JSON Sileo and Irisin draw, a changelog tab
+        /// among its views.
+        public var sileoDepiction: String?
         public var author: String
         public var maintainer: String?
         public var section: String

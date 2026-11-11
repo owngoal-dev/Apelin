@@ -586,6 +586,18 @@ enum EmbeddedSchemas {
           "maxLength": 2048,
           "pattern": "^https://[A-Za-z0-9][!-~]*$"
         },
+        "depiction": {
+          "description": "The control's Depiction: the web page a package manager opens for the package. An https URL in printable ASCII, so no space or control character and at most 2048 bytes. Nothing is written without it.",
+          "type": "string",
+          "maxLength": 2048,
+          "pattern": "^https://[A-Za-z0-9][!-~]*$"
+        },
+        "sileoDepiction": {
+          "description": "The control's SileoDepiction: the native depiction, a JSON document Sileo and Irisin draw themselves, which is where a package's changelog tab comes from. An https URL of the same form as depiction. Nothing is written without it.",
+          "type": "string",
+          "maxLength": 2048,
+          "pattern": "^https://[A-Za-z0-9][!-~]*$"
+        },
         "author": { "$ref": "#/$defs/singleLine" },
         "maintainer": { "$ref": "#/$defs/singleLine" },
         "section": {

@@ -2942,7 +2942,13 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
 - **The deb** is written by `DebPackageWriter`, never dpkg-deb: the logical
   layout through `PackageLayout`, `Depends` from `firmware (>= deployment
   target)`, `depends` and `dependsByBootstrap`, `Icon` after `Name` from
-  `package.icon` (an https URL, none without it), maintainer scripts with
+  `package.icon` (an https URL, none without it), then `Depiction` and
+  `SileoDepiction` from `package.depiction` and `package.sileoDepiction`
+  (owner, 2026-11-11, issue #44: https URLs of the icon's form, each
+  written only when the project has it, no template's; the first is the
+  web page, the second the native depiction JSON Sileo and Irisin draw,
+  where a changelog tab comes from. Apelin passes the addresses on and
+  hosts nothing), maintainer scripts with
   `@PREFIX@`/`@ROOTFS@` filled and `sh -n` passing, `control.tar.gz`
   (`controlCompression = .gzip`, which the host reads) and `data.tar.zst`. ApelinDebArchive brings
   `libarchive.xcframework` into apelin-build, reviewed in `Licenses/`.
@@ -3951,7 +3957,15 @@ force_with_lease, owner, 2026-10-31), and github.com through Sign In
 with GitHub. `apelin-package-repository` is the package
 repository (Distribution repository, below): its layout after
 owngoal-packages, the control fields a package needs, how Publish adds a
-release, and keeping old versions in check. `apelin-icli` (owner,
+release, and keeping old versions in check. `apelin-package-depiction`
+(owner, 2026-11-11, issue #44) is a package's page in a package manager:
+the `Depiction` and `SileoDepiction` control fields from
+`package.depiction` and `package.sileoDepiction`, added only with an
+address the user gave, where the files live (the package repository's
+`depictions/<package id>/`), and the native depiction's shape as Irisin's
+renderer reads it, with a page of two tabs, Details and Changelog, as its
+file `depiction.json`; a test holds that file to the views the skill names
+and that the prompt lists the skill without its body. `apelin-icli` (owner,
 2026-10-26) is running icli through shell_run: an argv, its help read
 first, Apelin's own tools where they exist, the commands its device
 acceptance ran as mobile, never its package, respring or uicache
