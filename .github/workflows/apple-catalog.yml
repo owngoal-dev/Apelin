@@ -1,0 +1,55 @@
+# Apple's catalog changes without notice: it dropped Command Line Tools 27.0
+# for 27.2 and users found out first. Every day this reads it against the
+# reviewed releases and files one issue when a reviewed package can no longer
+# be downloaded or a new release waits for a review.
+name: Apple Catalog
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  compare:
+    name: Compare with the reviewed releases
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Read Apple's catalog
+        id: catalog
+        shell: bash
+        run: |
+          set +e
+          python3 -I Scripts/check-apple-catalog.py . > report.md
+          status=$?
+          cat report.md
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          # Apple being out of reach is no finding, and a program error is
+          # not one to file: only 65 goes on to the issue.
+          [[ $status -eq 0 || $status -eq 65 ]]
+
+      - name: File what needs doing
+        if: steps.catalog.outputs.status == '65'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          title="Apple's Command Line Tools catalog changed"
+          open=$(gh issue list --state open --search "\"$title\" in:title" --json number --jq '.[0].number // empty')
+          if [[ -n $open ]]; then
+            gh issue edit "$open" --body-file report.md
+          else
+            gh issue create --title "$title" --body-file report.md
+          fi

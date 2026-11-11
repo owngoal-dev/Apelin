@@ -60,7 +60,7 @@ final class RepositoryManifest {
     /// when the project may take their ID and nothing else has it, else
     /// with the project's own ID (a fresh one for a project with none) put
     /// in its one quoted place.
-    @objc dynamic func settle(_ theirs: Data) throws -> Data {
+    func settle(_ theirs: Data) throws -> Data {
         guard let theirID = ProjectManifestIdentity.projectID(in: theirs) else {
             throw ApelinError(
                 .badRequest,

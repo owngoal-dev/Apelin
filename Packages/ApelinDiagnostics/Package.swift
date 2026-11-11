@@ -32,9 +32,9 @@ let package = Package(
         .library(name: "ApelinLogReaderWorker", targets: ["ApelinLogReaderWorker"]),
     ],
     dependencies: [
-        // owngoal-dev/icli, MIT. Pinned exactly: a new icli is a reviewed bump,
-        // not something resolution picks up.
-        .package(url: "https://github.com/owngoal-dev/icli.git", exact: "0.9.0"),
+        // owngoal-dev/icli, MIT. Any 1.x release; Package.resolved records the
+        // reviewed version.
+        .package(url: "https://github.com/owngoal-dev/icli.git", from: "1.0.0"),
         // Apelin's own wire and worker channel. System code only.
         .package(path: "../ApelinKit"),
     ],

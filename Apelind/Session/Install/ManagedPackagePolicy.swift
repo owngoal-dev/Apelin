@@ -182,7 +182,7 @@ enum ManagedPackagePolicy {
                 "Apelin did not install this package. Remove it with your preferred package manager.",
             )
         }
-        guard record.status == .installed, record.receipt?.state == "succeeded" else {
+        guard record.status == .installed, record.receipt?.isInstalled == true else {
             throw ApelinError(
                 .denied,
                 "This package is not installed, or it is still being installed or removed.",

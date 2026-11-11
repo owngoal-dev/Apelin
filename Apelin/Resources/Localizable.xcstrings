@@ -41451,6 +41451,842 @@
         }
       }
     },
+    "Sign-In Link" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "رابط تسجيل الدخول"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anmeldelink"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enlace de inicio de sesión"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lien de connexion"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Link di accesso"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サインインリンク"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "로그인 링크"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Link de início de sessão"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ссылка для входа"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Liên kết đăng nhập"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登录链接"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登入連結"
+          }
+        }
+      }
+    },
+    "Link Copied" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تم نسخ الرابط"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Link kopiert"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enlace copiado"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lien copié"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Link copiato"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リンクをコピーしました"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "링크 복사됨"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Link copiado"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ссылка скопирована"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đã sao chép liên kết"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "链接已拷贝"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "連結已拷貝"
+          }
+        }
+      }
+    },
+    "Copies the link." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ينسخ الرابط."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopiert den Link."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copia el enlace."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copie le lien."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copia il link."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リンクをコピーします。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "링크를 복사합니다."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copia o link."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Копирует ссылку."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sao chép liên kết."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "拷贝链接。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "拷貝連結。"
+          }
+        }
+      }
+    },
+    "If the page does not work on this device, open this link in a browser on another device and enter the code there." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "إذا لم تعمل الصفحة على هذا الجهاز، فافتح هذا الرابط في متصفح على جهاز آخر وأدخل الرمز هناك."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wenn die Seite auf diesem Gerät nicht funktioniert, öffne diesen Link in einem Browser auf einem anderen Gerät und gib den Code dort ein."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si la página no funciona en este dispositivo, abre este enlace en un navegador de otro dispositivo e introduce allí el código."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si la page ne fonctionne pas sur cet appareil, ouvrez ce lien dans un navigateur sur un autre appareil et saisissez-y le code."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se la pagina non funziona su questo dispositivo, apri questo link in un browser su un altro dispositivo e inserisci lì il codice."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このデバイスでページが正しく動作しない場合は、別のデバイスのブラウザでこのリンクを開き、そこでコードを入力してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 기기에서 페이지가 작동하지 않으면 다른 기기의 브라우저에서 이 링크를 열고 거기에 코드를 입력하세요."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se a página não funcionar neste dispositivo, abra este link em um navegador de outro dispositivo e digite o código lá."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Если страница не работает на этом устройстве, откройте эту ссылку в браузере на другом устройстве и введите код там."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nếu trang không hoạt động trên thiết bị này, hãy mở liên kết này trong trình duyệt trên thiết bị khác và nhập mã tại đó."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "如果页面在这台设备上无法使用，请在另一台设备的浏览器中打开此链接，并在那里输入验证码。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "如果頁面在此裝置上無法使用，請在另一台裝置的瀏覽器中打開此連結，並在那裡輸入驗證碼。"
+          }
+        }
+      }
+    },
+    "If the page does not work on this device, open this link in a browser on another device and sign in there." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "إذا لم تعمل الصفحة على هذا الجهاز، فافتح هذا الرابط في متصفح على جهاز آخر وسجّل الدخول هناك."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wenn die Seite auf diesem Gerät nicht funktioniert, öffne diesen Link in einem Browser auf einem anderen Gerät und melde dich dort an."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si la página no funciona en este dispositivo, abre este enlace en un navegador de otro dispositivo e inicia sesión allí."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si la page ne fonctionne pas sur cet appareil, ouvrez ce lien dans un navigateur sur un autre appareil et connectez-vous-y."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se la pagina non funziona su questo dispositivo, apri questo link in un browser su un altro dispositivo e accedi da lì."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このデバイスでページが正しく動作しない場合は、別のデバイスのブラウザでこのリンクを開き、そこでサインインしてください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 기기에서 페이지가 작동하지 않으면 다른 기기의 브라우저에서 이 링크를 열고 거기에서 로그인하세요."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se a página não funcionar neste dispositivo, abra este link em um navegador de outro dispositivo e inicie sessão lá."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Если страница не работает на этом устройстве, откройте эту ссылку в браузере на другом устройстве и войдите там."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nếu trang không hoạt động trên thiết bị này, hãy mở liên kết này trong trình duyệt trên thiết bị khác và đăng nhập tại đó."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "如果页面在这台设备上无法使用，请在另一台设备的浏览器中打开此链接，并在那里登录。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "如果頁面在此裝置上無法使用，請在另一台裝置的瀏覽器中打開此連結，並在那裡登入。"
+          }
+        }
+      }
+    },
+    "If the page does not work on this device, open this link in a browser on another device and sign in there. That browser ends on a page it cannot open. Copy that page’s address and paste it here." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "إذا لم تعمل الصفحة على هذا الجهاز، فافتح هذا الرابط في متصفح على جهاز آخر وسجّل الدخول هناك. سينتهي الأمر بذلك المتصفح إلى صفحة يتعذر عليه فتحها. انسخ عنوان تلك الصفحة والصقه هنا."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wenn die Seite auf diesem Gerät nicht funktioniert, öffne diesen Link in einem Browser auf einem anderen Gerät und melde dich dort an. Dieser Browser landet am Ende auf einer Seite, die er nicht öffnen kann. Kopiere die Adresse dieser Seite und setze sie hier ein."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si la página no funciona en este dispositivo, abre este enlace en un navegador de otro dispositivo e inicia sesión allí. Ese navegador termina en una página que no puede abrir. Copia la dirección de esa página y pégala aquí."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si la page ne fonctionne pas sur cet appareil, ouvrez ce lien dans un navigateur sur un autre appareil et connectez-vous-y. Ce navigateur aboutit à une page qu’il ne peut pas ouvrir. Copiez l’adresse de cette page et collez-la ici."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se la pagina non funziona su questo dispositivo, apri questo link in un browser su un altro dispositivo e accedi da lì. Quel browser arriva a una pagina che non riesce ad aprire. Copia l’indirizzo di quella pagina e incollalo qui."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このデバイスでページが正しく動作しない場合は、別のデバイスのブラウザでこのリンクを開き、そこでサインインしてください。そのブラウザは最後に開けないページに移動します。そのページのアドレスをコピーして、ここにペーストしてください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 기기에서 페이지가 작동하지 않으면 다른 기기의 브라우저에서 이 링크를 열고 거기에서 로그인하세요. 그 브라우저는 마지막에 열 수 없는 페이지로 이동합니다. 해당 페이지의 주소를 복사해 여기에 붙여넣으세요."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se a página não funcionar neste dispositivo, abra este link em um navegador de outro dispositivo e inicie sessão lá. Esse navegador termina em uma página que não consegue abrir. Copie o endereço dessa página e cole-o aqui."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Если страница не работает на этом устройстве, откройте эту ссылку в браузере на другом устройстве и войдите там. В конце этот браузер перейдёт на страницу, которую не сможет открыть. Скопируйте адрес этой страницы и вставьте его здесь."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nếu trang không hoạt động trên thiết bị này, hãy mở liên kết này trong trình duyệt trên thiết bị khác và đăng nhập tại đó. Sau đó, trình duyệt đó sẽ chuyển đến một trang không mở được. Hãy sao chép địa chỉ của trang đó và dán vào đây."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "如果页面在这台设备上无法使用，请在另一台设备的浏览器中打开此链接，并在那里登录。登录后，该浏览器会跳转到一个无法打开的页面。请拷贝该页面的地址，并粘贴到这里。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "如果頁面在此裝置上無法使用，請在另一台裝置的瀏覽器中打開此連結，並在那裡登入。登入後，該瀏覽器會跳轉到一個無法打開的頁面。請拷貝該頁面的位址，並貼到這裡。"
+          }
+        }
+      }
+    },
+    "Paste Redirect Address" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لصق عنوان إعادة التوجيه"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Weiterleitungsadresse einsetzen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pegar dirección de redirección"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coller l’adresse de redirection"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Incolla indirizzo di reindirizzamento"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リダイレクトアドレスをペースト"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "리디렉션 주소 붙여넣기"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Colar endereço de redirecionamento"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вставить адрес перенаправления"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dán địa chỉ chuyển hướng"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "粘贴重定向地址"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "貼上重新導向位址"
+          }
+        }
+      }
+    },
+    "Nothing to Paste" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لا يوجد ما يمكن لصقه"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nichts zum Einsetzen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nada que pegar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rien à coller"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niente da incollare"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ペーストできる内容がありません"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "붙여넣을 내용 없음"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nada para colar"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нечего вставлять"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Không có gì để dán"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有可粘贴的内容"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "沒有可貼上的內容"
+          }
+        }
+      }
+    },
+    "Copy the address of the page the other browser ended on, then try again." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "انسخ عنوان الصفحة التي انتهى إليها المتصفح الآخر، ثم حاول مرة أخرى."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopiere die Adresse der Seite, auf der der andere Browser gelandet ist, und versuche es dann erneut."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copia la dirección de la página en la que terminó el otro navegador y vuelve a intentarlo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copiez l’adresse de la page à laquelle l’autre navigateur a abouti, puis réessayez."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copia l’indirizzo della pagina a cui è arrivato l’altro browser, poi riprova."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "別のブラウザで最後に表示されたページのアドレスをコピーしてから、もう一度お試しください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "다른 브라우저가 마지막으로 이동한 페이지의 주소를 복사한 다음 다시 시도하세요."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copie o endereço da página em que o outro navegador terminou e tente novamente."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скопируйте адрес страницы, на которую в конце перешёл другой браузер, и повторите попытку."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hãy sao chép địa chỉ của trang cuối cùng mà trình duyệt kia chuyển đến, rồi thử lại."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请先拷贝另一个浏览器最后跳转到的页面地址，然后重试。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請先拷貝另一個瀏覽器最後跳轉到的頁面位址，然後再試一次。"
+          }
+        }
+      }
+    },
+    "Address Not Accepted" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لم يُقبل العنوان"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adresse nicht akzeptiert"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dirección no aceptada"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adresse non acceptée"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indirizzo non accettato"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アドレスを受け付けられません"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "사용할 수 없는 주소"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Endereço não aceito"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Адрес не принят"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Địa chỉ không được chấp nhận"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法使用此地址"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法使用此位址"
+          }
+        }
+      }
+    },
+    "This is not the address the other browser ended on after sign-in. Copy the full address from its address bar and paste it again." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "هذا ليس العنوان الذي انتهى إليه المتصفح الآخر بعد تسجيل الدخول. انسخ العنوان كاملًا من شريط العناوين فيه والصقه مرة أخرى."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das ist nicht die Adresse, auf der der andere Browser nach der Anmeldung gelandet ist. Kopiere die vollständige Adresse aus seiner Adressleiste und setze sie erneut ein."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta no es la dirección en la que terminó el otro navegador tras iniciar sesión. Copia la dirección completa de su barra de direcciones y pégala de nuevo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce n’est pas l’adresse à laquelle l’autre navigateur a abouti après la connexion. Copiez l’adresse complète depuis sa barre d’adresse et collez-la à nouveau."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo non è l’indirizzo a cui è arrivato l’altro browser dopo l’accesso. Copia l’indirizzo completo dalla sua barra degli indirizzi e incollalo di nuovo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "これは、サインイン後に別のブラウザで最後に表示されたアドレスではありません。そのブラウザのアドレスバーからアドレス全体をコピーして、もう一度ペーストしてください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "로그인 후 다른 브라우저가 마지막으로 이동한 주소가 아닙니다. 해당 브라우저의 주소 표시줄에서 전체 주소를 복사해 다시 붙여넣으세요."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este não é o endereço em que o outro navegador terminou após o início de sessão. Copie o endereço completo da barra de endereços dele e cole-o novamente."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Это не тот адрес, на который другой браузер перешёл после входа. Скопируйте полный адрес из его адресной строки и вставьте ещё раз."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đây không phải là địa chỉ mà trình duyệt kia chuyển đến sau khi đăng nhập. Hãy sao chép toàn bộ địa chỉ từ thanh địa chỉ của trình duyệt đó và dán lại."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这不是另一个浏览器登录后最后跳转到的地址。请从该浏览器的地址栏拷贝完整地址，然后重新粘贴。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這不是另一個瀏覽器登入後最後跳轉到的位址。請從該瀏覽器的網址列拷貝完整位址，然後重新貼上。"
+          }
+        }
+      }
+    },
     "Collapse" : {
       "localizations" : {
         "ar" : {

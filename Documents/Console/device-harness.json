@@ -139,7 +139,12 @@
       "before": [{"removeProject": "T4 Swift App"}],
       "after": [{"removeProject": "T4 Swift App"}],
       "timeout": 3600,
-      "manual": "sets up a second 27.0 toolchain, with Swift, beside the registered one (about 480 MB installed); remove it with toolchainRemove afterwards"
+      "manual": "sets up 27.2, with Swift, beside the registered toolchain (about 480 MB installed); remove it with toolchainRemove afterwards"
+    },
+    "t6-toolchain-beside": {
+      "needs": ["installed-toolchain", "package:wiki.qaq.irisin>=4.7.3"],
+      "timeout": 1800,
+      "note": "a whole setup on a device that already has a toolchain, which t1 skips: download, extract, retarget, package, install, self-test and removal of CLT 14.2, and its SDK fetched when none fits"
     },
     "t3-toolchain-side-by-side": {
       "needs": ["installed-toolchain", "package:wiki.qaq.irisin>=4.7.3"],
@@ -172,13 +177,13 @@
     "environment": ["i2-sdk-import", "environment", "r1-resume-sdk-import"],
     "chain": ["t1-toolchain-setup", "i3-chain", "project-build-install"],
     "resume": ["resume", "r1-resume-build", "r1-resume-sdk-import"],
-    "toolchain": ["t2-toolchain-remove", "r2-resume-toolchain"],
+    "toolchain": ["t6-toolchain-beside", "t2-toolchain-remove", "r2-resume-toolchain"],
     "transfer": ["transfer", "transfer-project"],
     "regression": [
       "hello", "terminal", "logs", "diagnostics", "i3-image-check-refused", "i1-smoke",
       "i5-log-continuity", "tool-host", "i6-tool-attachments", "i2-git", "i2-git-commit", "i2-git-remote",
       "distribution", "i2-sdk-import", "environment", "transfer", "t1-toolchain-setup", "files", "i3-chain", "project-build-install",
-      "transfer-project", "resume", "r1-resume-build", "r1-resume-sdk-import", "t2-toolchain-remove", "r2-resume-toolchain",
+      "transfer-project", "resume", "r1-resume-build", "r1-resume-sdk-import", "t6-toolchain-beside", "t2-toolchain-remove", "r2-resume-toolchain",
       "accounts"
     ]
   }

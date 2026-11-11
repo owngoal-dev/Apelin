@@ -753,7 +753,7 @@ final class ChatRuntime {
         retryUnsaved()
     }
 
-    @objc dynamic private func imageMIME(_ data: Data) -> String {
+    private func imageMIME(_ data: Data) -> String {
         data.starts(with: [0x89, 0x50, 0x4E, 0x47]) ? "image/png" : "image/jpeg"
     }
 }

@@ -1,5 +1,5 @@
-# Pushes and pull requests: test on the host, and in parallel
-# build and package the IDE and every extension (the four development
+# Pushes and pull requests: test on the host and on an old iOS runtime, and in
+# parallel build and package the IDE and every extension (the four development
 # extensions, the agent tool extensions and the GPL assembler's
 # corresponding-source archive), keeping them for thirty days. Nothing is
 # published from here: a tag publishes, through `release.yml`, the
@@ -54,6 +54,44 @@ jobs:
 
       - name: Run host tests
         run: make harness SWIFTPM_SCRATCH="$RUNNER_TEMP/apelin-spm"
+
+  # The vphones run iOS 26 and 27, where `Data` through an @objc thunk costs
+  # nothing; on an older Foundation unpacking a toolchain ran out of memory.
+  # The runtime is kept between runs: its first download is 5.4 GB.
+  old-runtime:
+    name: Old iOS runtime
+    runs-on: xcode-27
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Select Xcode 27.1
+        run: |
+          sudo xcode-select -s /Applications/Xcode_27.1.app/Contents/Developer
+          xcodebuild -version
+
+      - name: Restore the runtime
+        id: runtime
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/Library/Caches/apelin-old-runtime
+          key: apelin-old-runtime-ios15.5-${{ hashFiles('Scripts/old-runtime/runtime-root.py') }}
+
+      - name: Run the checks
+        run: make old-runtime
+
+      # Kept whatever the checks said: a failing commit's retry should not
+      # download 5.4 GB again.
+      - name: Keep the runtime
+        if: always() && steps.runtime.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/Library/Caches/apelin-old-runtime
+          key: ${{ steps.runtime.outputs.cache-primary-key }}
 
   build:
     name: Build and verify Debian packages

@@ -135,6 +135,21 @@ Each was fixed with a test before the results above.
    `toolchainRemove` refused them forever ("no longer installed"), since
    the folder still existed. A tree with no regular file left now counts
    as gone in both (`ToolchainService.exists`), so the record is dropped.
+10. Users reported that 0.3.6 and 0.3.7 could not unpack a toolchain, and no
+    vphone showed it: on the iOS 26.4 iPhone and iPad vphones 0.3.6 and 0.3.7
+    set up 16.4, 15.3, 15.0 and 14.2 from the console and from the Settings
+    page, a fresh iPad included, and a worker paused for 100 s while it
+    unpacked went on. The reader's `Data` crossing `@objc dynamic` thunks stays
+    in the autorelease pool on an older Foundation: 2.4 GB for CLT 27.0 and
+    5.5 GB for 16.4 on the iOS 15.5 runtime, 102 and 104 MB with the members
+    plain, and nothing on the iOS 26.4 vphone (AGENTS.md ▸ Gotchas;
+    `make old-runtime`). The same day Apple's catalog turned out to have
+    dropped 27.0 for 27.2, which left 16.4, the largest package, at the top
+    of the list; reviewed releases now keep their own address. Build 280 of
+    that fix, roothide: smoke and a whole 27.0 setup with Swift, through the
+    recorded address, on the iOS 26.4 and 27.0.1 iPhone vphones and the iOS
+    26.4 iPad vphone; `t6-toolchain-beside` on both iPhones; and the first
+    setup of a device with no toolchain or SDK on the iPad, which picked 27.0.
 
 ## The image list is never read: three kernel panics
 
@@ -183,6 +198,13 @@ console now goes on after a restart only past a successful respring.
 
 ## Still to run on the owner's devices
 
+- [ ] A toolchain unpacked on a real device (2026-11-06, Bugs ▸ 10). The fix
+      was measured on the iOS 15.5 runtime and run on iOS 26 and 27 vphones;
+      no iOS 16, 17 or 18 Foundation has run it, and which of them holds the
+      bytes is not known. On the iPhone 15 Pro on iOS 17.3.1, or better an
+      iOS 16 device: Settings ▸ Toolchains ▸ From Apple… ▸ 16.4, the largest
+      package, reaches Toolchain Ready, and the staging folder holds no
+      leftover `extracted`.
 - [ ] roothide Bootstrap (2026-11-04, issue #35, AGENTS.md ▸ Toolchains;
       the Mac harness ran, and a roothide vphone with Bootstrap's mark
       written into its root by hand, which runs ad hoc code, showed the
@@ -1414,6 +1436,40 @@ the arm64 and arm64e Swift cases, each a cold build of the SDK's modules,
 side by side; both are left for a measurement of memory first), and the
 retarget itself (1–3 s).
 
+## CLT 27.2 (2026-11-06)
+
+Apple's catalog replaced 27.0 with 27.2 (`142-50405`,
+`27.2.0.0.1792721180`, posted 2026-10-29). Against 27.0 on the Mac, without
+running a host tool: the same 51 host images and system libraries, and four
+new `libobjc` and four new `libswiftCore` imports, all in the Swift tools, which
+resolved on both systems below; the
+zippered availability check and `__libcpp_verbose_abort` still imported, so
+27.0's rename and C++ requirement carry over; `eor3` 97, `udot` 4729, `sdot` 5
+(swift-frontend only, which needs DotProd anyway) and clang's and libLTO's
+counts as they were; the A13 decoder takes every word and, unlike 27.0's, the
+reference decoder too (`compatibility-audit.json`).
+
+Through the product path, build 281, roothide, with nothing changed but the
+release's row: the iOS 26.4 iPhone vphone ran `t4-toolchain-swift` (ten
+self-test cases against SDK 27.0, the `uikit-swift` app built debug and
+release, installed and removed), the same ten against SDK 27.1 by
+`toolchainSelfTest`, and the six C cases against SDK 26.4 on a setup without
+Swift. The iOS 27.0.1 iPhone vphone ran smoke, `t6-toolchain-beside` and
+`t4-toolchain-swift`, and the iOS 26.4 iPad vphone, with no toolchain or SDK,
+picked 27.2 by itself and set it up with Swift, its SDK fetched.
+
+No problem was found, so nothing else changed. Not run: 27.2 on a real
+device, or on an A12, where as with 27.0 the C family should work without
+Clang modules and Swift is refused.
+
+CI's own packages before their tags: 0.3.8 (31) on the iOS 26.4 iPhone
+vphone, smoke and 27.0 with Swift through its recorded address; 0.3.9 (32) on
+the iOS 27.0.1 iPhone vphone, smoke, the catalog, `t6-toolchain-beside` and
+`t4-toolchain-swift`; 0.4.0 (33, kwwk 0.1.112) on the iOS 26.4 iPhone vphone,
+smoke, the catalog and a real agent turn that called shell_run. A conversation
+holding a tool call with no name has not run on a device; kwwk's own tests
+cover it.
+
 ## Kept releases and their Swift (2026-10-21)
 
 The owner kept 27.0, 16.4, 15.3, 15.0 and 14.2 and dropped 16.2, 14.3,
@@ -1428,6 +1484,7 @@ Which Swift each kept package ships, read from Apple's own payload
 
 | CLT | Swift | swift-frontend built for | Imports macOS's zippered `_stdlib_isOSVersionAtLeastOrVariantVersion` | SHA3 / DotProd in swift-frontend |
 |---|---|---|---|---|
+| 27.2 | 6.4.2 (swiftlang-6.4.2.1.9) | not read | swift-driver, two SwiftSyntax libraries | yes / yes |
 | 27.0 | 6.4 (swiftlang-6.4.0.34.1) | macOS 14.0, SDK 16.0 | swift-driver, two SwiftSyntax libraries | yes / yes |
 | 16.4 | 6.1.2 (swiftlang-6.1.2.1.2) | macOS 14.0, SDK 15.4 | swift-driver, two SwiftSyntax libraries | 5 eor3 (4 in XXH3, 1 symbol graph) / 3,754 udot |
 | 15.3 | 5.10 (swiftlang-5.10.0.13) | macOS 13.0, SDK 14.4 | none | 2 eor3 (BLAKE3 hash_many, symbol graph) / none |
@@ -2875,3 +2932,106 @@ The release commit `108ba4d` built on the Mac (roothide, build 274), over
 
 No Google account has signed in: the Antigravity entry under Still to run
 stands.
+
+## A sign-in link, an install Irisin lost and kwwk 0.1.117 (2026-11-11, 0.4.1)
+
+The branch built on the Mac (roothide), over 0.4.0 on the iOS 26.4 iPhone
+vphone and over 0.3.8 on the iOS 26.4 iPad vphone: builds 295 and 297
+while the page was looked at, then build 298 of `d578e69`, which differs
+from 297 by one line that drew nothing. Both vphones were driven from
+their hosts, which have no Python and, one of them, no `sshpass`. This
+round `Scripts/device.py` itself ran there, with a standalone Python
+beside it, a stand-in for `sshpass` that answers through ssh's askpass
+hook, and one for `vphone-launchpad-cli` that answers its three calls from
+the machine's socket, so every script had its setup, checks and cleanup.
+
+- Issue #49, on both, builds 297 and 298: Settings ▸ Model Providers ▸
+  Claude Code shows Sign-In Link with `claude.ai` under it, the line about
+  another device and the redirect, and Paste Redirect Address: while it
+  waits with the bar's spinner, behind the system's sign-in prompt, and
+  with Continue once the prompt is declined. A tap on the plate put the
+  whole `https://claude.ai/oauth/authorize?…` address on the guest's
+  clipboard, said Link Copied and showed the tick. With the clipboard
+  empty, Paste Redirect Address said Nothing to Paste; with an address
+  that is no redirect on it, after iOS's own "would like to paste" prompt,
+  Address Not Accepted, and the page went on waiting with Continue. An
+  address with a code and the wrong state was taken and ended the sign-in
+  "Sign-In Failed, OAuth invalid response: anthropic OAuth state mismatch",
+  with Try Again. GitHub Copilot's page shows its code, then the plate
+  with `github.com` and "enter the code there", and no paste button. Dark
+  appearance on both, and the accessibility text size L on the iPhone: the
+  plate, the line and the buttons grow with the text, the page scrolls to
+  Continue, and Paste Redirect Address wraps to two lines.
+  Not run: iOS 16, which no vphone has, so that claude.ai refuses its
+  WebKit is the reporter's word; a sign-in finished from another device,
+  for want of a Claude account; and a page that returns to this device and
+  takes no pasted address (Kiro), which only `SignInElsewhereCheck` covers.
+- Issue #45's evidence, on both (Irisin 5.1.7 on the iPhone, 5.1.6 on the
+  iPad): the fixture package installed three times running with
+  `irisin-cli install --yes`, the second and third the version already
+  installed. `var/lib/dpkg/info/<package>.list` was a new file each time,
+  another inode with that install's time, so a list written since the
+  installation was recorded does say this install went through. The lost
+  transaction itself was not reproduced on a device: irisind called every
+  install here a success, `i3-chain`'s among them, and only the session
+  host's tests, against a fake irisind, take the new path.
+- kwwk 0.1.117: a message to the iPhone's OpenAI-compatible sign-in
+  (deepseek-v4-pro) was answered, on builds 297 and 298. No Claude,
+  Antigravity, Kiro or OpenRouter account is signed in on a vphone, so the
+  new catalog entries, the Claude Code client version, Kiro's region check
+  and OpenRouter's billed cost did not run.
+- The smoke suite (build 295): all seven on the iPhone. On the iPad `files`
+  was skipped (no tweak extension, toolchain or SDK), and `diagnostics`
+  failed once, its UI tree read right after the wake answering "AX element
+  query failed (-25215)", and passed when run again.
+- The regression suite, with the same result on builds 295, 297 and 298.
+  iPhone: 24 passed, `i3-chain` and `accounts` among them;
+  `t1-toolchain-setup` and `r2-resume-toolchain` were skipped (a toolchain
+  is registered) and `transfer-project` too (its project is the one
+  `i3-chain`'s cleanup removes); `t2-toolchain-remove` failed, refused
+  with `conflict` because the vphone's one registered toolchain is bound
+  by the projects earlier rounds left there. iPad: 12 passed and 15 were
+  skipped for want of an SDK, a toolchain or the extensions;
+  `i2-git-commit` failed at its one-commit squash preview, which answered
+  `badRequest`, "Set an author name and email in Settings ▸ Git", where
+  the script expects `conflict`. That vphone has no git author: with one
+  set the script passed, and the author was cleared again. The script
+  assumes an author its entry in `device-harness.json` does not ask for.
+
+## 0.4.2 release smoke (2026-11-11, CI build 140 of `bc0c800`)
+
+CI's roothide package of the release commit, before the tag, over build
+298 on the iOS 26.4 iPad vphone: it installed as 0.4.2 (140), the app and
+the daemon came up, and the smoke suite passed (`hello`, `terminal`,
+`logs`, `diagnostics`, `i3-image-check-refused`, `i1-smoke`), with `files`
+skipped for want of a tweak extension, toolchain or SDK. The release's
+`SHA256SUMS` names that same file.
+
+The iOS 26.4 iPhone vphone did not get it: its host runs one guest at a
+time, and another task had taken the slot by then. It ran the round above
+on build 298, the same code under the earlier version number.
+
+## A package's depictions and their skill (2026-11-11, build 304)
+
+The code of `49ab2f8` built on the Mac (roothide, 0.4.2), over build 298
+on the iOS 26.4 iPhone vphone, issue #44:
+
+- The smoke suite passed, all seven.
+- A project made from the tweak template, given `package.depiction` and
+  `package.sileoDepiction`, passed `projectCheck` and a release
+  `buildStart`. `dpkg-deb -f` on the guest read the package's control:
+  `Icon`, then `Depiction` and `SileoDepiction` with the two addresses, as
+  written. The project, its build and its record were removed afterwards.
+- The skill, in a new General Chat (Strict, deepseek-v4-pro), asked only
+  how to give a tweak's page in a package manager a changelog tab and to
+  read the skill that covers it: the model called `apelin_skill_read` with
+  `apelin-package-depiction`, found by its description in the prompt's
+  list (the chat's journal has the call, 3,672 bytes in 78 lines), and
+  answered the skill's name, its file `depiction.json` and the two
+  members.
+
+Not run: a depiction served from a real address and drawn by Irisin or
+Sileo for a package built here (the addresses above are placeholders that
+answer nothing), the Strict install card after a member is added, and
+anything on the iPad vphone, which has no toolchain, SDK or signed-in
+provider.

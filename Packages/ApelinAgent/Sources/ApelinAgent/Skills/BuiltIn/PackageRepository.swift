@@ -24,7 +24,9 @@ extension BuiltInSkills {
           web depiction), `depiction.json` (the native depiction Irisin shows),
           `icon.png` and `banner.png`. Pages serves them at
           `<source>/depictions/<package id>/…`, the addresses a package's
-          `Depiction`, `SileoDepiction` and `Icon` fields name.
+          `Depiction`, `SileoDepiction` and `Icon` fields name: in a project,
+          `package.depiction`, `package.sileoDepiction` and `package.icon`
+          (the apelin-package-depiction skill).
         - `index.html`: the source's home page; `CydiaIcon.png`: its icon.
         - `sileo-featured.json`: the banners Irisin shows at the top of the
           source, each naming a package and an image under `depictions/`.

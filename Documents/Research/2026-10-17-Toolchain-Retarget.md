@@ -532,7 +532,7 @@ remain local, outside version control.
 
 ### Static inventory of all offered Apple products
 
-These 11 exact source packages were inspected on the Mac without executing
+These 12 exact source packages were inspected on the Mac without executing
 their host tools. The compact, hashed record is
 [`compatibility-audit.json`](../../Packages/ApelinToolchain/Tests/ApelinToolchainTests/Fixtures/compatibility-audit.json).
 Counts include repeated files when the installed tree contains aliases.
@@ -550,6 +550,7 @@ Counts include repeated files when the installed tree contains aliases.
 | 16.2 | 072-44426 | 34 | 20873 | 86 | 0 | 7733 |
 | 16.4 | 082-41241 | 48 | 20761 | 86 | 3772 | 9130 |
 | 27.0 | 082-83364 | 51 | 11914 | 98 | 3760 | 4680 |
+| 27.2 | 142-50405 | 51 | 11882 | 97 | 4734 | 0 |
 
 Every instruction that the reference decoder classified was also accepted
 by the A13 decoder. A12 rejects the recorded SHA3/DotProd instructions. The

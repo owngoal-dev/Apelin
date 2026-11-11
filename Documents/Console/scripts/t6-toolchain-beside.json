@@ -1,0 +1,23 @@
+{
+  "name": "t6-toolchain-beside",
+  "steps": [
+    {"op": "hello"},
+    {"op": "toolchainStatus", "label": "before"},
+    {"op": "expect", "request": {"step": "before", "path": "response.toolchains.0.id", "exists": true}},
+    {"op": "expect", "request": {"step": "before", "path": "response.toolchains.1", "exists": false}},
+    {"op": "toolchainCatalog", "label": "catalog"},
+    {"op": "expect", "request": {"step": "catalog", "path": "response.products.0.version", "equals": "27.2"}},
+    {"op": "expect", "request": {"step": "catalog", "path": "response.products.1.version", "equals": "27.0"}},
+    {"op": "expect", "request": {"step": "catalog", "path": "response.products.5.version", "equals": "14.2"}},
+    {"op": "toolchainSetup", "request": {"source": {"appleCatalog": {"productID": "012-92431"}}, "components": ["c"]}, "label": "setup", "timeoutSeconds": 1800},
+    {"op": "expect", "request": {"step": "setup", "state": "succeeded"}},
+    {"op": "toolchainStatus", "label": "both"},
+    {"op": "expect", "request": {"step": "both", "path": "response.toolchains.1.version", "equals": "14.2"}},
+    {"op": "expect", "request": {"step": "both", "path": "response.toolchains.1.selfTests.0.passed", "equals": true}},
+    {"op": "expect", "request": {"step": "both", "path": "response.defaultID", "equals": "${before.response.defaultID}"}},
+    {"op": "toolchainRemove", "request": {"id": "${both.response.toolchains.1.id}"}, "label": "remove", "timeoutSeconds": 600},
+    {"op": "expect", "request": {"step": "remove", "state": "succeeded"}},
+    {"op": "toolchainStatus", "label": "after"},
+    {"op": "expect", "request": {"step": "after", "path": "response.toolchains.1", "exists": false}}
+  ]
+}

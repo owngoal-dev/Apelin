@@ -76,7 +76,7 @@ struct SupportTests {
     }
 
     @Test func `newer base tools check the actual runtime instead of guessing an OS version`() throws {
-        for version in ["16.4", "27.0"] {
+        for version in ["16.4", "27.0", "27.2"] {
             let compatibility = try #require(CommandLineToolsSupport.release(version)?.compatibility)
             #expect(compatibility.refusal(hostVersion: "16.2", hasFeature: { _ in true }, hasLibcxxSymbol: { _ in false })?.contains("C++ runtime") == true)
             #expect(compatibility.refusal(hostVersion: "16.2", hasFeature: { _ in true }, hasLibcxxSymbol: { _ in true }) == nil)
@@ -85,16 +85,16 @@ struct SupportTests {
         #expect(older.refusal(hostVersion: "16.2", hasFeature: { _ in true }, hasLibcxxSymbol: { _ in false }) == nil)
     }
 
-    /// The owner's set (2026-10-21): 27.0, 16.4, 15.3, 15.0 and 14.2. The
+    /// The owner's set (2026-10-21, 27.2 since 2026-11-06): 27.2, 27.0, 16.4, 15.3, 15.0 and 14.2. The
     /// dropped releases are still in Apple's catalog and are refused by name,
     /// with the reason, before anything downloads.
     @Test func `only the kept releases are set up`() throws {
-        #expect(CommandLineToolsSupport.releases.map(\.version) == ["27.0", "16.4", "15.3", "15.0", "14.2"])
+        #expect(CommandLineToolsSupport.releases.map(\.version) == ["27.2", "27.0", "16.4", "15.3", "15.0", "14.2"])
         for version in ["16.2", "14.3", "13.4", "13.2", "12.5", "12.4"] {
             #expect(CommandLineToolsSupport.release(version) == nil)
             let message = try #require(CommandLineToolsSupport.refusal(for: version, productID: "072-44426"))
             #expect(message.contains("Command Line Tools \(version) cannot be set up"))
-            #expect(message.contains("Pick one of 27.0, 16.4, 15.3, 15.0, 14.2."))
+            #expect(message.contains("Pick one of 27.2, 27.0, 16.4, 15.3, 15.0, 14.2."))
         }
     }
 
@@ -118,6 +118,9 @@ struct SupportTests {
         ("15.0", "17.3.1", ["FEAT_LRCPC", "FEAT_SHA3"], true),
         ("27.0", "17.3.1", ["FEAT_LRCPC", "FEAT_SHA3", "FEAT_DotProd"], false),
         ("27.0", "26.0.1", ["FEAT_LRCPC", "FEAT_SHA3", "FEAT_DotProd"], true),
+        ("27.2", "17.3.1", ["FEAT_LRCPC", "FEAT_SHA3", "FEAT_DotProd"], false),
+        ("27.2", "26.0.1", ["FEAT_LRCPC", "FEAT_SHA3"], false),
+        ("27.2", "26.0.1", ["FEAT_LRCPC", "FEAT_SHA3", "FEAT_DotProd"], true),
     ])
     func `swift requirements follow the release`(version: String, host: String, features: [String], allowed: Bool) throws {
         let support = try #require(CommandLineToolsSupport.release(version)?.swiftSupport)
@@ -305,7 +308,7 @@ struct SupportTests {
     }
 
     @Test func `swift is reviewed for known releases`() {
-        #expect(CommandLineToolsSupport.releases.filter(\.swift).map(\.version) == ["27.0", "15.3", "15.0", "14.2"])
+        #expect(CommandLineToolsSupport.releases.filter(\.swift).map(\.version) == ["27.2", "27.0", "15.3", "15.0", "14.2"])
         // 16.4 ships Swift 6.1.2 and says why it does not offer it.
         #expect(CommandLineToolsSupport.release("16.4")?.swiftUnavailable?.contains("iOS 26") == true)
         for (old, new) in CommandLineToolsSupport.swiftImportRenames {
@@ -324,5 +327,58 @@ struct SupportTests {
             .map { try (MachOImage.name($0), $0.kind) })
         #expect(kinds["/var/jb/usr/lib/libfixturedep.dylib"] == 0x8000_0018)
         #expect(kinds["/usr/lib/libSystem.B.dylib"] == 0xC)
+    }
+}
+
+/// A reviewed release stays reachable when Apple's catalog stops naming it,
+/// as 27.0 did once 27.2 came out, while the file was still being served.
+struct ReviewedPackageTests {
+    private func listed(_ productID: String, _ version: String) throws -> ToolchainSource {
+        try ToolchainSource(
+            productID: productID,
+            version: version,
+            url: #require(URL(string: "https://swcdn.apple.com/catalog/\(productID)/CLTools_Executables.pkg")),
+            size: 1,
+        )
+    }
+
+    @Test func `every reviewed release knows where its package is`() throws {
+        for release in CommandLineToolsSupport.releases {
+            #expect(!release.packages.isEmpty, "\(release.version) has no package")
+            for package in release.packages {
+                let source = try #require(package.source(version: release.version))
+                #expect(source.url.scheme == "https")
+                #expect(source.url.host?.hasSuffix(".apple.com") == true)
+                #expect(source.url.path.hasSuffix("/CLTools_Executables.pkg"))
+                #expect(source.url.path.contains(package.productID))
+                #expect(source.size > 0)
+                #expect(package.sha256.count == 64)
+                #expect(package.upstreamDigest.count == 40)
+                #expect(source.upstreamDigestAlgorithm == "xar-toc-sha1")
+                #expect(release.sources[package.productID] == package.sha256)
+            }
+        }
+    }
+
+    @Test func `a release Apple stopped listing is still offered`() throws {
+        let newer = try listed("199-00000", "27.3")
+        let catalog = try CommandLineToolsSupport.catalog(adding: [listed("082-41241", "16.4"), newer])
+        #expect(catalog.map(\.version) == ["27.3", "27.2", "27.0", "16.4", "15.3", "15.0", "14.2"])
+        let kept = try #require(catalog.first { $0.productID == "082-83364" })
+        #expect(kept.url.absoluteString.hasPrefix("https://swcdn.apple.com/content/downloads/58/48/082-83364-"))
+        #expect(CommandLineToolsSupport.refusal(for: kept.version, productID: kept.productID) == nil)
+        #expect(CommandLineToolsSupport.refusal(for: newer.version, productID: newer.productID) != nil)
+    }
+
+    @Test func `the catalog's own address wins`() throws {
+        let moved = try listed("082-83364", "27.0")
+        let catalog = CommandLineToolsSupport.catalog(adding: [moved])
+        #expect(catalog.count(where: { $0.productID == moved.productID }) == 1)
+        #expect(catalog.first { $0.productID == moved.productID } == moved)
+    }
+
+    @Test func `a package that names no version sorts last`() throws {
+        let unknown = try listed("001-00000", CommandLineToolsSupport.unknownVersion)
+        #expect(CommandLineToolsSupport.catalog(adding: [unknown]).last == unknown)
     }
 }

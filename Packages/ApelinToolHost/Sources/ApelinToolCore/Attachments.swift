@@ -58,7 +58,7 @@ public final class ToolReceivedAttachment: @unchecked Sendable {
 
     /// The whole file, read from offset zero; refuses a file larger than
     /// `limit`.
-    @objc public dynamic func readAll(limit: Int = .max) throws -> Data {
+    public func readAll(limit: Int = .max) throws -> Data {
         guard byteCount <= limit else {
             throw ToolAttachmentError.rejected("attachment is \(byteCount) bytes, over \(limit)")
         }

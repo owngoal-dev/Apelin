@@ -56,6 +56,35 @@ public struct SwiftToolchainSupport: Codable, Sendable, Equatable {
     }
 }
 
+/// One package as it was reviewed: the bytes setup accepts and where Apple
+/// serves them. Apple's catalog names only what it offers today (it replaced
+/// 27.0 with 27.2 in 2026-11 and went on serving 27.0's file), so a reviewed
+/// release takes its address from here when the catalog no longer lists it.
+public struct CommandLineToolsPackage: Sendable, Equatable {
+    public let productID: String
+    /// SHA-256 of the whole package. Setup refuses any other bytes.
+    public let sha256: String
+    let url: String
+    let size: Int64
+    /// SHA-1 of the package's table of contents, which Apple's catalog
+    /// calls its digest.
+    let upstreamDigest: String
+
+    /// The package as a catalog entry.
+    func source(version: String) -> ToolchainSource? {
+        URL(string: url).map {
+            ToolchainSource(
+                productID: productID,
+                version: version,
+                url: $0,
+                size: size,
+                upstreamDigest: upstreamDigest,
+                upstreamDigestAlgorithm: "xar-toc-sha1",
+            )
+        }
+    }
+}
+
 /// One Command Line Tools release the retarget was reviewed against: its package
 /// layout, what its tools load, and the SDKs its linker reads. A release is listed
 /// here only after its setup and the C, C++ and Objective-C self-test passed on a
@@ -90,7 +119,12 @@ public struct CommandLineToolsRelease: Sendable, Equatable {
     public let verifiedSDKs: [String]
     /// The SDKs its Swift self-test passed against; none without Swift.
     let verifiedSwiftSDKs: [String]
-    public let sources: [String: String]
+    public let packages: [CommandLineToolsPackage]
+    /// Each reviewed package's SHA-256, by product.
+    public var sources: [String: String] {
+        Dictionary(uniqueKeysWithValues: packages.map { ($0.productID, $0.sha256) })
+    }
+
     public var sourceProductIDs: [String] {
         sources.keys.sorted()
     }
@@ -111,7 +145,7 @@ public struct CommandLineToolsRelease: Sendable, Equatable {
         recommendedSDK: String? = nil,
         verifiedSDKs: [String] = [],
         verifiedSwiftSDKs: [String]? = nil,
-        sources: [String: String] = [:],
+        packages: [CommandLineToolsPackage] = [],
         staticInstructionFeatures: [String] = [],
         requiredLibcxxSymbols: [String] = [],
         systemSymbolSDK: String? = nil,
@@ -127,7 +161,7 @@ public struct CommandLineToolsRelease: Sendable, Equatable {
         self.recommendedSDK = recommendedSDK ?? newestSDK
         self.verifiedSDKs = verifiedSDKs
         self.verifiedSwiftSDKs = swift == nil ? [] : verifiedSwiftSDKs ?? [self.recommendedSDK]
-        self.sources = sources
+        self.packages = packages
         self.staticInstructionFeatures = staticInstructionFeatures
         self.requiredLibcxxSymbols = requiredLibcxxSymbols
         self.systemSymbolSDK = systemSymbolSDK
@@ -169,7 +203,7 @@ public enum CommandLineToolsSupport {
     /// the running iOS. From iOS 26 the numbering is shared (macOS 26.x is
     /// iOS 26.x), and every macOS version before 26 is older than any iOS 26
     /// on both scales, so the answer is the same for every argument on an
-    /// iOS 26 or later host. Only CLT 27.0 uses this rename.
+    /// iOS 26 or later host. Only CLT 27.0 and 27.2 use this rename.
     public static let swiftImportRenames: [String: String] = [
         "_$ss042_stdlib_isOSVersionAtLeastOrVariantVersiondE0yBi1_Bw_BwBwBwBwBwtF":
             "_$ss26_stdlib_isOSVersionAtLeastyBi1_Bw_BwBwtF",
@@ -178,6 +212,30 @@ public enum CommandLineToolsSupport {
     /// The reviewed releases, newest first.
     /// See `Documents/Research/2026-10-17-Toolchain-Retarget.md` ▸ Other releases.
     public static let releases: [CommandLineToolsRelease] = [
+        .init(
+            version: "27.2",
+            newestSDK: "27",
+            swift: .init(
+                version: "6.4.2",
+                minimumHost: "26.0",
+                cpuFeatures: ["FEAT_LRCPC", "FEAT_SHA3", "FEAT_DotProd"],
+                minimumHostBasis: "runtime-semantics",
+                verifiedHosts: ["26.4", "27.0.1"],
+            ),
+            swiftImportRenames: swiftImportRenames,
+            recommendedSDK: "27.0",
+            verifiedSDKs: ["26.4", "27.0", "27.1"],
+            verifiedSwiftSDKs: ["27.0", "27.1"],
+            packages: [.init(
+                productID: "142-50405",
+                sha256: "fd76ca5e74717a4640c38422199216a1b6c60f7bf740c19254afdf793d3f4a47",
+                url: "https://swcdn.apple.com/content/downloads/53/49/142-50405-A_WOBLDDXP4W/wk3d2yw94ir1jieuddcu9b9tffxrb09bq8/CLTools_Executables.pkg",
+                size: 351_228_115,
+                upstreamDigest: "3c54411a49b25492e548c7778deaf32846ebac47",
+            )],
+            staticInstructionFeatures: ["FEAT_LRCPC", "FEAT_SHA3", "FEAT_DotProd"],
+            requiredLibcxxSymbols: ["_ZNSt3__122__libcpp_verbose_abortEPKcz"],
+        ),
         .init(
             version: "27.0",
             newestSDK: "27",
@@ -192,7 +250,13 @@ public enum CommandLineToolsSupport {
             recommendedSDK: "27.0",
             verifiedSDKs: ["18.6", "26.0", "26.1", "26.2", "26.4", "26.5", "27.0", "27.1"],
             verifiedSwiftSDKs: ["27.0", "27.1"],
-            sources: ["082-83364": "d1a517e663d7ba169296683255bcf5b498802b843603cee40ec4b6fb7c991bea"],
+            packages: [.init(
+                productID: "082-83364",
+                sha256: "d1a517e663d7ba169296683255bcf5b498802b843603cee40ec4b6fb7c991bea",
+                url: "https://swcdn.apple.com/content/downloads/58/48/082-83364-A_KCEBOO2NJS/0d2rj4y5ucjlkgcvqt6f6a4pergug5tu2b/CLTools_Executables.pkg",
+                size: 350_457_031,
+                upstreamDigest: "910fb71482f4d044112c226b03e33122c17920ce",
+            )],
             staticInstructionFeatures: ["FEAT_LRCPC", "FEAT_SHA3", "FEAT_DotProd"],
             requiredLibcxxSymbols: ["_ZNSt3__122__libcpp_verbose_abortEPKcz"],
         ),
@@ -207,7 +271,13 @@ public enum CommandLineToolsSupport {
                 + "and an A13 or later CPU, where Command Line Tools 27.0's Swift 6.4 already runs, and it has not been "
                 + "verified on such a device.",
             verifiedSDKs: ["18.4", "18.5"],
-            sources: ["082-41241": "43c15c1f952c7a4c1a8f67c6b46350b83e217c610d7d3c14aa09e88bb251a4b6"],
+            packages: [.init(
+                productID: "082-41241",
+                sha256: "43c15c1f952c7a4c1a8f67c6b46350b83e217c610d7d3c14aa09e88bb251a4b6",
+                url: "https://swcdn.apple.com/content/downloads/52/01/082-41241-A_0747ZN8FHV/dectd075r63pppkkzsb75qk61s0lfee22j/CLTools_Executables.pkg",
+                size: 715_692_551,
+                upstreamDigest: "d1d5bf166a88ba1b59d982fa27f96d6b16601a94",
+            )],
             staticInstructionFeatures: ["FEAT_LRCPC", "FEAT_SHA3", "FEAT_DotProd"],
             requiredLibcxxSymbols: ["_ZNSt3__122__libcpp_verbose_abortEPKcz"],
         ),
@@ -225,7 +295,13 @@ public enum CommandLineToolsSupport {
                 verifiedHosts: ["17.3.1", "26.0.1"],
             ),
             verifiedSDKs: ["17.2", "17.4"],
-            sources: ["052-59890": "3812e6cce85d90f2a142440628a56ececd90d7fcb2ebfb35cc2faee3d81bd6ab"],
+            packages: [.init(
+                productID: "052-59890",
+                sha256: "3812e6cce85d90f2a142440628a56ececd90d7fcb2ebfb35cc2faee3d81bd6ab",
+                url: "https://swcdn.apple.com/content/downloads/14/48/052-59890-A_I0F5YGAY0Y/p9n40hio7892gou31o1v031ng6fnm9sb3c/CLTools_Executables.pkg",
+                size: 565_536_039,
+                upstreamDigest: "92e85a0f035a02000847ad273eca90f2e056789c",
+            )],
             staticInstructionFeatures: ["FEAT_LRCPC", "FEAT_SHA3"],
             systemSymbolSDK: "16.1",
             systemSymbolCount: 1667,
@@ -244,7 +320,13 @@ public enum CommandLineToolsSupport {
                 verifiedHosts: ["17.3.1", "26.0.1", "26.6.2", "27.0.1"],
             ),
             verifiedSDKs: ["17.0"],
-            sources: ["042-32697": "a5ec585bf89ce2e43aca1583b8a315b88725d53bc66dd0f2ba3fcf4580ec7b8f"],
+            packages: [.init(
+                productID: "042-32697",
+                sha256: "a5ec585bf89ce2e43aca1583b8a315b88725d53bc66dd0f2ba3fcf4580ec7b8f",
+                url: "https://swcdn.apple.com/content/downloads/11/17/042-32697-A_1GOTVNQE4A/hy88qtn1sygbgxswlmbfdepd4pcg52xyrx/CLTools_Executables.pkg",
+                size: 574_900_109,
+                upstreamDigest: "696ef34df0df4329f107e8dbd1c3a9fff57784e0",
+            )],
             staticInstructionFeatures: ["FEAT_LRCPC", "FEAT_SHA3"],
             systemSymbolSDK: "16.1",
             systemSymbolCount: 1682,
@@ -261,7 +343,13 @@ public enum CommandLineToolsSupport {
             ),
             clangModuleCPUFeatures: [],
             verifiedSDKs: ["16.1", "16.2"],
-            sources: ["012-92431": "81c4ed35ac9a2dcce106c9d26696653ceb9337b949206802886e25d13f9b3f1a"],
+            packages: [.init(
+                productID: "012-92431",
+                sha256: "81c4ed35ac9a2dcce106c9d26696653ceb9337b949206802886e25d13f9b3f1a",
+                url: "https://swcdn.apple.com/content/downloads/03/28/012-92431-A_FKICGWU4EK/eflw1v4c64sgmvux4ljc083cfjj663wu9g/CLTools_Executables.pkg",
+                size: 507_485_226,
+                upstreamDigest: "8eeed85b32e5b72f137e5d0e23e6f9ac2f1bb4f9",
+            )],
             staticInstructionFeatures: ["FEAT_LRCPC"],
             systemSymbolSDK: "16.1",
             systemSymbolCount: 949,
@@ -284,6 +372,24 @@ public enum CommandLineToolsSupport {
 
     public static func release(_ version: String) -> CommandLineToolsRelease? {
         releases.first { $0.version == version }
+    }
+
+    /// `listed`, Apple's catalog as read, with every reviewed package it no
+    /// longer names added under the address recorded here, newest first and
+    /// a package that names no version last.
+    static func catalog(adding listed: [ToolchainSource]) -> [ToolchainSource] {
+        let names = Set(listed.map(\.productID))
+        let kept = releases.flatMap { release in
+            release.packages
+                .filter { !names.contains($0.productID) }
+                .compactMap { $0.source(version: release.version) }
+        }
+        return (listed + kept).sorted {
+            if ($0.version == unknownVersion) != ($1.version == unknownVersion) {
+                return $1.version == unknownVersion
+            }
+            return $0.version.compare($1.version, options: .numeric) == .orderedDescending
+        }
     }
 
     /// Nil for a reviewed release; otherwise one sentence a user reads, naming

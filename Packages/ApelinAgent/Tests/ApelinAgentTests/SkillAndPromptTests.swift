@@ -143,7 +143,8 @@ struct SkillAndPromptTests {
         // The device's hard-won rules each have a skill.
         for name in ["apelin-tweak-development", "apelin-bootstrap-paths", "apelin-tweak-runtime", "apelin-preference-bundle",
                      "apelin-project-description", "apelin-external-build", "apelin-packaging-and-install",
-                     "apelin-package-dependencies", "apelin-crash-triage", "apelin-icli", "apelin-device-executables"]
+                     "apelin-package-dependencies", "apelin-crash-triage", "apelin-icli", "apelin-device-executables",
+                     "apelin-package-depiction"]
         {
             #expect(names.contains(name), "no built-in skill \(name)")
             #expect(prompt.contains("<skill name=\"\(name)\">"), "the prompt does not list \(name)")
@@ -182,6 +183,67 @@ struct SkillAndPromptTests {
                                                arguments: ["name": "apelin-bootstrap-paths", "file": "ApelinBootstrap.h"],
                                                cancellation: nil, mcp: nil))
         #expect(served == header)
+    }
+
+    /// A package's page in a package manager comes from the depiction its
+    /// control names (issue #44). The skill is loaded on demand like the
+    /// others: the prompt has its name and description, apelin_skill_read
+    /// its body, and its page to start from is a file read only when asked
+    /// for. That page draws in Irisin: it uses the view classes Irisin's
+    /// renderer has, a tab name and a class on every tab.
+    @Test(.timeLimit(.minutes(1)))
+    func `the apelin-package-depiction skill is listed, read on demand, and carries a depiction to start from`() async throws {
+        let home = try TemporaryHome()
+        defer { home.remove() }
+        let skill = try #require(BuiltInSkills.all.first { $0.name == "apelin-package-depiction" })
+        let prompt = SystemPrompt.make(project: home.project, projectRoot: home.projectURL.path,
+                                       skills: BuiltInSkills.all, mcpServers: [])
+        #expect(prompt.contains("<skill name=\"apelin-package-depiction\">\(skill.description)</skill>"))
+        #expect(!prompt.contains("# A package's depiction"), "the body is read on demand, not listed")
+        #expect(!prompt.contains("DepictionTabView"))
+
+        let runner = try runner(home)
+        func call(_ arguments: JSONValue) async throws -> String {
+            try await text(runner.run(.local(.skillRead), toolCallID: UUID().uuidString, arguments: arguments, cancellation: nil, mcp: nil))
+        }
+        let body = try await call(["name": "apelin-package-depiction"])
+        #expect(body.contains("# A package's depiction"))
+        for named in ["`package.depiction`", "`package.sileoDepiction`", "`Depiction`", "`SileoDepiction`",
+                      "Never make one up", "apelin-package-repository"]
+        {
+            #expect(body.contains(named), "the skill no longer says \(named)")
+        }
+        #expect(body.contains("Files in this skill's folder (apelin_skill_read with file): depiction.json"))
+        // the project description's guide sends the reader here
+        #expect(BuiltInSkills.projectDescription.body.contains("apelin-package-depiction"))
+
+        let served = try await call(["name": "apelin-package-depiction", "file": "depiction.json"])
+        #expect(served == BuiltInSkills.sampleDepiction)
+        let root = try #require(JSONSerialization.jsonObject(with: Data(served.utf8)) as? [String: Any])
+        #expect(root["class"] as? String == "DepictionTabView")
+        let tabs = try #require(root["tabs"] as? [[String: Any]])
+        #expect(tabs.map { $0["tabname"] as? String } == ["Details", "Changelog"])
+        let drawn: Set = ["DepictionHeaderView", "DepictionSubheaderView", "DepictionMarkdownView",
+                          "DepictionSeparatorView", "DepictionTableTextView"]
+        for tab in tabs {
+            #expect(tab["class"] as? String == "DepictionStackView")
+            for view in try #require(tab["views"] as? [[String: Any]]) {
+                let name = try #require(view["class"] as? String)
+                #expect(drawn.contains(name), "\(name) is not a view the skill names")
+                #expect(body.contains("`\(name)`"))
+                if name == "DepictionMarkdownView" {
+                    #expect(view["markdown"] is String)
+                } else if name != "DepictionSeparatorView" {
+                    #expect(view["title"] is String)
+                }
+            }
+        }
+        // a changelog is a version, then its notes, newest first
+        let changelog = try #require(tabs[1]["views"] as? [[String: Any]])
+        #expect(changelog.map { $0["class"] as? String } == [
+            "DepictionSubheaderView", "DepictionMarkdownView", "DepictionSubheaderView", "DepictionMarkdownView",
+        ])
+        #expect(changelog.compactMap { $0["title"] as? String } == ["1.0.1", "1.0.0"])
     }
 
     /// On a device, a VideoToolbox converter the agent built in shell_run

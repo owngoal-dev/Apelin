@@ -12,7 +12,7 @@ swift test --scratch-path /private/tmp/apelin-spm-w7
 
 | Product | Runs in | Links | What it does |
 | --- | --- | --- | --- |
-| `ApelinDiagnostics` | `apelin-diagnostics` (mobile) | `IcliKit` 0.9.0, iOS only | Logs, crash report list and read, screenshot, UI tree, UI actions, foreground app, running apps, respring fallback — every one through icli |
+| `ApelinDiagnostics` | `apelin-diagnostics` (mobile) | `IcliKit` 1.0.0, iOS only | Logs, crash report list and read, screenshot, UI tree, UI actions, foreground app, running apps, respring fallback — every one through icli |
 | `ApelinLogReader` | `apelin-log-reader` (root) | system libraries only | The live unified log through a fixed `LogFilter`: one bounded read, or one stream kept open for a whole window (`listen`) |
 | `ApelinCrash` | mobile | Foundation | Xrash's report decoder, symbolicator and blame; dSYM matched by image UUID; package owners through a protocol |
 | `ConfirmLoaded` | mobile or host | system calls only | Marker log line and static filter match, each answered apart; never the image list |
@@ -116,7 +116,13 @@ marker reads `absent` unless the target happens to start inside it.
 ## Privilege matrix
 
 What each capability needs, read from icli 0.9.0's source and
-[`docs/entitlements.md`](https://github.com/owngoal-dev/icli/blob/0.9.0/docs/entitlements.md).
+[`docs/entitlements.md`](https://github.com/owngoal-dev/icli/blob/0.9.0/docs/entitlements.md),
+and checked again against
+[1.0.0's](https://github.com/owngoal-dev/icli/blob/1.0.0/docs/entitlements.md):
+the keys 0.9.1 through 1.0.0 added (`com.apple.private.xpc.service-attach`,
+`IOHIDResourceDeviceUserClient`, `com.apple.keystore.device`) belong to
+calls Apelin does not make — kickstart, the virtual pointer and the keybag
+unlock — so no row changed.
 icli has verified its complete profile together, never one key at a time;
 its acceptance runs are the signed CLI on the rootless vphone.
 **No row has been run from an Apelin process on a device.** "Verified"
@@ -166,7 +172,10 @@ rather than claim it is complete.
 
 ## icli
 
-Pinned `exact: "0.9.0"`. Gaps found and filled in icli 0.9.0:
+Depends on `from: "1.0.0"`; `Package.resolved` records 1.0.0. 0.9.1 through 1.0.0 added calls Apelin does not
+make (`kickstartService`, the `pointer` calls, the probe, `unlockDevice`,
+`withInterfaceGeometry`) and left the ones it makes as they were on iOS.
+Gaps found and filled in icli 0.9.0:
 
 - `captureSyslog` filtered only by process substring and level, so a busy
   device filled `max-lines` with other subsystems before a marker arrived.

@@ -274,7 +274,7 @@ final class BinaryReader: ByteReader {
         guard offset <= size else { throw ToolchainFailure("The package points beyond the end of the file.") }; try file.seek(toOffset: offset); self.offset = offset
     }
 
-    @objc dynamic func read(_ count: Int) throws -> Data {
+    func read(_ count: Int) throws -> Data {
         guard count >= 0, UInt64(count) <= size - offset else { throw ToolchainFailure("The package is incomplete.") }
         let data = try autoreleasepool { try file.read(upToCount: count) } ?? Data()
         guard data.count == count else { throw ToolchainFailure("The package is incomplete.") }
@@ -306,7 +306,7 @@ final class PBZXReader: ByteReader {
         }
     }
 
-    @objc dynamic func read(_ count: Int) throws -> Data {
+    func read(_ count: Int) throws -> Data {
         var result = Data(); result.reserveCapacity(count)
         while result.count < count {
             if cursor == buffer.count {
@@ -365,7 +365,7 @@ final class PBZXReader: ByteReader {
         }
     }
 
-    @objc dynamic static func decode(_ input: Data, expanded: Int) throws -> Data {
+    static func decode(_ input: Data, expanded: Int) throws -> Data {
         if input.count == expanded {
             return input
         }

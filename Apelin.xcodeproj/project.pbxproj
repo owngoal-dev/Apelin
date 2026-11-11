@@ -1206,7 +1206,7 @@
 			repositoryURL = "https://github.com/Lakr233/ListViewKit";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 4.6.0;
+				minimumVersion = 4.6.1;
 			};
 		};
 		A20000000000000000000003 /* XCRemoteSwiftPackageReference "Litext" */ = {

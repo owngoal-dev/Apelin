@@ -65,7 +65,7 @@ final class TerminalSession: @unchecked Sendable {
     private var readSource: DispatchSourceRead?
     private var exitSource: DispatchSourceProcess?
     private var peers: [Int32: DispatchSourceRead] = [:]
-    @objc dynamic private var onOutput: ((Data) -> Void)?
+    private var onOutput: ((Data) -> Void)?
     @objc dynamic private var onExit: ((Int32) -> Void)?
     @objc dynamic private var alive = true
 
@@ -197,7 +197,7 @@ final class TerminalSession: @unchecked Sendable {
 
     /// Starts reading. `onOutput` and `onExit` run on the session's queue;
     /// `onExit` once, with the wait status.
-    @objc dynamic func start(onOutput: @escaping (Data) -> Void, onExit: @escaping (Int32) -> Void) {
+    func start(onOutput: @escaping (Data) -> Void, onExit: @escaping (Int32) -> Void) {
         queue.async { [self] in
             self.onOutput = onOutput
             self.onExit = onExit
@@ -214,7 +214,7 @@ final class TerminalSession: @unchecked Sendable {
     }
 
     /// The user's typing.
-    @objc dynamic func write(_ data: Data) {
+    func write(_ data: Data) {
         queue.async { [self] in writeAll(data) }
     }
 
@@ -312,7 +312,7 @@ final class TerminalSession: @unchecked Sendable {
         }
     }
 
-    @objc dynamic private func writeAll(_ data: Data) {
+    private func writeAll(_ data: Data) {
         guard alive else { return }
         data.withUnsafeBytes { bytes in
             var written = 0

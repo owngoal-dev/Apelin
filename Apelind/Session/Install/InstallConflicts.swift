@@ -7,6 +7,9 @@ import Foundation
 protocol PackageFileLists: Sendable {
     /// What `packageID` installs, as dpkg lists it; empty when it lists nothing.
     func files(of packageID: String) throws -> [String]
+    /// When `packageID`'s list was last written, which an install does;
+    /// nil when it has none.
+    func written(of packageID: String) -> Date?
 }
 
 /// `<install root>/var/lib/dpkg/info/<package>.list`, the name irisind
@@ -44,6 +47,17 @@ struct DpkgFileLists: PackageFileLists {
             throw ApelinError(.unavailable, "\(name).list is not a file list")
         }
         return Self.parse(String(decoding: data, as: UTF8.self))
+    }
+
+    func written(of packageID: String) -> Date? {
+        let name = packageID.lowercased()
+        guard ManagedPackagePolicy.isValidPackageID(name) else { return nil }
+        var metadata = stat()
+        guard lstat(directory + "/" + name + ".list", &metadata) == 0, metadata.st_mode & S_IFMT == S_IFREG else {
+            return nil
+        }
+        let modified = metadata.st_mtimespec
+        return Date(timeIntervalSince1970: TimeInterval(modified.tv_sec) + TimeInterval(modified.tv_nsec) / 1_000_000_000)
     }
 
     /// One absolute path a line; `/.`, the archive's own root, is no file.

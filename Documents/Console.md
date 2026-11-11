@@ -512,8 +512,13 @@ error, or on `ok: false` where the exact refusal is the worker's to choose.
   with its refusal, sets up CLT 16.4 (`082-41241`, about 716 MB) beside 27.0
   with six passing cases and `newestSDK` 18.5 while the default stays 27.0,
   then removes 16.4 and expects 27.0 still registered and the default.
+- `t6-toolchain-beside.json` — with one toolchain registered: the catalog
+  offers 27.2 first, 27.0 second and 14.2 sixth, then a whole setup of CLT 14.2
+  (`012-92431`, about 508 MB) beside it, its SDK fetched when none fits, and
+  its removal; the default stays. `t1` skips any device that has a toolchain,
+  so this is what runs a setup on a vphone that has one.
 - `t4-toolchain-swift.json` — with one toolchain registered and an iOS 27
-  SDK: sets CLT 27.0 up with Swift (`components: ["c", "swift"]`) beside it
+  SDK: sets CLT 27.2 up with Swift (`components: ["c", "swift"]`) beside it
   and expects both components to pass, the Swift cases among the self-tests
   (Swift, Swift dylib, Swift async, Swift macro), then creates the
   `uikit-swift` app against it, checks, builds debug and release, installs
