@@ -5,9 +5,10 @@ import Combine
 import UIKit
 
 /// The composer at the foot of a conversation: its bands stacked top to
-/// bottom on one rounded ground, the whole as tall as they want. Attachments
-/// sit above the text band; FlowDown's import panel expands below it. Files
-/// dropped on the ground are attached (`ComposerView+Drop`).
+/// bottom on one rounded ground, the whole as tall as they want. FlowDown's
+/// model row and its import panel sit above the text band; attachments sit
+/// above it too, on the ground the text band shares. Files dropped on the
+/// ground are attached (`ComposerView+Drop`).
 class ComposerView: ComposerSectionView {
     required init() {
         super.init()
@@ -129,7 +130,11 @@ class ComposerView: ComposerSectionView {
             band.accessibilityElementsHidden = presentingRequest
         }
 
-        let inputTop = place(attachmentsBar, at: spacing)
+        // The model row and the import panel it hands over to sit above the
+        // text band; the attachments and the text follow below them.
+        var y = place(modelBar, at: spacing)
+        y = place(controlPanel, at: y)
+        let inputTop = place(attachmentsBar, at: y)
         place(inputEditor, at: inputTop)
         // the attachments bar, once it is here, shares the input's ground
         let inputFrame = attachmentsBar.heightPublisher.value > 0
@@ -137,10 +142,10 @@ class ComposerView: ComposerSectionView {
 
         // One card morphs between the input and the request: the request's
         // band is cut off at the card's edge, shown or fading, never
-        // collapsed to nothing.
+        // collapsed to nothing. It covers the input band's place.
         place(
             approvalSection,
-            at: spacing,
+            at: inputEditor.frame.minY,
             height: presentingRequest ? approvalSection.heightPublisher.value : inputFrame.height,
         )
         shadowContainer.frame = presentingRequest
@@ -150,16 +155,9 @@ class ComposerView: ComposerSectionView {
         dropContainer.frame = shadowContainer.frame
         dropColorView.frame = dropContainer.bounds
 
-        var finalHeight = shadowContainer.frame.maxY
-        var y = finalHeight + spacing
-        for band in [modelBar, controlPanel] {
-            y = place(band, at: y)
-            if band.heightPublisher.value > 0 {
-                finalHeight = band.frame.maxY
-            }
-        }
-
-        heightPublisher.send(finalHeight)
+        // The bands above the input are placed first; the composer ends at
+        // the input's edge, or at the request card's while one is shown.
+        heightPublisher.send(presentingRequest ? approvalSection.frame.maxY : inputEditor.frame.maxY)
     }
 
     /// Lays `band` out across the composer at `y`, as tall as it asks unless

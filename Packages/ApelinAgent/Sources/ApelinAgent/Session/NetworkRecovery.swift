@@ -48,8 +48,9 @@ private final class PathMonitor: @unchecked Sendable {
 
 /// Model requests the network failed, answered once it is back.
 ///
-/// kwwk tries a failed request five times within about fifteen seconds
-/// (`ProviderRetryPolicy`), and takes a failed TLS handshake for a refused
+/// kwwk tries a failed request eight times within about a minute and a half
+/// (`ProviderRetryPolicy`; five times in fifteen seconds before 0.1.118),
+/// and takes a failed TLS handshake for a refused
 /// request it never tries again. A phone that changes networks or wakes
 /// from sleep is often offline for longer, and the turn ended with "The
 /// Internet connection appears to be offline." or "An SSL error has

@@ -198,6 +198,19 @@ console now goes on after a restart only past a successful respring.
 
 ## Still to run on the owner's devices
 
+- [ ] Trae, Trae CN and Raccoon with an account (2026-11-11, PR #40,
+      AGENTS.md ▸ Agent sign-in; the record below has what ran without
+      one). JanXiao signed in to all three and chatted on a device before
+      their code moved into kwwk; from kwwk 0.1.118 nothing has run past
+      each gate's refusal of a made-up code. With an account of each:
+      Settings ▸ Model Providers ▸ Trae CN (then Trae, then Raccoon) signs
+      in in the browser, Fetch Models lists the account's own models, a
+      chat answers and calls a tool, and the same chat still answers after
+      the token's hour or day has passed, which is the renewal. The
+      international Trae's sign-in first asks where its page is. WorkBuddy
+      or WorkBuddy AI with an account: Fetch Models lists the models its
+      plan has, more than the bundled rows, each with its own levels.
+
 - [ ] A toolchain unpacked on a real device (2026-11-06, Bugs ▸ 10). The fix
       was measured on the iOS 15.5 runtime and run on iOS 26 and 27 vphones;
       no iOS 16, 17 or 18 Foundation has run it, and which of them holds the
@@ -3035,3 +3048,42 @@ Sileo for a package built here (the addresses above are placeholders that
 answer nothing), the Strict install card after a member is added, and
 anything on the iPad vphone, which has no toolchain, SDK or signed-in
 provider.
+
+## Trae, Raccoon and the model row above the field (2026-11-11, PR #40)
+
+The branch of PR #40 with its three providers taken from kwwk (the code
+of kwwk 0.1.118), built on the Mac (roothide, 0.4.3), over build 304 on
+the iOS 26.4 iPhone vphone:
+
+- The smoke suite passed, all seven, and `accounts` passed with its new
+  steps: the list has Trae CN, Trae and Raccoon after WorkBuddy, and Trae
+  CN's and Raccoon's sign-ins each started, named its page, refused an
+  address that is no redirect and were cancelled.
+- Trae CN from Settings ▸ Model Providers: its page (the hint, the link
+  plate for www.trae.cn, Paste Redirect Address) under the system's
+  consent for www.trae.cn. The link named a loopback on a free port,
+  `/authorize`. From the guest itself, a request to it with no payload
+  was answered 404 and the page went on waiting; one with a made-up
+  `authCodeInfo` was answered 200, the exchange went to api.trae.cn, and
+  the page ended Sign-In Failed with the gate's refusal.
+- Raccoon the same way: a loopback at `/auth/callback`, a made-up `code`
+  with the page's own state, and Sign-In Failed in words for a code the
+  gate does not know.
+- Model Providers lists Trae CN, Trae and Raccoon after WorkBuddy, each
+  with its mark.
+- The composer: the model row above the text band at rest and with the
+  keyboard up; the import panel in the row's place, above the text band;
+  and a root approval's card (a chat on deepseek-v4-pro asked to run `id`
+  as root) over the text band's place with the row hidden. Deny brought
+  the row and the field back.
+
+From the Mac, with made-up values and no account: api.marscode.com named
+the international sign-in page (`www.trae.ai`); the international account
+gates answered a made-up auth code and a made-up refresh token with their
+own refusals, and the international chat gate answered a renewal 404,
+which is why a login that recorded no gate is renewed at an account gate;
+Raccoon's portal answered its authorize address 307 with the loopback
+redirect kept.
+
+Not run: what Still to run lists for these providers, and anything on the
+iPad vphone.

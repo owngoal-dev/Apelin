@@ -4,7 +4,7 @@
 import ApelinProtocol
 import UIKit
 
-/// FlowDown's model control below the text band, hidden while imports are open.
+/// FlowDown's model control above the text band, hidden while imports are open.
 final class ComposerModelBar: ComposerSectionView {
     let button = ComposerBlockButton(text: String(localized: "Select Model"), image: UIImage(named: "ComposerModel"))
     private let effortButton = ComposerBlockButton(text: String(localized: "High"), image: UIImage(systemName: "brain"))

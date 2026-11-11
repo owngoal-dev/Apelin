@@ -242,6 +242,62 @@ struct AccountDeskTests {
         #expect(recorder.state == .cancelled)
     }
 
+    /// Trae's and Raccoon's own logins, kwwk's: each page takes any
+    /// loopback address, so the listener is asked for port 0 and the page
+    /// is given the address it names. Cancelled before a code would be
+    /// exchanged, so nothing here reaches the network. (The international
+    /// Trae asks its gate where its page is first, so it is not started.)
+    @Test(arguments: [
+        (AgentProvider.trae, "127.0.0.1:0/authorize", "www.trae.cn", "auth_callback_url"),
+        (AgentProvider.raccoon, "127.0.0.1:0/auth/callback", "xiaohuanxiong.com", "redirect"),
+    ])
+    func `Trae CN and Raccoon sign in on a loopback of any port, which a pasted address can stand in for`(
+        provider: AgentProvider,
+        asked: String,
+        host: String,
+        redirectParameter: String,
+    ) async throws {
+        let opened = SignInRecorder()
+        let listener: OAuthLoopbackFactory = { host, port, path in
+            opened.reporter.emit(TaskID("listener"), "\(host):\(port)\(path)", nil)
+            return SilentListener(host: host, port: port, path: path)
+        }
+        let desk = AccountDesk(store: DeliveredCredentialSource(), login: KWWKSignIn.login, listener: listener, verifyKey: { _, _, _ in })
+        let recorder = SignInRecorder()
+        #expect(provider.signInMethods == [.browser])
+        try await desk.start(AgentSignInRequest(provider: provider), taskID: TaskID("p1"), reporter: recorder.reporter)
+        try await recorder.waitFor { !$0.events.isEmpty }
+        #expect(opened.events.map(\.kind) == [asked])
+        #expect(recorder.events.map(\.kind) == ["authorize"])
+        #expect(recorder.events[0].payload?["acceptsCallbackURL"] == .bool(true))
+        let page = try #require(recorder.events[0].payload?["url"]?.stringValue.flatMap(URLComponents.init(string:)))
+        #expect(page.host == host)
+        #expect(page.queryItems?.first { $0.name == redirectParameter }?.value == "http://\(asked)")
+        // An address with neither a code nor Trae's `authCodeInfo` is no
+        // redirect, and the sign-in goes on waiting.
+        await #expect(throws: ApelinError.self) {
+            try await desk.respond(AgentSignInRespondRequest(
+                taskID: TaskID("p1"),
+                fields: [.callbackURL: "http://\(asked)?refreshToken=not-a-code"],
+            ))
+        }
+        #expect(recorder.state == nil)
+        #expect(await desk.cancel(TaskID("p1")))
+        try await recorder.waitFor { $0.state != nil }
+        #expect(recorder.state == .cancelled)
+    }
+
+    @Test
+    func `a pasted address is a redirect when it carries a code, Trae's auth code or an error`() throws {
+        #expect(try PasteableLoopback.parameters(of: "http://localhost:1455/auth/callback?code=c1&state=s1")["code"] == "c1")
+        #expect(try PasteableLoopback.parameters(of: "http://127.0.0.1:9/authorize?authCodeInfo=%7B%22AuthCode%22%3A%22a1%22%7D")
+            == ["authCodeInfo": #"{"AuthCode":"a1"}"#])
+        #expect(try PasteableLoopback.parameters(of: "http://localhost:1/callback?error=access_denied")["error"] == "access_denied")
+        for address in ["http://127.0.0.1:9/authorize", "http://127.0.0.1:9/authorize?authCodeInfo=", "hello"] {
+            #expect(throws: ApelinError.self) { try PasteableLoopback.parameters(of: address) }
+        }
+    }
+
     @Test
     func `an API key is asked for by field, checked by name alone, and stored in kwwk's shape`() async throws {
         let store = DeliveredCredentialSource()
