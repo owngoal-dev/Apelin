@@ -3087,3 +3087,9 @@ redirect kept.
 
 Not run: what Still to run lists for these providers, and anything on the
 iPad vphone.
+
+## The model row back under the field (2026-11-12, 0.4.5)
+
+The composer change of PR #40 is reverted: `ComposerView` and
+`ComposerModelBar` are byte for byte what 0.4.3 shipped. Not run on a
+device; the layout is the one every release through 0.4.3 was checked with.
