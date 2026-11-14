@@ -3197,6 +3197,13 @@ OpenAI-compatible key:
   is bound by its projects. `a3-endpoint-beside` and `t6-toolchain-beside`
   (the catalog without 27.0) are among those that passed.
 
+- The kwwk in use, on the build with that change (its `Licenses.json`
+  gives kwwk 0.1.121, read from the checkout): Model Providers' footer read
+  "Credentials stay in this device’s keychain. Currently using kwwk
+  0.1.121.", and with the app set to Simplified Chinese
+  凭据只保存在这台设备的钥匙串中。当前使用 kwwk 0.1.121。 `suite smoke` on
+  that build: 7 pass.
+
 Not run: the iPad vphone, whose host was running another session's VM for
 the whole round; the rootless package on a device; the worker's own 20 s
 bound on a stopped run, which needs a model request that ignores its
