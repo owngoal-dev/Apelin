@@ -268,6 +268,10 @@ final class ChatController: UIViewController {
                         self?.presentPageAsFormSheet(ChatCompactionController(summary: message.text))
                     }
                 }
+            ListRow(ChatFailureRow.self)
+                .when { $0.failure != nil }
+                .height { message, context in ChatFailureRow.height(for: message, width: context.width) }
+                .configure { row, message, _ in row.show(message) }
             ListRow(ChatMessageRow.self)
                 .height { [weak self] message, context in
                     ChatMessageRow.height(
@@ -487,10 +491,9 @@ final class ChatController: UIViewController {
             let transcript = runtime.transcript(chat.id)
             updateMessages(transcript.messages)
             quietWatch.wake(at: transcript.quietDeadline) { [weak self] in self?.refreshRuntime() }
-            if summary.isWorking != chat.isWorking {
-                // the session stopped (or came back) with no event that redraws the request
-                showApproval(summary.isWorking ? messages.first { $0.role.needsApproval } : nil)
-            }
+            // also when the session stopped, or a turn began, with no event
+            // that redraws the request
+            showApproval(waitingApproval(in: messages))
             let stoppable = summary.isWorking ? chat.id : nil
             if stoppable != stoppableChat {
                 stoppableChat = stoppable
@@ -603,8 +606,16 @@ final class ChatController: UIViewController {
         }
         let visible = items.filter { !$0.role.isApproval }
         messageList.apply(visible, animated: !isSwitchingChat && !UIAccessibility.isReduceMotionEnabled)
-        // a request its stopped session left can no longer be answered
-        showApproval(chat?.isWorking == true ? items.first { $0.role.needsApproval } : nil)
+        showApproval(waitingApproval(in: items))
+    }
+
+    /// The request among `items` the composer asks about: one the session's
+    /// running turn waits on. A request its stopped session left can no
+    /// longer be answered, and a message on its way to a conversation at
+    /// rest makes it work before any turn runs (`ChatRuntime.runsTurn`).
+    private func waitingApproval(in items: [ChatMessage]) -> ChatMessage? {
+        guard let chat, runtime.runsTurn(chat.id) else { return nil }
+        return items.first { $0.role.needsApproval }
     }
 
     @objc dynamic private func updateModelSelection() {
@@ -791,10 +802,26 @@ extension ChatController: ComposerView.Delegate {
             defer { completion() }
             do {
                 try await sending.value
+            } catch is CancellationError {
+                // stopped by the reader: the draft is back in the composer
             } catch {
-                presentNotice(title: "Unable to Send Message", message: error.readableMessage)
+                saySendFailed(error)
             }
         }
+    }
+
+    /// Says why a message was not sent; its draft is back in the composer
+    /// by now. A failure the agent named (no network, a provider out of
+    /// reach) is a passing line, spoken too, since nothing else marks it;
+    /// any other keeps its own words in an alert.
+    private func saySendFailed(_ error: any Error) {
+        guard let reason = (error as? ApelinError)?.reason, let cause = ChatFailure.title(for: reason) else {
+            presentNotice(title: "Unable to Send Message", message: error.readableMessage)
+            return
+        }
+        let title = String(localized: "Message Not Sent")
+        SPIndicator.present(title: title, message: cause, preset: .error, haptic: .error)
+        UIAccessibility.post(notification: .announcement, argument: [title, cause].joined(separator: ", "))
     }
 
     @objc dynamic func onComposerBeginEditing() {

@@ -54,22 +54,25 @@ struct ChatTranscript {
     /// stream comes: a `messageDiscarded` (kwwk asks for it again) takes
     /// back what it showed, so the reply that follows is not drawn twice.
     private var attempt: (rows: Int, unanswered: UUID?)?
-    /// A model request failed and is being made again, and nothing has
-    /// come of it yet (`reconnecting`): the running summary says so.
-    private var reconnecting = false
+    /// A model request failed, and waits for the network
+    /// (`waitingForNetwork`) or is being made again (`reconnecting`), with
+    /// nothing come of it yet: the running summary says which.
+    private var recovery: ChatMessage.Recovery?
     /// What ends `attempt`: anything but its stream, or news that may come
     /// meanwhile (a title, a message queued, the count).
     private static let endsAttempt: Set<String> = [
         "prompt", "steer", "message", "toolCall", "toolResult", "approvalRequested", "approvalResolved",
         "error", "finished", "compactionStarted", "compactionFinished", TaskEvent.stateKind,
     ]
-    /// What ends `reconnecting`: the request answered, or the run moved on.
-    private static let endsReconnecting = endsAttempt.union(["messageStarted", "thinking", "toolCallPreparing", "text"])
+    /// What ends `recovery`: the request answered, or the run moved on.
+    private static let endsRecovery = endsAttempt.union(["messageStarted", "thinking", "toolCallPreparing", "text"])
 
     /// `conversationTitle` names another conversation of the project by its
     /// session ID, for a message its agent sent. `sending` are messages sent
     /// and not echoed yet: each shows last, under its draft's id, until the
-    /// host's `prompt` or `queued` event with that id takes its place.
+    /// host's `prompt` or `queued` event with that id takes its place. The
+    /// first one sent to a conversation at rest has its turn's running
+    /// summary under it from the start, as its echo will (`show`).
     /// `now` judges whether a running turn has been quiet for
     /// `quietInterval`; without it no summary stands in for the quiet.
     init(
@@ -102,8 +105,8 @@ struct ChatTranscript {
             if Self.endsAttempt.contains(event.kind) {
                 attempt = nil
             }
-            if Self.endsReconnecting.contains(event.kind) {
-                reconnecting = false
+            if Self.endsRecovery.contains(event.kind) {
+                recovery = nil
             }
             switch event.kind {
             case "prompt", "steer":
@@ -159,7 +162,9 @@ struct ChatTranscript {
                 unanswered = attempt.unanswered
                 self.attempt = nil
             case "reconnecting":
-                reconnecting = true
+                recovery = .reconnecting
+            case "waitingForNetwork":
+                recovery = .waitingForNetwork
             case "thinking":
                 if thinking == nil {
                     startThinking(id: id, at: event.time)
@@ -259,8 +264,13 @@ struct ChatTranscript {
                 }
             case "error":
                 // Also the sessions that recorded a whole NSError before the agent cut it.
-                let message = payload?["message"]?.stringValue.map(ErrorDescription.localized)
-                add(ChatMessage(id: id, role: .assistant, text: message ?? ""))
+                let message = payload?["message"]?.stringValue.map(ErrorDescription.localized) ?? ""
+                var row = ChatMessage(id: id, role: .assistant, text: message)
+                row.failure = ChatFailure(
+                    message: message,
+                    reason: payload?["reason"]?.stringValue.map(ApelinError.Reason.init(rawValue:)),
+                )
+                add(row)
             case "received":
                 receivedTokens = payload?["tokens"]?.doubleValue.map { Int($0) }
             case "finished":
@@ -309,14 +319,25 @@ struct ChatTranscript {
                     quietDeadline = deadline
                 }
             }
-            Self.keepTrailingSummaryRunning(&messages, receivedTokens: receivedTokens, reconnecting: reconnecting)
+            Self.keepTrailingSummaryRunning(&messages, receivedTokens: receivedTokens, recovery: recovery)
         }
         messages += queued
+        // The first message on its way to a conversation at rest starts its
+        // turn. The running summary its echo will show under it is there
+        // from the reader's Send, under the id that one takes, so the echo
+        // and the turn's first step after it change nothing on screen:
+        // however long the host takes to open the session and record the
+        // message, the reader sees it at work. Any other message waits for
+        // a turn, as the host will say.
+        var startsTurn = !isWorking
         for draft in sending where !messages.contains(where: { $0.id == draft.id }) {
             var message = ChatMessage(id: draft.id, role: .user, text: draft.text, attachments: draft.attachments)
-            // A running turn takes it at its next step, as the host will say.
-            message.isQueued = isWorking
+            message.isQueued = !startsTurn
             messages.append(message)
+            if startsTurn {
+                messages.append(Self.standIn(after: draft.id))
+                startsTurn = false
+            }
         }
     }
 
@@ -373,11 +394,11 @@ struct ChatTranscript {
     /// calls and approvals. Each thought ends when a tool starts, so without
     /// this the title would flip between "Thought for…" and the running one.
     /// It carries the run's output so far, the newest call in its trace and
-    /// whether a failed request is being made again.
+    /// the failed request it waits on.
     private static func keepTrailingSummaryRunning(
         _ rows: inout [ChatMessage],
         receivedTokens: Int?,
-        reconnecting: Bool,
+        recovery: ChatMessage.Recovery?,
     ) {
         guard let index = rows.lastIndex(where: { !$0.role.needsApproval }) else { return }
         guard case let .thinking(_, tools) = rows[index].role else {
@@ -388,7 +409,7 @@ struct ChatTranscript {
         rows[index].runningTools = rows[index].trace.count(where: \.awaitsResult)
         rows[index].receivedTokens = receivedTokens
         rows[index].banner = rows[index].trace.last { $0.role == .tool }?.banner
-        rows[index].isReconnecting = reconnecting
+        rows[index].recovery = recovery
     }
 
     /// While the run writes a reply, the summary just above it is finished

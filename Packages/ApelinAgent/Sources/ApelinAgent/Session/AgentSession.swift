@@ -137,7 +137,11 @@ public actor AgentSession {
 
         let resolved: ResolvedProvider
         do {
-            resolved = try await ProviderResolver.resolve(configuration.provider, credentials: credentials)
+            resolved = try await ProviderResolver.resolve(
+                configuration.provider,
+                credentials: credentials,
+                network: configuration.network,
+            )
         } catch {
             journal.sessionOpenFailed(error)
             throw error
@@ -196,9 +200,9 @@ public actor AgentSession {
                 inner: journal.observingRequests { model, context, options in
                     try await KWWKAI.stream(model: model, context: context, options: options)
                 },
-            ) {
+            ) { wait in
                 journal.waitingForNetwork()
-                _ = try? await log.append(.reconnecting)
+                _ = try? await log.append(wait == .route ? .waitingForNetwork : .reconnecting)
             },
             toolExecution: .sequential,
             sessionId: configuration.id,
@@ -251,7 +255,11 @@ public actor AgentSession {
             agent.state.serviceTier = serviceTier
             return
         }
-        let resolved = try await ProviderResolver.resolve(provider, credentials: credentials)
+        let resolved = try await ProviderResolver.resolve(
+            provider,
+            credentials: credentials,
+            network: configuration.network,
+        )
         guard runTask == nil else { return }
         agent.state.model = resolved.model
         agent.state.thinkingLevel = thinking
@@ -832,6 +840,7 @@ public actor AgentSession {
                 await record(.error(
                     message: assistant.errorMessage.map(ErrorDescription.localized)
                         ?? "The model provider returned an error. Try again.",
+                    reason: assistant.providerFailure.flatMap { FailureReason.of($0, hasRoute: hasRoute) },
                 ))
             }
         case .streamRewind:
@@ -947,7 +956,16 @@ public actor AgentSession {
             return
         }
         journal.runFailed(error.localizedDescription)
-        await record(.error(message: error.localizedDescription))
+        await record(.error(
+            message: ErrorDescription.localized(error.localizedDescription),
+            reason: FailureReason.of(error, hasRoute: hasRoute),
+        ))
+    }
+
+    /// Whether the device has a route to the network now, which tells a
+    /// failure with none from one the provider's side explains.
+    private var hasRoute: Bool {
+        configuration.network.isSatisfied()
     }
 
     /// Returns once a run whose loop has returned has recorded its end.

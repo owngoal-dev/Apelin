@@ -106,6 +106,11 @@ struct SessionReplay: Codable, Sendable {
 }
 
 extension ChatRecord {
+    /// Whether a message is still on its way to the host.
+    var isSending: Bool {
+        !(sending ?? []).isEmpty
+    }
+
     /// `message` sent by the reader, shown at once from `sending` until the
     /// host echoes it, the composer emptied if it held that draft. Writing
     /// in a conversation is what moves it up the sidebar (`lastInteraction`),

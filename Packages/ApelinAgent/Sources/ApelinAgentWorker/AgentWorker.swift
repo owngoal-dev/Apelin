@@ -68,12 +68,16 @@ public enum AgentWorker {
                     await session.setAsksBeforeScreen(asks)
                 }
                 if let provider = prompt.provider {
-                    try await session.configure(
-                        provider: AgentWorker.provider(AgentOpenRequest(provider: provider, model: prompt.model)),
-                        thinking: .init(rawValue: prompt.reasoningEffort?.rawValue ?? "off") ?? .off,
-                        serviceTier: AgentWorker.serviceTier(prompt.serviceTier),
-                        credentials: KeychainCredentialSource(accessGroup: keychainAccessGroup),
-                    )
+                    do {
+                        try await session.configure(
+                            provider: AgentWorker.provider(AgentOpenRequest(provider: provider, model: prompt.model)),
+                            thinking: .init(rawValue: prompt.reasoningEffort?.rawValue ?? "off") ?? .off,
+                            serviceTier: AgentWorker.serviceTier(prompt.serviceTier),
+                            credentials: KeychainCredentialSource(accessGroup: keychainAccessGroup),
+                        )
+                    } catch let error as ProviderResolutionError {
+                        throw AgentWorker.signInError(error)
+                    }
                     await state.modelChoice.set(
                         provider: provider,
                         model: prompt.model,
@@ -212,6 +216,26 @@ public enum AgentWorker {
         wire.flatMap { ServiceTier(rawValue: $0.rawValue) }
     }
 
+    /// What the app is told when a session's sign-in cannot be used. One
+    /// that is not saved is `denied`, with what the inbox refused beside
+    /// it. One that is saved and could not be exchanged or renewed is
+    /// `unavailable` with the reason the failure had (no network, a
+    /// provider out of reach or too slow), which the app says in its own
+    /// words, and `internal` in the provider's when it had none.
+    static func signInError(_ error: ProviderResolutionError, inboxRejected: [String] = []) -> ApelinError {
+        switch error {
+        case .missingCredentials:
+            var message = error.localizedDescription
+            if !inboxRejected.isEmpty {
+                message += " (inbox: \(inboxRejected.joined(separator: "; ")))"
+            }
+            return ApelinError(.denied, message)
+        case let .unresolved(message, reason):
+            guard let reason else { return ApelinError(.internal, message) }
+            return ApelinError(.unavailable, message, reason: reason)
+        }
+    }
+
     /// The kwwk provider configuration for an open request. The first four
     /// keep their own cases (and need a model named, as they always have);
     /// every other provider uses its credential store id and the default
@@ -313,11 +337,7 @@ actor WorkerState {
                 credentials: keychain,
             )
         } catch let error as ProviderResolutionError {
-            var message = error.localizedDescription
-            if !imported.rejected.isEmpty {
-                message += " (inbox: \(imported.rejected.joined(separator: "; ")))"
-            }
-            throw ApelinError(.denied, message)
+            throw AgentWorker.signInError(error, inboxRejected: imported.rejected)
         } catch let error as ApelinError {
             throw error
         } catch {
@@ -533,6 +553,8 @@ actor EventRelay {
             return [("messageDiscarded", nil)]
         case .reconnecting:
             return [("reconnecting", nil)]
+        case .waitingForNetwork:
+            return [("waitingForNetwork", nil)]
         case .toolCallPreparing:
             return [("toolCallPreparing", nil)]
         case let .textDelta(text):
@@ -579,8 +601,12 @@ actor EventRelay {
                 payload["title"] = .string(title)
             }
             return [(AgentNoticeRules.eventKind, .object(payload))]
-        case let .error(message):
-            return [("error", .object(["message": .string(message)]))]
+        case let .error(message, reason):
+            var payload: [String: ApelinCore.JSONValue] = ["message": .string(message)]
+            if let reason {
+                payload["reason"] = .string(reason.rawValue)
+            }
+            return [("error", .object(payload))]
         case let .finished(reason):
             return [("finished", .object(["reason": .string(reason.rawValue)]))]
         case .compactionStarted:

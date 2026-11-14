@@ -25,8 +25,11 @@ public enum AgentSessionEvent: Sendable, Hashable, Codable {
     /// and is asked for again: its text and thinking are not the reply.
     case messageDiscarded
     /// A model request failed and is being made again: kwwk's retry, or a
-    /// wait for the network to come back (`NetworkRecovery`).
+    /// failed handshake asked again (`NetworkRecovery`).
     case reconnecting
+    /// A model request failed with no route to the network, and waits for
+    /// one before it is made again (`NetworkRecovery`).
+    case waitingForNetwork
     /// Streamed assistant text.
     case textDelta(String)
     /// Streamed reasoning text.
@@ -50,7 +53,9 @@ public enum AgentSessionEvent: Sendable, Hashable, Codable {
     /// away (`apelin_notification_send`): plain text within `AgentNoticeRules`' lengths,
     /// which the session host posts as a banner by its own rules.
     case notice(title: String?, body: String)
-    case error(message: String)
+    /// `reason`: why a model request failed, where the agent can tell
+    /// (`FailureReason`); the message stays the provider's own words.
+    case error(message: String, reason: ApelinError.Reason? = nil)
     /// A run ended.
     case finished(reason: FinishReason)
     /// The app asked to compact the conversation, between runs.

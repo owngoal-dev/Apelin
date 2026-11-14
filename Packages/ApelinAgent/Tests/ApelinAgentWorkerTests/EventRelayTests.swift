@@ -43,6 +43,23 @@ struct EventRelayTests {
         #expect(emitted.payloads(of: "messageDiscarded") == [nil] && emitted.payloads(of: "reconnecting") == [nil])
     }
 
+    /// A request with no route says so in a kind of its own, and an error
+    /// carries its reason only when the agent named one.
+    @Test
+    func `a wait for the network and an error's reason go out as the app reads them`() async {
+        let emitted = Emitted()
+        let relay = EventRelay { emitted.append($0, $1) }
+        await relay.relay(.waitingForNetwork)
+        await relay.relay(.error(message: "The Internet connection appears to be offline.", reason: .offline))
+        await relay.relay(.error(message: "A skill has a problem."))
+        #expect(emitted.kinds == ["waitingForNetwork", "error", "error"])
+        #expect(emitted.payloads(of: "waitingForNetwork") == [nil])
+        #expect(emitted.payloads(of: "error") == [
+            .object(["message": .string("The Internet connection appears to be offline."), "reason": .string("offline")]),
+            .object(["message": .string("A skill has a problem.")]),
+        ])
+    }
+
     @Test
     func `the received count goes out with the streamed text, only its latest and only when new`() async {
         let emitted = Emitted()

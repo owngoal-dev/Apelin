@@ -198,6 +198,18 @@ console now goes on after a restart only past a successful respring.
 
 ## Still to run on the owner's devices
 
+- [ ] A message that cannot be sent, and errors by their reason, with real
+      accounts (2026-11-14, 0.4.6; the record below has what ran). With a
+      provider whose sign-in is exchanged when a chat opens (GitHub
+      Copilot, or any browser sign-in past its token's life) and the
+      device offline: Send shows "Thinking…" at once, then the message is
+      back in the field under a passing "Message Not Sent — No Internet
+      Connection". In a chat: a revoked key or sign-in ends the turn on
+      "Sign-In Not Accepted", a spent plan on "Usage Limit Reached" with
+      the provider's words under it. The new row in the dark, at the
+      largest text size, right to left and read by VoiceOver. All of it on
+      an iPad, where nothing of this round ran.
+
 - [ ] Trae, Trae CN and Raccoon with an account (2026-11-11, PR #40,
       AGENTS.md ▸ Agent sign-in; the record below has what ran without
       one). JanXiao signed in to all three and chatted on a device before
@@ -3093,3 +3105,39 @@ iPad vphone.
 The composer change of PR #40 is reverted: `ComposerView` and
 `ComposerModelBar` are byte for byte what 0.4.3 shipped. Not run on a
 device; the layout is the one every release through 0.4.3 was checked with.
+
+## At work from Send, waiting for the network, errors by reason (2026-11-14, 0.4.6)
+
+On the Mac: `make harness` and `make check`, with the new transcript
+checks (a message on its way has its turn's summary under it, under the
+id its echo takes; `waitingForNetwork`; an error's two lines by reason),
+`NetworkRecoveryTests`, `FailureReasonTests`, `EventRelayTests` and
+`SignInErrorTests`, on kwwk 0.1.121.
+
+On the iPhone vphone (iOS 26.4, roothide), the roothide package of this
+branch built on the Mac, over 0.4.5, a chat on deepseek-v4-pro through an
+OpenAI-compatible key:
+
+- Send in a new chat: the message, "Thinking…" under it and Stop came in
+  together; the reply followed.
+- The session host stopped with SIGSTOP (by its `session.pid`), so no open
+  is answered: Send showed the message, "Thinking…" and Stop at once and
+  kept them. Stop put the message back in the field at once, and the next
+  Send was taken straight away, with the host still stopped. Left alone,
+  the send ended after 30 s on the alert it always had ("did not answer
+  within 30 seconds") with the message back in the field. After SIGCONT
+  the same message was sent and answered.
+- `en0` down for 75 s: "Waiting for Network…" 3 s after Send, with Stop;
+  "Reconnecting…" 7 s after the interface was back, the reply 7 s later.
+- `en0` down for 430 s: the summary went between "Waiting for Network…",
+  about 30 s each time, and "Reconnecting…", and after 5 min 43 s the turn
+  ended on the row "No Internet Connection" over "Connect to the
+  internet, then send your message again."
+- The app set to Simplified Chinese (its own `AppleLanguages`, put back
+  after): that recorded failure read 无互联网连接 over 请连接互联网，然后
+  重新发送消息。, a message sent offline read 正在等待网络…, then
+  正在重新连接…, then its reply.
+- `device.py suite smoke`: 7 pass.
+
+Not run: the iPad vphone (its host was running another session's VM), and
+what Still to run lists.

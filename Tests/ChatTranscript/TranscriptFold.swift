@@ -58,7 +58,7 @@ private struct FoldCoverage {
         attached += rows.contains { !$0.attachments.isEmpty } ? 1 : 0
         // a running summary's line: its newest call, with a file tool's counts
         bannered += rows.contains { $0.role.isThinking && $0.banner?.change != nil } ? 1 : 0
-        reconnecting += rows.contains(where: \.isReconnecting) ? 1 : 0
+        reconnecting += rows.contains { $0.recovery == .reconnecting } ? 1 : 0
     }
 
     func expectEverything() {

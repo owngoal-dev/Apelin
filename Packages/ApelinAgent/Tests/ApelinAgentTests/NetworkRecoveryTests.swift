@@ -66,16 +66,21 @@ struct NetworkRecoveryTests {
         }
     }
 
+    /// The waits a request said it began, in order.
     final class Counter: @unchecked Sendable {
         private let lock = NSLock()
-        private var value = 0
+        private var waits: [NetworkRecovery.Wait] = []
 
         var count: Int {
-            lock.withLock { value }
+            lock.withLock { waits.count }
         }
 
-        func add() {
-            lock.withLock { value += 1 }
+        var kinds: [NetworkRecovery.Wait] {
+            lock.withLock { waits }
+        }
+
+        func add(_ wait: NetworkRecovery.Wait) {
+            lock.withLock { waits.append(wait) }
         }
     }
 
@@ -123,7 +128,7 @@ struct NetworkRecoveryTests {
         cancellation: CancellationHandle? = nil,
         waits: Counter,
     ) async throws -> (events: [String], final: AssistantMessage) {
-        let stream = NetworkRecovery.stream(path: path, patience: patience, inner: script.stream) { waits.add() }
+        let stream = NetworkRecovery.stream(path: path, patience: patience, inner: script.stream) { waits.add($0) }
         let response = try await stream(model, Context(), StreamOptions(cancellation: cancellation))
         var events: [String] = []
         for await event in response {
@@ -140,7 +145,7 @@ struct NetworkRecoveryTests {
         #expect(final.stopReason == .stop && final.content == [.text(TextContent(text: "Hello."))])
         #expect(events == ["start", "start", "text_delta", "done"], "no error of the failed attempt")
         #expect(script.calls == 2)
-        #expect(waits.count == 1)
+        #expect(waits.kinds == [.handshake])
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -166,7 +171,7 @@ struct NetworkRecoveryTests {
         #expect(events == ["start", "error"])
         #expect(route.checks > 5, "held until the route came back")
         #expect(script.calls == 1)
-        #expect(waits.count == 1)
+        #expect(waits.kinds == [.route], "and said to be waiting for the network, not asked again")
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -233,14 +238,18 @@ struct NetworkRecoveryTests {
 
     // MARK: - In a session
 
-    private static func session(_ home: TemporaryHome, _ faux: FauxProviderRegistration) async throws -> AgentSession {
+    private static func session(
+        _ home: TemporaryHome,
+        _ faux: FauxProviderRegistration,
+        network: NetworkPath = NetworkPath { true },
+    ) async throws -> AgentSession {
         try await AgentSession(
             configuration: AgentSessionConfiguration(
                 project: home.project,
                 provider: .registered(faux.getModel()),
                 approval: ApprovalPolicy(mode: .relaxed),
                 dataRoot: home.dataRoot,
-                network: NetworkPath { true },
+                network: network,
             ),
             backend: MockBackend(),
             digests: MockDigestLedger(),
@@ -317,6 +326,49 @@ struct NetworkRecoveryTests {
         #expect(events.count(where: { $0 == .reconnecting }) == 2)
         #expect(!events.contains(where: Self.isError))
         #expect(events.last == .finished(reason: .completed))
+        await session.close()
+    }
+
+    /// With no route, the app hears the request waits for the network
+    /// before it hears kwwk ask again.
+    @Test(.timeLimit(.minutes(1)))
+    func `a request with no route says it waits for the network, then is asked again`() async throws {
+        let home = try TemporaryHome()
+        defer { home.remove() }
+        let faux = await registerFauxProvider()
+        defer { faux.unregister() }
+        faux.setResponses([
+            Self.fauxFailure(NSURLErrorNotConnectedToInternet),
+            .message(fauxAssistantMessage("Back online.")),
+        ])
+        let session = try await Self.session(home, faux, network: Route(missing: 2).path)
+        let events = try await Self.events(of: session, prompt: "Hi")
+        let waiting = try #require(events.firstIndex(of: .waitingForNetwork))
+        let asked = try #require(events.firstIndex(of: .reconnecting))
+        #expect(waiting < asked && events.count(where: { $0 == .waitingForNetwork }) == 1)
+        #expect(events.contains(.messageFinished(text: "Back online.")))
+        #expect(!events.contains(where: Self.isError))
+        #expect(events.last == .finished(reason: .completed))
+        await session.close()
+    }
+
+    /// A failure kwwk does not ask again ends the turn at once, and its
+    /// error says why in a reason the app reads.
+    @Test(.timeLimit(.minutes(1)))
+    func `a refused sign-in fails the turn at once with its reason`() async throws {
+        let home = try TemporaryHome()
+        defer { home.remove() }
+        let faux = await registerFauxProvider()
+        defer { faux.unregister() }
+        var refused = fauxAssistantMessage(blocks: [], stopReason: .error, errorMessage: "Invalid API key.")
+        refused.failure = ProviderFailure(message: "Invalid API key.", httpStatus: 401)
+        faux.setResponses([.message(refused)])
+        let session = try await Self.session(home, faux)
+        let events = try await Self.events(of: session, prompt: "Hi")
+        #expect(faux.state.callCount == 1)
+        #expect(events.contains(.error(message: "Invalid API key.", reason: .authentication)))
+        #expect(!events.contains(.reconnecting) && !events.contains(.waitingForNetwork))
+        #expect(events.last == .finished(reason: .failed))
         await session.close()
     }
 
