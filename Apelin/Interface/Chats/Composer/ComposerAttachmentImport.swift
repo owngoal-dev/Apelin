@@ -190,13 +190,20 @@ final class ComposerAttachmentImport: NSObject, UIImagePickerControllerDelegate,
     }
 
     @objc dynamic func web() {
+        askWebAddress(typed: "")
+    }
+
+    /// Asks for the page to capture, the field holding `typed`: an address
+    /// that names no page is said so and asked for again as it was typed.
+    @objc dynamic private func askWebAddress(typed: String) {
         let alert = UIAlertController(
             title: String(localized: "Capture Web Content"),
             message: String(localized: "Enter the webpage address to attach its text."),
             preferredStyle: .alert,
         )
         alert.addTextField {
-            $0.placeholder = "https://"
+            $0.text = typed
+            $0.placeholder = "example.com"
             $0.keyboardType = .URL
             $0.autocapitalizationType = .none
             $0.autocorrectionType = .no
@@ -205,40 +212,50 @@ final class ComposerAttachmentImport: NSObject, UIImagePickerControllerDelegate,
         alert.addAction(UIAlertAction(title: String(localized: "Cancel"), style: .cancel))
         alert.addAction(UIAlertAction(title: String(localized: "Capture"), style: .default) { [self, weak alert] _ in
             let value = alert?.textFields?.first?.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            guard let url = URL(string: value), ["https", "http"].contains(url.scheme?.lowercased()),
-                  url.host != nil
-            else {
-                presenter?.presentNotice(
-                    title: "Invalid Web Address",
-                    message: String(localized: "Enter a complete http or https address."),
-                )
+            guard let url = WebAddress.url(from: value) else {
+                presentInvalidWebAddress(typed: value)
                 return
             }
-            Task { @MainActor [self] in
-                guard let presenter else { return }
-                do {
-                    let document: Scrubber.Document? = try await ProgressCard.run(
-                        title: String(localized: "Fetching Content"),
-                        message: value,
-                        cancellable: false,
-                        from: presenter,
-                    ) { _ in
-                        await withCheckedContinuation { continuation in
-                            Scrubber.document(for: url) { continuation.resume(returning: $0) }
-                        }
-                    }
-                    guard let document, !document.textDocument.isEmpty else {
-                        throw ApelinError(
-                            .unavailable,
-                            String(localized: "The webpage did not return readable content."),
-                        )
-                    }
-                    importText(document.textDocument, name: document.title)
-                } catch {
-                    presenter.presentNotice(title: "Unable to Capture Webpage", message: error.readableMessage)
-                }
-            }
+            captureWebpage(at: url)
         })
         presenter?.present(alert, animated: true)
+    }
+
+    @objc dynamic private func presentInvalidWebAddress(typed: String) {
+        presenter?.presentNotice(
+            title: "Invalid Web Address",
+            message: String(localized: "Enter a web address, such as example.com."),
+            onDismiss: { [weak self] in
+                guard !typed.isEmpty else { return }
+                self?.askWebAddress(typed: typed)
+            },
+        )
+    }
+
+    @objc dynamic private func captureWebpage(at url: URL) {
+        Task { @MainActor [self] in
+            guard let presenter else { return }
+            do {
+                let document: Scrubber.Document? = try await ProgressCard.run(
+                    title: String(localized: "Fetching Content"),
+                    message: url.absoluteString,
+                    cancellable: false,
+                    from: presenter,
+                ) { _ in
+                    await withCheckedContinuation { continuation in
+                        Scrubber.document(for: url) { continuation.resume(returning: $0) }
+                    }
+                }
+                guard let document, !document.textDocument.isEmpty else {
+                    throw ApelinError(
+                        .unavailable,
+                        String(localized: "The webpage did not return readable content."),
+                    )
+                }
+                importText(document.textDocument, name: document.title)
+            } catch {
+                presenter.presentNotice(title: "Unable to Capture Webpage", message: error.readableMessage)
+            }
+        }
     }
 }

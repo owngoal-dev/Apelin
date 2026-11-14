@@ -9,9 +9,9 @@
 # how often it asks, the order the sidebar lists conversations in, which
 # projects the project menu lists at its top, which conversations offer
 # Delete and when it asks first, which replies leave a conversation
-# unread, what a forced push's and a squash's approval cards show, and how
-# a sign-in page says it is finished from another device, against the
-# harness modules.
+# unread, what a forced push's and a squash's approval cards show, how
+# a sign-in page says it is finished from another device, and which typed
+# text the Web capture takes for an address, against the harness modules.
 # Usage: test-chat-transcript.sh <ApelinKit modules directory>
 set -euo pipefail
 
@@ -45,6 +45,7 @@ sources=(
     "$root/Apelin/Interface/Feedback/CompletedBuilds.swift"
     "$root/Apelin/Interface/Feedback/StarPromptState.swift"
     "$root/Apelin/Interface/Settings/Accounts/SignInProgress.swift"
+    "$root/Apelin/Interface/Chats/Composer/WebAddress.swift"
     "$root/Tests/ChatTranscript/TranscriptFold.swift"
     "$root/Tests/ChatTranscript/ToolCallDetailCheck.swift"
     "$root/Tests/ChatTranscript/TraceStepCheck.swift"
@@ -62,6 +63,7 @@ sources=(
     "$root/Tests/ChatTranscript/ForcePushCardCheck.swift"
     "$root/Tests/ChatTranscript/SquashCardCheck.swift"
     "$root/Tests/ChatTranscript/SignInElsewhereCheck.swift"
+    "$root/Tests/ChatTranscript/WebAddressCheck.swift"
     "$root/Tests/ChatTranscript/main.swift"
 )
 

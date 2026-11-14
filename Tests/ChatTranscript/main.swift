@@ -1204,3 +1204,5 @@ checkForcePushCard()
 checkSquashCard()
 
 checkSignInElsewhere()
+
+checkWebAddress()
