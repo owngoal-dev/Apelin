@@ -739,15 +739,43 @@ public actor AgentSession {
         compaction = nil
     }
 
+    /// What a stop was stopping, for whoever must know whether it ended.
+    public final class StoppedWork: @unchecked Sendable {
+        private let lock = NSLock()
+        private var ended = false
+
+        init(_ tasks: [Task<Void, Never>]) {
+            guard !tasks.isEmpty else {
+                ended = true
+                return
+            }
+            Task {
+                for task in tasks {
+                    await task.value
+                }
+                self.lock.withLock { self.ended = true }
+            }
+        }
+
+        /// Whether the stopped run and compaction have ended. A run started
+        /// since the stop does not count.
+        @objc public dynamic var hasEnded: Bool {
+            lock.withLock { ended }
+        }
+    }
+
     /// Stops the run. Waiting approvals resolve as denied, and the messages
     /// queued for it are dropped (`queuedMessagesDropped`).
-    public func abort() async {
+    @discardableResult
+    public func abort() async -> StoppedWork {
+        let stopped = StoppedWork([runTask, compaction].compactMap(\.self))
         aborted = true
         titleTask?.cancel()
         agent.clearSteeringQueue()
         await dropQueued()
         agent.abort()
         await gate.cancelAll(reason: "aborted")
+        return stopped
     }
 
     /// Answers a waiting approval. The host relays this from the app after

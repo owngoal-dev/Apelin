@@ -331,7 +331,8 @@ struct SupportTests {
 }
 
 /// A reviewed release stays reachable when Apple's catalog stops naming it,
-/// as 27.0 did once 27.2 came out, while the file was still being served.
+/// as 27.0 did once 27.2 came out, while the file was still being served,
+/// and is offered no more once Apple stops serving the file too.
 struct ReviewedPackageTests {
     private func listed(_ productID: String, _ version: String) throws -> ToolchainSource {
         try ToolchainSource(
@@ -363,11 +364,19 @@ struct ReviewedPackageTests {
     @Test func `a release Apple stopped listing is still offered`() throws {
         let newer = try listed("199-00000", "27.3")
         let catalog = try CommandLineToolsSupport.catalog(adding: [listed("082-41241", "16.4"), newer])
-        #expect(catalog.map(\.version) == ["27.3", "27.2", "27.0", "16.4", "15.3", "15.0", "14.2"])
-        let kept = try #require(catalog.first { $0.productID == "082-83364" })
-        #expect(kept.url.absoluteString.hasPrefix("https://swcdn.apple.com/content/downloads/58/48/082-83364-"))
+        #expect(catalog.map(\.version) == ["27.3", "27.2", "16.4", "15.3", "15.0", "14.2"])
+        let kept = try #require(catalog.first { $0.productID == "142-50405" })
+        #expect(kept.url.absoluteString.hasPrefix("https://swcdn.apple.com/content/downloads/53/49/142-50405-"))
         #expect(CommandLineToolsSupport.refusal(for: kept.version, productID: kept.productID) == nil)
         #expect(CommandLineToolsSupport.refusal(for: newer.version, productID: newer.productID) != nil)
+    }
+
+    @Test func `a package Apple stopped serving is offered only from its catalog`() {
+        let withdrawn = CommandLineToolsSupport.releases.flatMap(\.packages).filter(\.withdrawn).map(\.productID)
+        #expect(withdrawn == ["082-83364"])
+        #expect(!CommandLineToolsSupport.catalog(adding: []).contains { withdrawn.contains($0.productID) })
+        // Its review stands: a toolchain of it set up earlier, or sent as a file, still reads.
+        #expect(CommandLineToolsSupport.refusal(for: "27.0", productID: "082-83364") == nil)
     }
 
     @Test func `the catalog's own address wins`() throws {

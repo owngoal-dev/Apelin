@@ -1380,6 +1380,10 @@ await agentOpenChecks()
 
 await agentHostRunChecks()
 
+// MARK: - A stop the worker does not take (PatienceChecks.swift)
+
+await patienceChecks()
+
 // MARK: - shell_run as root (RootRunChecks.swift)
 
 await rootRunChecks(scratch: scratch, scratchPath: scratchPath)

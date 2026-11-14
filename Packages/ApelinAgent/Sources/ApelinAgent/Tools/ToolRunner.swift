@@ -16,6 +16,17 @@ public struct ToolDeniedError: Error, LocalizedError {
     }
 }
 
+/// A call the user's Stop ended before it answered. The run no longer waits
+/// for it, but what it had asked the device to do (a build, an install, a
+/// download, a git transfer) may go on, which the model reads as the call's
+/// result.
+public struct ToolStoppedError: Error, LocalizedError {
+    public var errorDescription: String? {
+        "Stopped by the user before this call answered. If it started work on the device, "
+            + "that work may still finish: check its state before starting it again."
+    }
+}
+
 /// Gathers the facts of a call, puts it through the approval gate, then runs
 /// it: file tools here, everything else through the host backend.
 actor ToolRunner {
@@ -167,7 +178,13 @@ actor ToolRunner {
 
     /// Runs one call; one that throws is noted in the journal for what it
     /// came to (`ToolCallOutcome`), unless where it was decided noted it.
-    func run(
+    ///
+    /// A stop ends the call within `stopGrace`, whatever it waits on: a
+    /// build, a git transfer or a download that would not answer held the
+    /// run, and with it Stop and every later message, until it did (#59).
+    /// Off the actor, so a call that holds the actor cannot hold the stop
+    /// either.
+    nonisolated func run(
         _ tool: InvocationFacts.Tool,
         toolCallID: String,
         arguments: JSONValue,
@@ -175,10 +192,21 @@ actor ToolRunner {
         mcp: (@Sendable (JSONValue) async throws -> AgentToolResult)?,
     ) async throws -> AgentToolResult {
         do {
-            return try await gated(tool, toolCallID: toolCallID, arguments: arguments, cancellation: cancellation, mcp: mcp)
+            return try await Self.untilCancelled(cancellation) {
+                try await self.gated(
+                    tool,
+                    toolCallID: toolCallID,
+                    arguments: arguments,
+                    cancellation: cancellation,
+                    mcp: mcp,
+                )
+            }
         } catch {
             let stopped = cancellation?.isCancelled == true || Task.isCancelled
             journal?.note(ToolCallOutcome.of(error, stopped: stopped), for: toolCallID)
+            if stopped, error is CancellationError {
+                throw ToolStoppedError()
+            }
             throw error
         }
     }
@@ -1055,19 +1083,44 @@ actor ToolRunner {
         return "; " + note
     }
 
-    /// Runs `body` until it answers or the call is cancelled: a stop does
-    /// not wait for a long wait on another conversation to run out.
+    /// How long a cancelled call has to end in its own words (an approval
+    /// denied, a command's output up to where it was stopped) before the
+    /// run stops waiting for it.
+    static let stopGrace: Duration = .seconds(2)
+
+    /// Runs `body` until it answers or the call is cancelled. Cancelled, the
+    /// body is cancelled too, and `grace` later its answer is no longer
+    /// waited for: what it waits on (a request to the session host, a task
+    /// read to its end) need not answer its cancellation for the stop to
+    /// take effect.
     static func untilCancelled<T: Sendable>(
         _ cancellation: CancellationHandle?,
+        grace: Duration = stopGrace,
         _ body: @escaping @Sendable () async throws -> T,
     ) async throws -> T {
-        let task = Task { try await body() }
-        let registration = cancellation?.onCancel { _ in task.cancel() }
+        let race = Deadline.Race<T>()
+        let work = Task {
+            do {
+                try await race.finish(.success(body()))
+            } catch {
+                race.finish(.failure(error))
+            }
+        }
+        let stop: @Sendable () -> Void = {
+            work.cancel()
+            Task {
+                try? await Task.sleep(for: grace)
+                race.finish(.failure(CancellationError()))
+            }
+        }
+        let registration = cancellation?.onCancel { _ in stop() }
         defer { registration?.cancel() }
         return try await withTaskCancellationHandler {
-            try await task.value
+            try await withCheckedThrowingContinuation { continuation in
+                race.start(continuation, contenders: [work])
+            }
         } onCancel: {
-            task.cancel()
+            stop()
         }
     }
 

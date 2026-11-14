@@ -3144,3 +3144,60 @@ OpenAI-compatible key:
 
 Not run: the iPad vphone (its host was running another session's VM), and
 what Still to run lists.
+
+## Stop that always ends a turn, several endpoints, web addresses, CLT 27.0 (2026-11-14, 0.4.7)
+
+On the Mac: `make harness`, `make check` and `make deb-all`, with the new
+tests: a stopped call that never answers is left and one that ends by
+itself keeps its answer (`ConversationToolTests`), a clone from a server
+that says nothing fails "timed out" (`GitTimeoutTests`), the host's
+bounded wait (`PatienceChecks`), a further endpoint's identity on the wire
+(`ApelinProtocolTests`), its sign-in, list and registration
+(`AccountDeskTests`), the web address as typed (`WebAddressCheck`), and a
+withdrawn package left out of the catalog (`SupportTests`).
+
+On the iPhone vphone (iOS 26.4, roothide), the roothide package of this
+branch built on the Mac, over 0.4.6, chats on deepseek-v4-pro through an
+OpenAI-compatible key:
+
+- #59 before, on 0.4.6: a project's chat told to `git_fetch` from a remote
+  whose server accepts the connection and never answers (a listener on
+  the host) read "Executing tool…" from then on, and still did, with Stop
+  showing, 62 s after Stop was tapped.
+- #59 on this build: the same fetch read "Executing tool…" for 26 s; the
+  turn ended within a second of Stop, and the next message was answered.
+  Left alone, the fetch failed after 123 s and the model reported "could
+  not read from socket: timed out".
+- #59, the host's bound: with the session's worker frozen (SIGSTOP) while
+  a turn streamed, Stop left "Thinking…" for 10 s, then the turn ended;
+  the next message opened the conversation again and was answered.
+- #60: Model Providers listed the device's endpoint under its host and
+  "OpenAI-Compatible API" once more under API Keys. That row took a second
+  endpoint (a stand-in server on the host, with its own key): Fetch Models
+  listed its two models under its host, one was enabled with its probe
+  answered, and the list then showed both endpoints signed in and the row
+  to add a third. The composer's model menu had a heading for each host; a
+  turn on the second endpoint's model was answered by the stand-in, which
+  saw that endpoint's key, and the next turn, on deepseek-v4-pro, by the
+  first. Sign Out asked "Sign Out of" the second one's host and left the
+  first as it was.
+- #61: Web's field showed `example.com`; `example.com` typed as is was
+  fetched as `https://example.com` and attached; "not an address" brought
+  "Invalid Web Address" over "Enter a web address, such as example.com.",
+  and Dismiss brought the field back with what was typed. On 0.4.6 before:
+  `example.com` was refused, and with `https://` example.com, GitHub,
+  apple.com, Wikipedia, a search page and a chat page were each attached
+  in 5 to 7 s and a message with them was answered.
+- #58: `toolchainCatalog` offered 27.2, 16.4, 15.3, 15.0 and 14.2; the
+  device's 27.0 toolchain stayed registered, the default, its six
+  self-tests passed.
+- `device.py suite smoke`: 7 pass. `suite regression`: 25 pass, 3 skip
+  (the device has a toolchain, and no `I3 Chain Tweak` to export), 1 fail,
+  `t2-toolchain-remove`, as before this change: the device's one toolchain
+  is bound by its projects. `a3-endpoint-beside` and `t6-toolchain-beside`
+  (the catalog without 27.0) are among those that passed.
+
+Not run: the iPad vphone, whose host was running another session's VM for
+the whole round; the rootless package on a device; the worker's own 20 s
+bound on a stopped run, which needs a model request that ignores its
+cancellation.

@@ -35,7 +35,7 @@ enum Deadline {
     }
 
     /// The first result in wins: it answers the caller and stops the rest.
-    private final class Race<T: Sendable>: @unchecked Sendable {
+    final class Race<T: Sendable>: @unchecked Sendable {
         private let lock = NSLock()
         private var continuation: CheckedContinuation<T, any Error>?
         private var contenders: [Task<Void, Never>] = []

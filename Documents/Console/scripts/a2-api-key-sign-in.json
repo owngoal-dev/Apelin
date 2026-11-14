@@ -11,10 +11,10 @@
     }}},
     {"op": "agentAttach", "label": "signed-in", "request": {"taskID": "${key.response.taskID}", "afterSeq": 0, "waitMilliseconds": 5000}},
     {"op": "agentAccountList", "label": "listed"},
-    {"op": "expect", "request": {"step": "listed", "path": "response.accounts.18.signedIn", "equals": true}},
-    {"op": "expect", "request": {"step": "listed", "path": "response.accounts.18.account", "equals": "llm.example.invalid"}},
+    {"op": "expect", "request": {"step": "listed", "path": "response.accounts.26.signedIn", "equals": true}},
+    {"op": "expect", "request": {"step": "listed", "path": "response.accounts.26.account", "equals": "llm.example.invalid"}},
     {"op": "agentSignOut", "request": {"provider": "openAICompatible"}},
     {"op": "agentAccountList", "label": "signed-out"},
-    {"op": "expect", "request": {"step": "signed-out", "path": "response.accounts.18.signedIn", "equals": false}}
+    {"op": "expect", "request": {"step": "signed-out", "path": "response.accounts.26.signedIn", "equals": false}}
   ]
 }

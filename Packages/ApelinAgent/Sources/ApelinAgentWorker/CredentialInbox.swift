@@ -21,6 +21,11 @@ public struct CredentialInbox: Sendable {
     public static let maximumFileBytes = 64 * 1024
     public static let knownProviders = Set(AgentProvider.allCases.map(\.storeID))
 
+    /// A provider's store id, or a further OpenAI-compatible endpoint's.
+    static func isKnown(_ storeID: String) -> Bool {
+        knownProviders.contains(storeID) || CredentialProviderID.endpointNumber(storeID) != nil
+    }
+
     public let directory: URL
 
     public init(directory: URL) {
@@ -124,13 +129,13 @@ public struct CredentialInbox: Sendable {
     static func parse(_ data: Data, fileName: String) throws -> [(String, OAuthCredentials)] {
         let decoder = JSONDecoder()
         let stem = (fileName as NSString).deletingPathExtension
-        if knownProviders.contains(stem), let single = try? decoder.decode(OAuthCredentials.self, from: data) {
+        if isKnown(stem), let single = try? decoder.decode(OAuthCredentials.self, from: data) {
             return [(stem, single)]
         }
         guard let map = try? decoder.decode([String: OAuthCredentials].self, from: data), !map.isEmpty else {
             throw InboxError.notCredentials
         }
-        for id in map.keys where !knownProviders.contains(id) {
+        for id in map.keys where !isKnown(id) {
             throw InboxError.unknownProvider(id)
         }
         return map.keys.sorted().map { ($0, map[$0]!) }

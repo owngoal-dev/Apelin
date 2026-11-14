@@ -891,15 +891,28 @@ public struct ChannelHostBackend: AgentHostBackend {
         var message: String?
     }
 
-    /// Reads a task to its end, handing each event to `body`.
+    /// Reads a task to its end, handing each event to `body`. A call the
+    /// user stops is cancelled (`ToolRunner.run`), which ends the read
+    /// short of the task's end, and a build it was reading with it: no one
+    /// is left to take its package. Any other task goes on by itself.
     func read(_ handle: TaskHandle, _ body: (TaskEvent) throws -> Void) async throws -> TaskEnd {
-        var end = TaskEnd(state: .running, message: nil)
-        for try await event in service.events(of: handle) {
-            if event.kind == TaskEvent.stateKind, let name = event.payload?["state"]?.stringValue, let state = TaskState(rawValue: name) {
-                end = TaskEnd(state: state, message: event.payload?["message"]?.stringValue)
+        let service = service
+        let end = try await withTaskCancellationHandler {
+            var end = TaskEnd(state: .running, message: nil)
+            for try await event in service.events(of: handle) {
+                if event.kind == TaskEvent.stateKind, let name = event.payload?["state"]?.stringValue,
+                   let state = TaskState(rawValue: name)
+                {
+                    end = TaskEnd(state: state, message: event.payload?["message"]?.stringValue)
+                }
+                try body(event)
             }
-            try body(event)
+            return end
+        } onCancel: {
+            guard handle.kind == .build else { return }
+            Task.detached { try? await service.buildCancel(taskID: handle.taskID) }
         }
+        try Task.checkCancellation()
         return end
     }
 

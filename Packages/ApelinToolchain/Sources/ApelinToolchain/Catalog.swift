@@ -193,6 +193,14 @@ enum ResumableDownload {
                     try? FileManager.default.removeItem(at: record)
                     throw ToolchainFailure("The package changed on the server. Try again to download the new version.")
                 }
+                // Apple answers 403 for a package it took off its servers, and now and then
+                // for one it still serves, so the sentence covers both.
+                if response.statusCode == 403 || response.statusCode == 404 {
+                    throw ToolchainFailure(
+                        "Apple's download server refused this package (HTTP \(response.statusCode)). Try again; "
+                            + "if it keeps refusing, Apple no longer serves this release, so pick another.",
+                    )
+                }
                 guard
                     response.statusCode == 206,
                     response.value(forHTTPHeaderField: "Content-Range") == "bytes \(start)-\(end)/\(source.size)",

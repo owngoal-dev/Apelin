@@ -604,6 +604,109 @@ struct AccountDeskTests {
         #expect(AccountDesk.lapses(OAuthCredentials(access: "k", refresh: "", expires: 1000)) == Date(timeIntervalSince1970: 1))
     }
 
+    // MARK: - Several OpenAI-compatible endpoints (#60)
+
+    @Test
+    func `the list always has one OpenAI-compatible endpoint to add, after those signed in to`() {
+        let first = CredentialProviderID.openAICompatible
+        func listed(_ stored: [String]) -> [String] {
+            AccountDesk.listed(.openAICompatible, stored: Set(stored)).map(\.rawValue)
+        }
+        #expect(listed([]) == ["openAICompatible"])
+        #expect(listed([first]) == ["openAICompatible", "openAICompatible.2"])
+        #expect(listed([first, "openai-compatible.2", "openai-compatible.4"])
+            == ["openAICompatible", "openAICompatible.2", "openAICompatible.4", "openAICompatible.3"])
+        // The first one, signed out of, is the one to add again.
+        #expect(listed(["openai-compatible.2"]) == ["openAICompatible.2", "openAICompatible"])
+        // Another provider's item, or a spelling that names no endpoint, is none.
+        #expect(listed([first, "openai-compatible.02", "openai-compatible.1", "openai-compatible.x", "openai-codex"])
+            == ["openAICompatible", "openAICompatible.2"])
+        #expect(AccountDesk.listed(.deepSeek, stored: [first]) == [.deepSeek])
+        #expect(AgentProvider.openAICompatibleEndpoint(7).storeID == "openai-compatible.7")
+        #expect(CredentialProviderID.endpointNumber("openai-compatible.7") == 7)
+        #expect(CredentialProviderID.endpointNumber(first) == nil)
+        #expect(CredentialInbox.isKnown("openai-compatible.7") && !CredentialInbox.isKnown("openai-compatible.100"))
+    }
+
+    @Test
+    func `a second OpenAI-compatible endpoint signs in beside the first, with a key, address and models of its own`() async throws {
+        let first = OAuthCredentials(access: "sk-FIRST-SECRET", refresh: "", expires: .max, extras: [
+            "baseUrl": .string("https://one.example.invalid/v1"), "defaultModel": .string("model-one"),
+        ])
+        let store = DeliveredCredentialSource([CredentialProviderID.openAICompatible: first])
+        let desk = AccountDesk(store: store, login: Self.neverCalled, listener: Self.silent, verifyKey: { _, _, _ in })
+        func endpoints() async -> [AgentAccount] {
+            await desk.list().accounts.filter { $0.provider.kind == .openAICompatible }
+        }
+        let second = AgentProvider.openAICompatibleEndpoint(2)
+        let offered = await endpoints()
+        #expect(offered.map(\.provider) == [.openAICompatible, second])
+        #expect(offered.map(\.signedIn) == [true, false])
+        #expect(offered[1].method == .apiKey)
+
+        let recorder = SignInRecorder()
+        let task = TaskID("endpoint-2")
+        try await desk.start(AgentSignInRequest(provider: second), taskID: task, reporter: recorder.reporter)
+        try await recorder.waitFor { !$0.events.isEmpty }
+        // The first endpoint's form.
+        #expect(recorder.events[0].payload?["fields"] == .array([
+            .object(["key": .string("apiKey"), "required": .bool(true), "secure": .bool(true)]),
+            .object(["key": .string("baseUrl"), "required": .bool(true), "secure": .bool(false), "placeholder": .string("https://…")]),
+            .object(["key": .string("defaultModel"), "required": .bool(true), "secure": .bool(false)]),
+        ]))
+        try await desk.respond(AgentSignInRespondRequest(taskID: task, fields: [
+            .apiKey: "sk-SECOND-SECRET", .baseURL: "https://two.example.invalid/v1", .defaultModel: "model-two",
+        ]))
+        try await recorder.waitFor { $0.state != nil }
+        #expect(recorder.state == .succeeded)
+        #expect(!recorder.transcript.contains("SECRET"))
+        #expect(try await store.credentials(for: "openai-compatible") == first)
+        let stored = try #require(try await store.credentials(for: "openai-compatible.2"))
+        #expect(stored.access == "sk-SECOND-SECRET")
+        #expect(stored.extras["baseUrl"] == .string("https://two.example.invalid/v1"))
+
+        let listed = await endpoints()
+        #expect(listed.map(\.provider) == [.openAICompatible, second, .openAICompatibleEndpoint(3)])
+        #expect(listed.map(\.account) == ["one.example.invalid", "two.example.invalid", nil])
+        #expect(listed.map(\.models) == [["model-one"], ["model-two"], nil])
+        #expect(try await desk.apiConfiguration(for: second).values["baseUrl"] == "https://two.example.invalid/v1")
+        #expect(try await desk.apiConfiguration(for: .openAICompatible).values["apiKey"] == "sk-FIRST-SECRET")
+
+        // Signing out of the first leaves the second, and the first is the one to add.
+        try await desk.signOut(.openAICompatible)
+        #expect(try await store.credentials(for: "openai-compatible.2") == stored)
+        let left = await endpoints()
+        #expect(left.map(\.provider) == [second, .openAICompatible])
+        #expect(left.map(\.signedIn) == [true, false])
+    }
+
+    @Test
+    func `each OpenAI-compatible endpoint resolves to its own address and key`() async throws {
+        func endpoint(_ key: String, _ host: String, _ model: String) -> OAuthCredentials {
+            OAuthCredentials(access: key, refresh: "", expires: .max, extras: [
+                "baseUrl": .string("https://\(host)/v1"), "defaultModel": .string(model),
+            ])
+        }
+        let manager = OAuthManager(source: DeliveredCredentialSource([
+            "openai-compatible": endpoint("sk-one", "one.example.invalid", "model-one"),
+            "openai-compatible.2": endpoint("sk-two", "two.example.invalid", "model-two"),
+        ]))
+        let one = try #require(try await ProviderRegistration.resolve(storeID: "openai-compatible", manager: manager))
+        let two = try #require(try await ProviderRegistration.resolve(
+            storeID: "openai-compatible.2",
+            manager: manager,
+            modelOverride: "model-b",
+        ))
+        #expect(one.model.baseURL == "https://one.example.invalid/v1" && one.model.id == "model-one")
+        #expect(two.model.baseURL == "https://two.example.invalid/v1" && two.model.id == "model-b")
+        #expect(one.model.api == two.model.api && one.model.provider == two.model.provider)
+        // Resolving one after the other leaves each its own key.
+        #expect(try await two.authResolver?(two.model, nil)?.token == "sk-two")
+        #expect(try await one.authResolver?(one.model, nil)?.token == "sk-one")
+        // An endpoint nobody signed in to resolves to nothing.
+        #expect(try await ProviderRegistration.resolve(storeID: "openai-compatible.3", manager: manager) == nil)
+    }
+
     @Test
     func `every provider maps to the store id its session reads`() {
         #expect(Set(AgentProvider.allCases.map(\.storeID)) == CredentialInbox.knownProviders)

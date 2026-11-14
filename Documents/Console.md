@@ -415,6 +415,12 @@ error, or on `ok: false` where the exact refusal is the worker's to choose.
   `openai-compatible` sign-in with a placeholder key through `agentSignIn`
   and `agentSignInRespond`, lists it under its host, `agentSignOut`, lists
   it gone.
+- `a3-endpoint-beside.json` — a further OpenAI-compatible endpoint
+  (`openAICompatible.99`, a number no device uses) signed in to with a
+  placeholder key beside whatever the device has: `agentModelList` is
+  `notFound` before, `unavailable` while it is signed in (its host does
+  not resolve) and `notFound` after `agentSignOut`. The device's own
+  sign-ins are not touched.
 - `transfer.json` — needs a registered SDK. `transferExport` of it read to
   its end (the export's `result` is also in the final `state`),
   `transferInspect` of the file in `Exports/` (an SDK already here: not

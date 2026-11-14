@@ -212,6 +212,10 @@ struct EventRelayMappingTests {
         #expect(configuration == .githubCopilot(model: "claude-sonnet-5.5"))
         #expect(try AgentWorker.provider(.init(provider: .anthropic, model: "m")) == .anthropic(model: "m", oauth: false))
         #expect(throws: (any Error).self) { try AgentWorker.provider(.init(provider: .openAICompatible)) }
+        // A further endpoint is read from its own item, and names its model too.
+        #expect(throws: (any Error).self) { try AgentWorker.provider(.init(provider: .openAICompatibleEndpoint(2))) }
+        #expect(try AgentWorker.provider(.init(provider: .openAICompatibleEndpoint(2), model: "m"))
+            == .stored(storeID: "openai-compatible.2", model: "m"))
         // Every other login is kwwk's stored provider of its id, with kwwk's
         // default model unless one is named.
         #expect(try AgentWorker.provider(.init(provider: .kimiCoding)) == .stored(storeID: "kimi-coding", model: nil))

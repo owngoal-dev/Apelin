@@ -260,6 +260,11 @@ public enum AgentWorker {
              .kimiCoding, .kimiCodingGlobal, .xai, .zai, .zaiCodingCN, .openRouter, .openAI, .google, .deepSeek,
              .openCodeGo, .openCodeZen:
             return .stored(storeID: provider.storeID, model: model)
+        case .openAICompatibleEndpoint:
+            // As the first endpoint: its base URL is with its key, and the
+            // model is named.
+            guard let model else { throw ApelinError(.badRequest, "name the model for \(provider.rawValue)") }
+            return .stored(storeID: provider.storeID, model: model)
         }
     }
 }
@@ -404,8 +409,43 @@ actor WorkerState {
         return .approve(approve.scope == .session ? .session : .once)
     }
 
+    /// How long a stopped run has to end. A tool call no longer holds it
+    /// (`ToolRunner.run`); this is for what is left, a model request or a
+    /// compaction that does not answer its cancellation.
+    static let stopPatience: Duration = .seconds(20)
+
+    /// Stops the run. One that has not ended `stopPatience` later would
+    /// leave the conversation working with Stop spent and every later
+    /// message queued behind it (#59), so the session's task is ended
+    /// instead (`endUnstopped`). Each stop is timed by itself: a second
+    /// one does not give the run more time.
     func abort() async {
-        await session?.abort()
+        guard let session else { return }
+        let stopped = await session.abort()
+        Task { [weak self] in
+            try? await Task.sleep(for: Self.stopPatience)
+            if !stopped.hasEnded {
+                await self?.endUnstopped()
+            }
+        }
+    }
+
+    /// Ends the task of a session whose stopped run did not end, and the
+    /// process with it, without waiting for the session: the app reads the
+    /// task's end as the turn's, and the conversation opens again on its
+    /// next message with the transcript its last finished run left.
+    private func endUnstopped() {
+        guard !finished else { return }
+        finished = true
+        if let context, let taskID {
+            let message = "This chat did not stop in time, so Apelin ended it. Send a message to continue."
+            context.emit(taskID, "error", .object(["message": .string(message)]))
+            context.finish(taskID, .cancelled, message: message)
+        }
+        Task.detached {
+            try? await Task.sleep(nanoseconds: 500_000_000)
+            exit(0)
+        }
     }
 
     /// A run ended; a headless session ends with it.
