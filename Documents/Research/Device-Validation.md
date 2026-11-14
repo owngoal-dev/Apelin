@@ -3137,7 +3137,10 @@ OpenAI-compatible key:
   after): that recorded failure read 无互联网连接 over 请连接互联网，然后
   重新发送消息。, a message sent offline read 正在等待网络…, then
   正在重新连接…, then its reply.
-- `device.py suite smoke`: 7 pass.
+- `device.py suite smoke`: 7 pass. `suite regression`: 24 pass, 3 skip
+  (they need a guest without a toolchain, or a project an earlier run
+  left), and `t2-toolchain-remove` refused as on every round here: this
+  guest's one toolchain is bound by older projects.
 
 Not run: the iPad vphone (its host was running another session's VM), and
 what Still to run lists.
