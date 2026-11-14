@@ -98,7 +98,12 @@ final class ModelProvidersController: TableController, UISearchResultsUpdating {
         }
         dataSource.footerTitle = { [weak self] section in
             guard let self, section == sections.last?.0, case .group = section else { return nil }
-            return String(localized: "Credentials stay in this device’s keychain.")
+            // kwwk signs in and talks to every provider here: its version
+            // is what a report about one needs.
+            guard let kwwk = LinkedPackage.kwwkVersion else {
+                return String(localized: "Credentials stay in this device’s keychain.")
+            }
+            return String(localized: "Credentials stay in this device’s keychain. Currently using kwwk \(kwwk).")
         }
         dataSource.update(sections)
     }

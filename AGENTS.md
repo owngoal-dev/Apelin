@@ -231,7 +231,15 @@ the same executable in session mode; the workers are its children.
   GPL-family text fails the build. Vendored code keeps its upstream `LICENSE`
   beside it and its header on each file; MIT / BSD / Apache only. `make check`
   requires the phase, the packager requires the file. Read the generated list
-  after adding a dependency.
+  after adding a dependency. A package pinned by revision has no version in
+  its pin, so one whose checkout states its own is read there
+  (`statedVersions` in `Licenses/review.json`: kwwk's, from
+  `Sources/KWWKCli/Theme.swift`; a checkout that no longer states exactly
+  one where the rule says fails the build). The app shows a linked
+  package's version only from this list (`LinkedPackage`): Model
+  Providers' footer ends "Currently using kwwk 0.1.121." (owner,
+  2026-11-14), which is the kwwk the workers of the same build link, with
+  no number kept by hand.
 - **No absolute build path in a shipped binary.** `#file` is concise
   (`SWIFT_UPCOMING_FEATURE_CONCISE_MAGIC_FILE`, prefix maps in `Base.xcconfig`);
   the packager greps every binary for the repository root and fails on a hit.

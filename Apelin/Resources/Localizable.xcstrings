@@ -75703,6 +75703,82 @@
         }
       }
     },
+    "Credentials stay in this device’s keychain. Currently using kwwk %@." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تبقى بيانات الاعتماد في سلسلة المفاتيح على هذا الجهاز. يُستخدم حاليًا kwwk %@."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zugangsdaten bleiben im Schlüsselbund dieses Geräts. Derzeit wird kwwk %@ verwendet."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Las credenciales se quedan en el llavero de este dispositivo. Actualmente se usa kwwk %@."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les identifiants restent dans le trousseau de cet appareil. Version de kwwk utilisée : %@."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le credenziali restano nel portachiavi di questo dispositivo. Attualmente è in uso kwwk %@."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "認証情報はこのデバイスのキーチェーンに保存されます。現在 kwwk %@ を使用しています。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "자격 증명은 이 기기의 키체인에 보관됩니다. 현재 kwwk %@ 버전을 사용하고 있습니다."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "As credenciais ficam nas chaves deste dispositivo. No momento, está em uso o kwwk %@."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Учётные данные хранятся в связке ключей этого устройства. Сейчас используется kwwk %@."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thông tin xác thực chỉ nằm trong chuỗi khóa của thiết bị này. Hiện đang dùng kwwk %@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "凭据只保存在这台设备的钥匙串中。当前使用 kwwk %@。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "憑證只會儲存在此裝置的鑰匙圈中。目前使用 kwwk %@。"
+          }
+        }
+      }
+    },
     "Download" : {
       "extractionState" : "manual",
       "localizations" : {

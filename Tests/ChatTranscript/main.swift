@@ -1206,3 +1206,5 @@ checkSquashCard()
 checkSignInElsewhere()
 
 checkWebAddress()
+
+checkLinkedPackage()
