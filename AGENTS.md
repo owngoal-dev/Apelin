@@ -784,6 +784,14 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   writer's and the file tools' temporary files); a repository made
   without it is given it by its next git call once the project has an
   `Attachments` folder. SSH would exec `ssh`; HTTPS is the only transport.
+  libgit2 waits on a silent server for ever unless told otherwise, so
+  `GitLibrary` gives a remote 30 s to accept a connection and 120 s of
+  silence during a transfer (#59; `GIT_OPT_SET_SERVER_CONNECT_TIMEOUT`,
+  `GIT_OPT_SET_SERVER_TIMEOUT`, set through the two C functions of
+  `ApelinGitOptions`, since Swift cannot call the variadic
+  `git_libgit2_opts`): a stalled clone, fetch or push fails "timed out"
+  instead of holding its task, and whoever reads that task, for good.
+  `GitTimeoutTests` clones from a server that says nothing.
   Remotes (2026-10-22): `gitFetch`, `gitPull` (fetch, then a fast-forward
   only: a diverged branch or a worktree change it would overwrite is
   `conflict` and nothing changes) and `gitPush` (one branch to the branch
@@ -1356,7 +1364,30 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   has none), and a sign-in that is not saved stays `denied`, from
   `agentPrompt` too, which used to answer the error's Swift description.
   Prompt, steer, abort, compact, approve and close go
-  to that session's running worker and to no other. The worker refuses a
+  to that session's running worker and to no other. A stop always ends
+  the turn (#59: a conversation whose tool call waited on something that
+  never answered could be neither stopped nor continued, since the run
+  went on until the call returned and every later message queued behind
+  it). Three bounds, each for what the one before cannot reach.
+  `ToolRunner.run` no longer waits on a call once the run is stopped: the
+  call is cancelled, given `stopGrace` (2 s) to end in its own words (an
+  approval denied, a command's output up to where the host killed it) and
+  then left, its answer unread, with `ToolStoppedError` as the result the
+  model reads, which says the work it started on the device may still
+  finish; a build the call was reading is cancelled with it
+  (`ChannelHostBackend.read`, `buildCancel`), while an install, a
+  toolchain setup, an SDK import and a git transfer go on by themselves.
+  The worker then gives the stopped run 20 s to end (`WorkerState.abort`,
+  `AgentSession.StoppedWork`): one that has not, a model request or a
+  compaction that does not answer its cancellation, has its task ended
+  `cancelled` with an `error` saying so, and the process exits. And the
+  host gives the worker 10 s to take the stop at all
+  (`AgentHandler.abort`, `Patience`): one that does not is ended
+  (`WorkerSupervisor.end`: its channel closed, which ends its task, and
+  the process killed unless it was reaped already). Either way the app
+  reads the task's end as the turn's, and the conversation opens again on
+  its next message with the transcript its last finished run left; a run
+  that ends by itself in time loses nothing. The worker refuses a
   second `agentOpen` with `conflict` from its first suspension, and frees
   the place if the open fails. Its log, `sessions/<id>/events.jsonl`
   (`SessionEventLog`), joins streamed `textDelta`/`thinkingDelta` into one
