@@ -6,7 +6,9 @@ import UIKit
 /// in Apelin's display order. Signed-in ones first, each with who
 /// it is signed in as under its name and a `…` menu (Edit Configuration or Sign In Again, Sign
 /// Out); then the rest, those signed in to with an account apart from those
-/// that take a typed key. A search field narrows the list by name.
+/// that take a typed key. A search field narrows the list by name. The
+/// OpenAI-compatible login is there once for each endpoint signed in to,
+/// told apart by its host, and once more among the keys to add another.
 final class ModelProvidersController: TableController, UISearchResultsUpdating {
     private enum Group: Hashable {
         case signedIn
@@ -140,7 +142,11 @@ final class ModelProvidersController: TableController, UISearchResultsUpdating {
         } else {
             let shown = query.isEmpty
                 ? accounts
-                : accounts.filter { $0.provider.displayName.localizedStandardContains(query) }
+                : accounts.filter {
+                    $0.provider.displayName.localizedStandardContains(query)
+                        // an endpoint is found by the host it was signed in to as well
+                        || ($0.account ?? "").localizedStandardContains(query)
+                }
             let groups: [(Group, [AgentAccount])] = [
                 (.signedIn, shown.filter(\.signedIn)),
                 (.accounts, shown.filter { !$0.signedIn && $0.method != .apiKey }),
@@ -255,7 +261,7 @@ final class ModelProvidersController: TableController, UISearchResultsUpdating {
                     image: UIImage(systemName: "rectangle.portrait.and.arrow.right"),
                     attributes: .destructive,
                 ) { [weak self] _ in
-                    self?.confirmSignOut(account.provider)
+                    self?.confirmSignOut(account)
                 },
             ]),
         ]
@@ -293,9 +299,13 @@ final class ModelProvidersController: TableController, UISearchResultsUpdating {
         presentPageAsFormSheet(page)
     }
 
-    private func confirmSignOut(_ provider: AgentProvider) {
+    /// An OpenAI-compatible endpoint is named by its host: there can be
+    /// several, all with the provider's one name.
+    private func confirmSignOut(_ account: AgentAccount) {
+        let provider = account.provider
+        let name = provider.kind == .openAICompatible ? account.account ?? provider.displayName : provider.displayName
         presentConfirmation(
-            title: "Sign Out of \(provider.displayName)?",
+            title: "Sign Out of \(name)?",
             message: "Agent sessions that use it stop working until you sign in again.",
             confirmTitle: "Sign Out",
             destructive: true,

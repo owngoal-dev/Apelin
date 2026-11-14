@@ -52,7 +52,9 @@ enum ProviderModels {
 
     /// The kwwk model catalog the account's models come from.
     private static func catalogKey(_ provider: AgentProvider, credentials: OAuthCredentials) -> String? {
-        provider == .deepSeek || isDeepSeek(credentials) ? "deepseek" : providerDescriptor(forStoreId: provider.storeID)?.catalogKey
+        provider == .deepSeek || isDeepSeek(credentials)
+            ? "deepseek"
+            : providerDescriptor(forStoreId: provider.kind.storeID)?.catalogKey
     }
 
     static func list(_ provider: AgentProvider, credentials: OAuthCredentials) -> [String] {
@@ -181,7 +183,7 @@ enum ProviderModels {
             let path = url.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
             url.path = "/" + path + (path.hasSuffix("v1") ? "/models" : "/v1/models")
             url.path = url.path.replacingOccurrences(of: "//", with: "/")
-        } else if provider == .openAI || provider == .openAICompatible || provider == .openRouter || provider == .deepSeek {
+        } else if [.openAI, .openAICompatible, .openRouter, .deepSeek].contains(provider.kind) {
             let path = url.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
             url.path = "/" + (path.isEmpty ? "v1" : path) + "/models"
         } else if provider == .google {

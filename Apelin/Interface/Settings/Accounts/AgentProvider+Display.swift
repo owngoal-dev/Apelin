@@ -10,14 +10,16 @@ import UIKit
 /// https://antigravity.google/assets/image/antigravity-logo.png, scaled
 /// onto the white plate Google AI Studio's mark sits on.
 /// Which providers there are, and in
-/// what order, is apelin-agent's answer, not this file's.
+/// what order, is apelin-agent's answer, not this file's. Every
+/// OpenAI-compatible endpoint has the first one's name and mark: the list
+/// tells them apart by the host each was signed in to.
 extension AgentProvider {
     var displayName: String {
         switch self {
         case .githubCopilot: String(localized: "GitHub Copilot")
         case .anthropicOAuth: String(localized: "Claude Code")
         case .anthropic: String(localized: "Anthropic API")
-        case .openAICompatible: String(localized: "OpenAI-Compatible API")
+        case .openAICompatible, .openAICompatibleEndpoint: String(localized: "OpenAI-Compatible API")
         case .openAICodex: String(localized: "ChatGPT Codex")
         case .cursor: String(localized: "Cursor")
         case .devin: String(localized: "Devin")
@@ -49,7 +51,7 @@ extension AgentProvider {
         case .githubCopilot: UIImage(named: "ProviderGitHubCopilot")
         case .anthropicOAuth: UIImage(named: "ProviderClaude")
         case .anthropic: UIImage(named: "ProviderAnthropicAPI")
-        case .openAICompatible: UIImage(named: "ProviderOpenAICompatible")
+        case .openAICompatible, .openAICompatibleEndpoint: UIImage(named: "ProviderOpenAICompatible")
         case .openAICodex: UIImage(named: "ProviderChatGPTCodex")
         case .cursor: UIImage(named: "ProviderCursor")
         case .devin: UIImage(named: "ProviderDevin")
@@ -83,7 +85,7 @@ extension AgentProvider {
             String(localized: "Sign in with your Claude Pro or Max plan.")
         case .anthropic:
             String(localized: "Use an API key from the Anthropic Console.")
-        case .openAICompatible:
+        case .openAICompatible, .openAICompatibleEndpoint:
             String(localized: "Use an endpoint that supports the OpenAI Chat Completions API.")
         case .openAICodex:
             String(localized: "Sign in with your ChatGPT Plus or Pro plan.")

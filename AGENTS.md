@@ -2284,7 +2284,29 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   kwwk's registration order;
   `AccountDeskTests` fails when kwwk gains a subscription or a stored
   provider (`providerDirectory`) the table lacks, or when a provider here is
-  one neither kwwk nor Apelin can register for a session. OpenRouter signs in both ways
+  one neither kwwk nor Apelin can register for a session.
+  Several OpenAI-compatible endpoints (#60: there was one, and adding
+  another replaced it): the first is `openAICompatible` as before, and
+  each further one is a provider of its own, `openAICompatibleEndpoint(n)`,
+  `openAICompatible.<n>` on the wire in that one spelling, n from 2 to 99,
+  kept under `openai-compatible.<n>` (`CredentialProviderID`). So
+  `AgentProvider` is no longer a raw-value enum: it is `RawRepresentable`
+  and `Codable` by hand, one string as before, `allCases` lists the
+  providers there are to sign in to (never an endpoint), and `kind` names
+  the provider whose form, transport, name and mark an endpoint has.
+  Whatever is kept by provider is then kept for each endpoint by itself,
+  with nothing to migrate: the keychain item, the enabled, custom and
+  hidden model IDs, the composer's model. `agentAccountList` lists the
+  login once for each endpoint signed in to, in number order, each under
+  its host, then once more not signed in, which is the one to add: the
+  first while that is free, else the lowest number no endpoint has
+  (`AccountDesk.listed`). kwwk knows one OpenAI-compatible login, so
+  `ProviderRegistration` registers a further endpoint as that login from
+  its own credentials; the model carries its base URL and the key is
+  bound to the resolution, so two endpoints never share one. In Model
+  Providers they are told apart by host, in the list, in the model menu's
+  headings and in Sign Out's question, and Search finds one by its host.
+  OpenRouter signs in both ways
   under one store id: `AgentAccount.alternativeMethods` names the key form
   beside its browser sign-in, and `agentSignIn{provider, method}` picks one
   (any other method is refused `badRequest` before the task is accepted).

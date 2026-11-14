@@ -38,6 +38,35 @@ final class OperationTableTests: XCTestCase {
         XCTAssertEqual(TaskHandle(taskID: TaskID("t"), kind: .signIn).attachOperation, .agentAttach)
     }
 
+    /// #60: a further OpenAI-compatible endpoint is a provider of its own
+    /// on the wire, `openAICompatible.<number>`, in one spelling only.
+    func testAFurtherEndpointIsAProviderOfItsOwn() throws {
+        let second = AgentProvider.openAICompatibleEndpoint(2)
+        XCTAssertEqual(second.rawValue, "openAICompatible.2")
+        XCTAssertEqual(AgentProvider(rawValue: "openAICompatible.2"), second)
+        XCTAssertEqual(try JSONCoding.decode(AgentProvider.self, from: Data(#""openAICompatible.17""#.utf8)), .openAICompatibleEndpoint(17))
+        XCTAssertEqual(try String(decoding: JSONCoding.encode(second), as: UTF8.self), #""openAICompatible.2""#)
+        XCTAssertNotEqual(second, .openAICompatible)
+        XCTAssertNotEqual(second, .openAICompatibleEndpoint(3))
+        XCTAssertEqual(second.kind, .openAICompatible)
+        XCTAssertEqual(AgentProvider.deepSeek.kind, .deepSeek)
+        XCTAssertFalse(AgentProvider.allCases.contains(second))
+        for bad in [
+            "openAICompatible.", "openAICompatible.1", "openAICompatible.0", "openAICompatible.100",
+            "openAICompatible.02", "openAICompatible.+2", "openAICompatible.2 ", "openAICompatible.two",
+            "openAICompatible.-2", "openaicompatible.2", "deepSeek.2", "nobody",
+        ] {
+            XCTAssertNil(AgentProvider(rawValue: bad), bad)
+            XCTAssertThrowsError(try JSONCoding.decode(AgentProvider.self, from: Data("\"\(bad)\"".utf8)), bad)
+        }
+        // A request carries it where it carried the provider.
+        let request = try JSONCoding.decode(
+            AgentSignInRequest.self,
+            from: Data(#"{"provider":"openAICompatible.3","method":"apiKey"}"#.utf8),
+        )
+        XCTAssertEqual(request.provider, .openAICompatibleEndpoint(3))
+    }
+
     /// The first four providers keep the names scripts and fixtures already
     /// carry; every case decodes from its own name.
     func testProviderNamesStay() throws {

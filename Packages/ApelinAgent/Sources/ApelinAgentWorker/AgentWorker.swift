@@ -260,6 +260,11 @@ public enum AgentWorker {
              .kimiCoding, .kimiCodingGlobal, .xai, .zai, .zaiCodingCN, .openRouter, .openAI, .google, .deepSeek,
              .openCodeGo, .openCodeZen:
             return .stored(storeID: provider.storeID, model: model)
+        case .openAICompatibleEndpoint:
+            // As the first endpoint: its base URL is with its key, and the
+            // model is named.
+            guard let model else { throw ApelinError(.badRequest, "name the model for \(provider.rawValue)") }
+            return .stored(storeID: provider.storeID, model: model)
         }
     }
 }
