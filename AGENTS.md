@@ -1017,10 +1017,18 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   of its table of contents) and is offered from there when Apple's catalog
   no longer names it (2026-11-06: Apple replaced 27.0 with 27.2 and went on
   serving 27.0's file, and it left every device's list). The catalog's own
-  entry wins, and the bytes are checked the same either way.
+  entry wins, and the bytes are checked the same either way. A package
+  Apple stops serving too is marked `withdrawn` and offered only while the
+  catalog lists it, since no device could download it (#58: 27.0's address
+  answers 403 from 2026-11-12, so the catalog now offers 27.2, 16.4, 15.3,
+  15.0 and 14.2). Its review stands: 27.0 stays in `releases`, so a
+  toolchain of it set up earlier, and a transfer file of one, still read.
+  A download Apple refuses (403 or 404) says that the server refused the
+  package and to pick another release if it keeps refusing.
   `.github/workflows/apple-catalog.yml` reads the catalog every day
   (`Scripts/check-apple-catalog.py`) and files one issue when a reviewed
-  package can no longer be downloaded or a new release waits for a review.
+  package can no longer be downloaded or a new release waits for a review;
+  a withdrawn package's address is not asked again.
   roothide Bootstrap, the TrollStore one, runs none of them (issue #35;
   `HostSigning` in ApelinCore): it trust-caches nothing it installs and
   runs only a Mach-O carrying the CoreTrust-bypass signature its dpkg
