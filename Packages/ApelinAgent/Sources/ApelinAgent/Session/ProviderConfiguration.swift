@@ -1,3 +1,4 @@
+import ApelinProtocol
 import Foundation
 import KWWKAI
 
@@ -49,10 +50,15 @@ public enum ProviderResolutionError: Error, Equatable, LocalizedError {
     /// No credential for this provider; the session waits for the app to
     /// deliver or sign in again. Nothing is read from the environment.
     case missingCredentials(String)
+    /// The sign-in is saved, and could not be exchanged or renewed for a
+    /// session: the request for it failed, in these words and, where it
+    /// can be told, for this reason.
+    case unresolved(message: String, reason: ApelinError.Reason?)
 
     public var errorDescription: String? {
         switch self {
         case let .missingCredentials(id): "No saved sign-in for \(id). Sign in again in Apelin."
+        case let .unresolved(message, _): message
         }
     }
 }
@@ -65,11 +71,22 @@ struct ResolvedProvider: Sendable {
 }
 
 enum ProviderResolver {
+    /// How long a sign-in's exchange or renewal may take. A session's open
+    /// and a message that changes its provider wait on it, with the app's
+    /// send behind them, and kwwk's own request gives a connection that
+    /// answers nothing five minutes.
+    static let exchangeWait: Duration = .seconds(20)
+
     /// Registers the provider on kwwk's registry from `credentials`, with
-    /// the same model capabilities used when verifying the account.
+    /// the same model capabilities used when verifying the account. A
+    /// sign-in that is saved and cannot be exchanged or renewed within
+    /// `wait` is `ProviderResolutionError.unresolved`, with the reason
+    /// `network` explains: no route, or a provider out of reach.
     static func resolve(
         _ configuration: ProviderConfiguration,
         credentials: any CredentialSource,
+        network: NetworkPath = .system,
+        wait: Duration = exchangeWait,
     ) async throws -> ResolvedProvider {
         let stored = try await storedCredentials(configuration, in: credentials)
         guard let storeID = configuration.storeID else {
@@ -82,11 +99,26 @@ enum ProviderResolver {
         // never writes them anywhere. Its refreshers are kwwk's own, with
         // Kimi's given an identity so that it never reaches for ~/.kwwk.
         let manager = OAuthManager(source: credentials, providers: KimiIdentity.refreshers())
-        guard let resolved = try await ProviderRegistration.resolve(
-            storeID: storeID,
-            manager: manager,
-            modelOverride: configuration.modelID,
-        ) else {
+        let modelID = configuration.modelID
+        let resolved: ResolvedAuth?
+        do {
+            resolved = try await Deadline.within(wait) {
+                try await ProviderRegistration.resolve(storeID: storeID, manager: manager, modelOverride: modelID)
+            }
+        } catch is Deadline.Exceeded {
+            throw ProviderResolutionError.unresolved(
+                message: "The model provider did not answer in time.",
+                reason: network.isSatisfied() ? .timeout : .offline,
+            )
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            throw ProviderResolutionError.unresolved(
+                message: ErrorDescription.localized(error.localizedDescription),
+                reason: FailureReason.of(error, hasRoute: network.isSatisfied()),
+            )
+        }
+        guard let resolved else {
             throw ProviderResolutionError.missingCredentials(storeID)
         }
         return ResolvedProvider(model: resolved.model, authResolver: resolved.authResolver, credentials: stored)

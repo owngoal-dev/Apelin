@@ -444,7 +444,7 @@ let cutOffRows = ChatTranscript(events: cutOff) { _ in nil }.messages
 precondition(cutOffRows.map(\.role) == [.user, .thinking(seconds: nil, tools: 0)], "the partial reply goes: \(cutOffRows)")
 precondition(cutOffRows.last?.id == answeringRows.last?.id, "the summary keeps its id")
 precondition(cutOffRows.last?.text.isEmpty == true, "and the given-up thought goes with it")
-precondition(cutOffRows.last?.isReconnecting == true && cutOffRows.last?.activityTitle == "Reconnecting…")
+precondition(cutOffRows.last?.recovery == .reconnecting && cutOffRows.last?.activityTitle == "Reconnecting…")
 let cutOffRetried = cutOff + [
     event(7, "messageStarted"), event(8, "text", ["text": .string("The hook chains to the original.")]),
     event(9, "message", ["text": .string("The hook chains to the original.")]), event(10, "finished"),
@@ -460,13 +460,68 @@ let callThenRetry = [
     event(5, "reconnecting"),
 ]
 precondition(ChatTranscript(events: callThenRetry) { _ in nil }.messages.last?.activityTitle == "Reconnecting…")
-precondition(ChatTranscript(events: callThenRetry + [event(6, "finished")]) { _ in nil }.messages.allSatisfy { !$0.isReconnecting },
+precondition(ChatTranscript(events: callThenRetry + [event(6, "finished")]) { _ in nil }.messages.allSatisfy { $0.recovery == nil },
              "nor once the run ends")
 let beforeDiscard = ChatTranscript(events: Array(callThenRetry.prefix(4))) { _ in nil }.messages
 let notStreaming = Array(callThenRetry.prefix(4)) + [event(5, "messageDiscarded")]
 precondition(ChatTranscript(events: notStreaming) { _ in nil }.messages == beforeDiscard,
              "a discard takes back only a message still streaming")
 print("ok: a reply given up halfway is taken back, and a request made again reads Reconnecting…")
+
+/// A request that failed with no route waits for one, and the running
+/// summary says so until it is made again or anything comes of it.
+let offline = [
+    event(1, "prompt", ["id": .string(askedID.uuidString), "text": .string("Explain the hook")]),
+    event(2, "waitingForNetwork"),
+]
+let offlineRows = ChatTranscript(events: offline) { _ in nil }.messages
+precondition(offlineRows.map(\.role) == [.user, .thinking(seconds: nil, tools: 0)])
+precondition(offlineRows.last?.id == answeringRows.last?.id, "on the summary the prompt had under it")
+precondition(offlineRows.last?.recovery == .waitingForNetwork && offlineRows.last?.activityTitle == "Waiting for Network…")
+let askedAgain = ChatTranscript(events: offline + [event(3, "reconnecting")]) { _ in nil }.messages.last
+precondition(askedAgain?.recovery == .reconnecting && askedAgain?.activityTitle == "Reconnecting…", "the wait over, it is asked again")
+let stillOffline = ChatTranscript(events: offline + [event(3, "reconnecting"), event(4, "waitingForNetwork")]) { _ in nil }.messages.last
+precondition(stillOffline?.activityTitle == "Waiting for Network…", "and waits again while there is still no route")
+let backOnline = ChatTranscript(events: offline + [event(3, "reconnecting"), event(4, "messageStarted")]) { _ in nil }.messages.last
+precondition(backOnline?.id == answeringRows.last?.id && backOnline?.activityTitle == "Thinking…", "an answer ends both")
+precondition(ChatTranscript(events: offline + [event(3, "finished")]) { _ in nil }.messages.allSatisfy { $0.recovery == nil },
+             "nor once the run ends")
+print("ok: a request with no route reads Waiting for Network… until it is asked again or answered")
+
+/// An error is a row of its own kind: the reason the agent named said in a
+/// line, with what to do under it; any other in the words it came with.
+func failureRow(_ payload: [String: JSONValue]) -> ChatMessage? {
+    ChatTranscript(events: [event(1, "prompt", ["text": .string("Go on")]), event(2, "error", payload), event(3, "finished")]) { _ in nil }
+        .messages.last
+}
+
+let noRoute = failureRow(["message": .string("The Internet connection appears to be offline."), "reason": .string("offline")])
+precondition(noRoute?.role == .assistant && noRoute?.text == "The Internet connection appears to be offline.", "the row keeps its words")
+precondition(noRoute?.failure?.title == "No Internet Connection")
+precondition(noRoute?.failure?.detail == "Connect to the internet, then send your message again.", "what to do stands for the provider's words")
+let spent = failureRow(["message": .string("You exceeded your current quota."), "reason": .string("quota")])
+precondition(spent?.failure?.title == "Usage Limit Reached" && spent?.failure?.detail == "You exceeded your current quota.",
+             "a limit keeps what the provider said of it")
+let busyProvider = failureRow(["message": .string(""), "reason": .string("server")])
+precondition(busyProvider?.failure?.title == "Model Provider Error")
+precondition(busyProvider?.failure?.detail == "Wait a moment, then send your message again.", "with nothing said, what to do")
+let unnamed = failureRow(["message": .string("A skill has a problem. No description.")])
+precondition(unnamed?.failure?.title == "Something Went Wrong" && unnamed?.failure?.detail == "A skill has a problem. No description.")
+let newer = failureRow(["message": .string("The moon is in the way."), "reason": .string("eclipse")])
+precondition(newer?.failure?.title == "Something Went Wrong" && newer?.failure?.detail == "The moon is in the way.",
+             "a reason this version does not know reads as none")
+let wholeError = "Error Domain=NSURLErrorDomain Code=-1009 \"The Internet connection appears to be offline.\" UserInfo={x=1}"
+precondition(failureRow(["message": .string(wholeError)])?.failure?.detail == "The Internet connection appears to be offline.",
+             "an older session's whole NSError is cut to its sentence")
+precondition(noRoute?.failure?.spoken == "No Internet Connection\nConnect to the internet, then send your message again.")
+precondition(ChatTranscript(events: [event(1, "message", ["text": .string("Done.")])]) { _ in nil }.messages.allSatisfy { $0.failure == nil },
+             "a reply is no failure")
+for reason in ["offline", "network", "timeout", "authentication", "quota", "rateLimit", "server", "contextOverflow"] {
+    precondition(ChatFailure.title(for: ApelinError.Reason(rawValue: reason)) != nil, "\(reason) has a line of its own")
+}
+
+precondition(ChatFailure.title(for: .notAPreset) == nil, "another operation's reason is no model failure")
+print("ok: an error is said by its reason in a line, with what to do or what the provider said under it")
 
 /// A running turn that has shown a reply and then gone quiet for
 /// `quietInterval` gets a running summary under the reply, under the id its
@@ -648,12 +703,30 @@ print("ok: conversations agents open are adopted once, into the project they wer
 let file = ComposerAttachment(name: "notes.md", data: Data("notes".utf8), text: "notes")
 let sent = ComposerDraft(text: "Build it", attachments: [file])
 let local = ChatTranscript(events: [], sending: [sent]) { _ in nil }
-precondition(local.messages.map(\.id) == [sent.id] && local.messages[0].role == .user)
+precondition(local.messages.first?.id == sent.id && local.messages[0].role == .user)
 precondition(local.messages[0].text == "Build it" && local.messages[0].attachments == [file])
-precondition(!local.messages[0].isQueued && !local.isWorking, "a local row does not start a turn")
-let echoed = ChatTranscript(events: [event(1, "prompt", ["id": .string(sent.id.uuidString), "text": .string("Build it")])], sending: [sent]) { _ in nil }
+precondition(!local.messages[0].isQueued && !local.isWorking, "the host has not begun its turn")
+// Its turn's running summary is under it from the reader's Send, so the
+// reader sees it at work however long the host takes to echo it.
+precondition(local.messages.count == 2 && local.messages[1].role == .thinking(seconds: nil, tools: 0))
+precondition(local.messages[1].activityTitle == "Thinking…" && local.quietDeadline == nil)
+let echoEvent = event(1, "prompt", ["id": .string(sent.id.uuidString), "text": .string("Build it")])
+let echoed = ChatTranscript(events: [echoEvent], sending: [sent]) { _ in nil }
 precondition(echoed.messages.filter { $0.id == sent.id }.count == 1 && echoed.messages[0].id == sent.id)
 precondition(echoed.isWorking && echoed.messages.last?.role == .thinking(seconds: nil, tools: 0))
+precondition(echoed.messages.map(\.id) == local.messages.map(\.id) && echoed.messages[1] == local.messages[1],
+             "the echo changes nothing on screen: the summary is the row it was")
+let firstStep = ChatTranscript(events: [echoEvent, event(2, "messageStarted"), event(3, "thinking", ["text": .string("Reading")])]) { _ in nil }
+precondition(firstStep.messages.map(\.id) == local.messages.map(\.id), "and the turn's first thought takes that row")
+let chaser = ComposerDraft(text: "And install it")
+let twoSent = ChatTranscript(events: [], sending: [sent, chaser]) { _ in nil }.messages
+precondition(twoSent.map(\.role) == [.user, .thinking(seconds: nil, tools: 0), .user], "one summary, under the message that starts the turn")
+precondition(!twoSent[0].isQueued && twoSent[2].id == chaser.id && twoSent[2].isQueued, "a second one waits for that turn")
+let afterError = ChatTranscript(
+    events: [event(1, "prompt", ["text": .string("Earlier")]), event(2, "error", ["message": .string("failed")]), event(3, "finished")],
+    sending: [sent],
+) { _ in nil }.messages
+precondition(afterError.suffix(2).map(\.id) == local.messages.map(\.id), "after a turn that ended, the next message starts one the same way")
 let busy = [event(1, "prompt", ["text": .string("Earlier")]), event(2, "messageStarted")]
 let waiting = ChatTranscript(events: busy, sending: [sent]) { _ in nil }
 precondition(waiting.messages.last?.id == sent.id && waiting.messages.last?.isQueued == true, "a running turn will queue it")
@@ -661,7 +734,7 @@ let queuedEcho = busy + [event(3, "queued", ["id": .string(sent.id.uuidString), 
 let hostQueued = ChatTranscript(events: queuedEcho, sending: [sent]) { _ in nil }
 precondition(hostQueued.messages.filter { $0.id == sent.id }.count == 1)
 precondition(hostQueued.messages.last?.id == sent.id && hostQueued.messages.last?.isQueued == true)
-print("ok: a sent message shows at once and its prompt or queued echo replaces it")
+print("ok: a sent message shows at once with its turn's summary under it, and its prompt or queued echo replaces it")
 
 var sendingRecord = ChatRecord(summary: ChatSummary(title: "Send", lastInteraction: Date()))
 let second = ComposerDraft(text: "And test it")
@@ -822,7 +895,9 @@ precondition(relaunched.take(restOfReplay).map(\.seq) == [EventSeq(10), EventSeq
 precondition(reopened.take(restOfReplay).map(\.seq) == [EventSeq(10), EventSeq(11)], "what follows the replay is taken")
 precondition(reopened.events.count == history.count + 2 && reopened.cursor == EventSeq(11))
 let after = ChatTranscript(events: reopened.events) { _ in nil }.messages
-precondition(Array(after.prefix(before.count - 1)) == Array(before.prefix(before.count - 1)), "the rows already shown keep their ids")
+// `before` ends with the message on its way and the summary under it
+precondition(Array(after.prefix(before.count - 2)) == Array(before.prefix(before.count - 2)), "the rows already shown keep their ids")
+precondition(after[before.count - 2].id == before[before.count - 2].id, "and the message its echo takes the place of")
 precondition(Set(after.map(\.id)).count == after.count, "and no id repeats, though the numbering started again")
 precondition(after.last { $0.role == .user }?.id == sent.id && after.last?.text == "Done")
 precondition(reopened.take([event(12, "text", ["text": .string(" now")])]).count == 1, "after the replay, everything is taken")

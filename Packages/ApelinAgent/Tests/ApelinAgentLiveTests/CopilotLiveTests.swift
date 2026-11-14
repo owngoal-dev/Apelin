@@ -53,7 +53,7 @@ struct CopilotLiveTests {
             case let .messageFinished(text): if !text.isEmpty {
                     finalText = text
                 }
-            case let .error(message): errors.append(message)
+            case let .error(message, _): errors.append(message)
             case let .finished(reason): finish = reason
             default: break
             }

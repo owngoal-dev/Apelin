@@ -25,6 +25,7 @@ sources=(
     "$root/Apelin/Interface/Chats/ChatUnread.swift"
     "$root/Apelin/Interface/Chats/Composer/ComposerDraft.swift"
     "$root/Apelin/Interface/Chats/Messages/ChatMessage.swift"
+    "$root/Apelin/Interface/Chats/Messages/ChatFailure.swift"
     "$root/Apelin/Interface/Chats/Messages/ApprovalCardText.swift"
     "$root/Apelin/Interface/Chats/Messages/ToolCallBanner.swift"
     "$root/Apelin/Interface/Chats/Messages/ToolCallDetail.swift"

@@ -527,7 +527,7 @@ struct ScriptedSessionTests {
         try await session.prompt("build it", messageID: UUID())
         var errors: [String] = []
         for await record in stream {
-            if case let .error(message) = record.event {
+            if case let .error(message, _) = record.event {
                 errors.append(message)
             }
             if case .finished = record.event {

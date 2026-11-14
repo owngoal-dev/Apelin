@@ -61,9 +61,21 @@ struct ChatMessage: Identifiable, Hashable {
     var awaitsResult = false
     /// On a running summary, the calls in its trace still waiting for a result.
     var runningTools = 0
-    /// On the running summary, a model request that failed is being made
-    /// again (the session's `reconnecting`) and nothing has come of it yet.
-    var isReconnecting = false
+    /// What a running summary says of a model request that failed, while
+    /// nothing has come of it yet.
+    enum Recovery: Hashable {
+        /// It failed with no route to the network and waits for one (the
+        /// session's `waitingForNetwork`).
+        case waitingForNetwork
+        /// It is being made again (the session's `reconnecting`).
+        case reconnecting
+    }
+
+    /// On the running summary, the failed model request it waits on.
+    var recovery: Recovery?
+    /// An error the session recorded, shown as one rather than as a reply
+    /// (`ChatFailureRow`); `text` keeps the words it came with.
+    var failure: ChatFailure?
     /// On the turn's latest summary while the run goes, the output tokens
     /// the run has received so far (the session's `received`); nil before
     /// the first count, once the run has ended, and for a session older
@@ -81,10 +93,13 @@ struct ChatMessage: Identifiable, Hashable {
         guard case let .thinking(seconds, tools) = role else { return text }
         // An unfinished summary counts only the calls still running; between
         // them the model is at work again, so it reads "Thinking…", or
-        // "Reconnecting…" while a failed request is made again.
+        // "Waiting for Network…" while a failed request waits for a route,
+        // or "Reconnecting…" while one is made again.
         guard let seconds else {
-            if isReconnecting {
-                return String(localized: "Reconnecting…")
+            switch recovery {
+            case .waitingForNetwork: return String(localized: "Waiting for Network…")
+            case .reconnecting: return String(localized: "Reconnecting…")
+            case nil: break
             }
             guard runningTools > 0 else { return String(localized: "Thinking…") }
             return runningTools == 1

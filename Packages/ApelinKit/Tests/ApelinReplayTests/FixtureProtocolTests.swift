@@ -290,7 +290,7 @@ final class FixtureProtocolTests: XCTestCase {
                 optional: ["detail": .object],
             ),
             "approvalResolved": Shape(required: ["approvalID": .string, "decision": .word { ApprovalDecision(rawValue: $0) != nil }]),
-            "error": Shape(required: ["message": .string]),
+            "error": Shape(required: ["message": .string], optional: ["reason": .string]),
             "finished": Shape(required: ["reason": .words(["completed", "aborted", "failed"])]),
             "state": state([:]),
         ],
