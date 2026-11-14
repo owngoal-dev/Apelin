@@ -1,3 +1,4 @@
+internal import ApelinGitOptions
 internal import GitKit
 import Foundation
 
@@ -80,10 +81,38 @@ public struct GitError: Error, CustomStringConvertible, Sendable, Equatable {
 /// libgit2 is initialised once per process and never shut down: the worker
 /// lives as long as the host keeps it.
 enum GitLibrary {
+    /// How long a remote has to accept a connection, in milliseconds.
+    static let connectTimeout: Int32 = 30000
+    /// How long a remote may say nothing while a transfer waits on it, in
+    /// milliseconds. A server that is working keeps the connection alive
+    /// (git's own keep-alive is every 5 s), so only a stalled one is this
+    /// silent.
+    static let serverTimeout: Int32 = 120_000
+
     private static let initialised: Bool = {
         git_libgit2_init()
+        // By default libgit2 waits on a silent server for ever. A transfer
+        // that stalled never ended its task, and the conversation reading
+        // that task could be neither stopped nor continued (#59).
+        _ = apelin_git_set_option(Int32(GIT_OPT_SET_SERVER_CONNECT_TIMEOUT.rawValue), connectTimeout)
+        setServerTimeout(serverTimeout)
         return true
     }()
+
+    /// Sets how long a remote may stay silent, in milliseconds.
+    static func setServerTimeout(_ milliseconds: Int32) {
+        _ = apelin_git_set_option(Int32(GIT_OPT_SET_SERVER_TIMEOUT.rawValue), milliseconds)
+    }
+
+    /// The limits libgit2 holds now, in milliseconds; nil for one it does
+    /// not answer.
+    static var timeouts: (connect: Int32?, server: Int32?) {
+        func read(_ option: git_libgit2_opt_t) -> Int32? {
+            var value: Int32 = 0
+            return apelin_git_get_option(Int32(option.rawValue), &value) == 0 ? value : nil
+        }
+        return (read(GIT_OPT_GET_SERVER_CONNECT_TIMEOUT), read(GIT_OPT_GET_SERVER_TIMEOUT))
+    }
 
     static func ensure() {
         _ = initialised

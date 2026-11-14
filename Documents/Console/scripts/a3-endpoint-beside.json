@@ -1,0 +1,24 @@
+{
+  "name": "a3-endpoint-beside: a further OpenAI-compatible endpoint beside whatever the device is signed in to. Signs out of endpoint 99, which no device uses, in case an earlier run left it, signs in to it with a placeholder key through agentSignIn and agentSignInRespond, reads by agentModelList that it is signed in (its host does not resolve, so the list is unavailable) where before and after it is not found, and signs out. The first endpoint's sign-in is never touched",
+  "steps": [
+    {"op": "hello"},
+    {"op": "agentSignOut", "request": {"provider": "openAICompatible.99"}},
+    {"op": "agentModelList", "label": "absent", "allowError": true, "request": {"provider": "openAICompatible.99"}},
+    {"op": "expect", "request": {"step": "absent", "errorCode": "notFound"}},
+    {"op": "agentSignIn", "label": "key", "follow": false, "request": {"provider": "openAICompatible.99"}},
+    {"op": "agentAttach", "label": "fields", "follow": false,
+     "request": {"taskID": "${key.response.taskID}", "afterSeq": 0, "waitMilliseconds": 5000}},
+    {"op": "expect", "request": {"step": "fields", "path": "response.events.0.kind", "equals": "input"}},
+    {"op": "expect", "request": {"step": "fields", "path": "response.events.0.payload.fields.1.key", "equals": "baseUrl"}},
+    {"op": "agentSignInRespond", "request": {"taskID": "${key.response.taskID}", "verifyModel": false, "values": {
+      "apiKey": "apelin-placeholder-key", "baseUrl": "https://llm.example.invalid/v1", "defaultModel": "placeholder-model"
+    }}},
+    {"op": "agentAttach", "label": "signed-in", "request": {"taskID": "${key.response.taskID}", "afterSeq": 0, "waitMilliseconds": 5000}},
+    {"op": "expect", "request": {"step": "signed-in", "state": "succeeded"}},
+    {"op": "agentModelList", "label": "present", "allowError": true, "request": {"provider": "openAICompatible.99"}},
+    {"op": "expect", "request": {"step": "present", "errorCode": "unavailable"}},
+    {"op": "agentSignOut", "request": {"provider": "openAICompatible.99"}},
+    {"op": "agentModelList", "label": "gone", "allowError": true, "request": {"provider": "openAICompatible.99"}},
+    {"op": "expect", "request": {"step": "gone", "errorCode": "notFound"}}
+  ]
+}

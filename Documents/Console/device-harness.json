@@ -129,6 +129,9 @@
     "a2-api-key-sign-in": {
       "manual": "replaces and then removes the device's openai-compatible sign-in; run it by name on a device whose credential that may lose"
     },
+    "a3-endpoint-beside": {
+      "note": "signs in to and out of OpenAI-compatible endpoint 99 with a placeholder key; the device's own sign-ins stay as they are"
+    },
     "t5-toolchain-auto-sdk": {
       "needs": ["package:wiki.qaq.irisin>=4.7.3"],
       "timeout": 3600,
@@ -172,7 +175,7 @@
       "hello", "terminal", "files", "logs", "diagnostics", "i3-image-check-refused", "i1-smoke"
     ],
     "tools": ["tool-host", "i6-tool-attachments"],
-    "accounts": ["accounts"],
+    "accounts": ["accounts", "a3-endpoint-beside"],
     "git": ["i2-git", "i2-git-commit", "i2-git-remote", "distribution"],
     "environment": ["i2-sdk-import", "environment", "r1-resume-sdk-import"],
     "chain": ["t1-toolchain-setup", "i3-chain", "project-build-install"],
@@ -184,7 +187,7 @@
       "i5-log-continuity", "tool-host", "i6-tool-attachments", "i2-git", "i2-git-commit", "i2-git-remote",
       "distribution", "i2-sdk-import", "environment", "transfer", "t1-toolchain-setup", "files", "i3-chain", "project-build-install",
       "transfer-project", "resume", "r1-resume-build", "r1-resume-sdk-import", "t6-toolchain-beside", "t2-toolchain-remove", "r2-resume-toolchain",
-      "accounts"
+      "accounts", "a3-endpoint-beside"
     ]
   }
 }

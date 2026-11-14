@@ -69,6 +69,11 @@ public struct CommandLineToolsPackage: Sendable, Equatable {
     /// SHA-1 of the package's table of contents, which Apple's catalog
     /// calls its digest.
     let upstreamDigest: String
+    /// Apple stopped serving `url`, so no device can download the package
+    /// from it: it is offered only while Apple's catalog lists it. The
+    /// review stands, so an installed toolchain and a transfer file of the
+    /// release still read.
+    var withdrawn = false
 
     /// The package as a catalog entry.
     func source(version: String) -> ToolchainSource? {
@@ -256,6 +261,8 @@ public enum CommandLineToolsSupport {
                 url: "https://swcdn.apple.com/content/downloads/58/48/082-83364-A_KCEBOO2NJS/0d2rj4y5ucjlkgcvqt6f6a4pergug5tu2b/CLTools_Executables.pkg",
                 size: 350_457_031,
                 upstreamDigest: "910fb71482f4d044112c226b03e33122c17920ce",
+                // Apple's servers answer 403 for it from 2026-11-12 (#58).
+                withdrawn: true,
             )],
             staticInstructionFeatures: ["FEAT_LRCPC", "FEAT_SHA3", "FEAT_DotProd"],
             requiredLibcxxSymbols: ["_ZNSt3__122__libcpp_verbose_abortEPKcz"],
@@ -375,13 +382,14 @@ public enum CommandLineToolsSupport {
     }
 
     /// `listed`, Apple's catalog as read, with every reviewed package it no
-    /// longer names added under the address recorded here, newest first and
-    /// a package that names no version last.
+    /// longer names added under the address recorded here, unless Apple
+    /// stopped serving that address too, newest first and a package that
+    /// names no version last.
     static func catalog(adding listed: [ToolchainSource]) -> [ToolchainSource] {
         let names = Set(listed.map(\.productID))
         let kept = releases.flatMap { release in
             release.packages
-                .filter { !names.contains($0.productID) }
+                .filter { !names.contains($0.productID) && !$0.withdrawn }
                 .compactMap { $0.source(version: release.version) }
         }
         return (listed + kept).sorted {

@@ -91,10 +91,14 @@ let package = Package(
             name: "ApelinGit",
             dependencies: [
                 "ApelinCore",
+                "ApelinGitOptions",
                 .product(name: "GitKit", package: "libgit2.xcframework"),
             ],
             swiftSettings: swiftSettings,
         ),
+        // libgit2's variadic option call, which Swift cannot make: two C
+        // functions, for ApelinGit alone.
+        .target(name: "ApelinGitOptions"),
 
         // Never shipped: the real EnvironmentWorker with a fake toolchain
         // backend, spawned by the session host's end-to-end toolchain test

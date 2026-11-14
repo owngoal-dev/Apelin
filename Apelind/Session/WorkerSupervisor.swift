@@ -10,14 +10,26 @@ final class WorkerProcess: @unchecked Sendable {
     let role: WorkerRole
     let key: String?
     let channel: WorkerChannel
+    /// Kills the process, unless it was reaped already: its pid may be
+    /// another's by then.
+    private let kill: @Sendable () -> Void
     private let lock = PthreadLock()
     @objc dynamic private var inFlight = 0
     @objc dynamic private var idleSince = Date()
 
-    init(role: WorkerRole, key: String?, channel: WorkerChannel) {
+    init(role: WorkerRole, key: String?, channel: WorkerChannel, kill: @escaping @Sendable () -> Void = {}) {
         self.role = role
         self.key = key
         self.channel = channel
+        self.kill = kill
+    }
+
+    /// Ends a worker that no longer answers. Closing the channel ends its
+    /// tasks and fails the calls waiting on it; the process is killed
+    /// because one that does not read its channel never sees it close.
+    @objc dynamic func end() {
+        channel.close()
+        kill()
     }
 
     /// Forwards a request; `taskID` tells the worker which task it serves,
@@ -124,6 +136,13 @@ actor WorkerSupervisor {
         workers.removeAll()
     }
 
+    /// Ends the role's worker when it no longer answers (`WorkerProcess.end`).
+    /// The next request for it starts a new one.
+    func end(_ role: WorkerRole, instance: String? = nil) {
+        let key = Key(role: role, instance: instance)
+        workers.removeValue(forKey: key)?.end()
+    }
+
     private func start(_ key: Key) async throws -> WorkerProcess {
         let (local, remote) = try WorkerChannel.makePair()
         defer { close(remote) }
@@ -156,7 +175,16 @@ actor WorkerSupervisor {
             throw ApelinError(.unavailable, "\(error)")
         }
 
-        let worker = WorkerProcess(role: key.role, key: key.instance, channel: channel)
+        // Read and written on `queue` alone, where the process is reaped.
+        let reaped = Reaped()
+        let queue = queue
+        let worker = WorkerProcess(role: key.role, key: key.instance, channel: channel) {
+            queue.async {
+                if !reaped.value {
+                    kill(pid, SIGKILL)
+                }
+            }
+        }
         let onRequest = requestHandler
         let onEvent = eventHandler
         let onExit = exitHandler
@@ -172,6 +200,7 @@ actor WorkerSupervisor {
             Task { await self?.forget(worker) }
         }
         reapWhenExited(pid, queue: queue) { status in
+            reaped.value = true
             if status != 0 {
                 NSLog("apelind-session: %@ exited (status %d)", key.role.executableName, status)
             }
@@ -202,6 +231,11 @@ actor WorkerSupervisor {
             workers[key] = nil
         }
     }
+}
+
+/// Whether a worker's process was reaped, kept on the supervisor's queue.
+private final class Reaped: @unchecked Sendable {
+    @objc dynamic var value = false
 }
 
 /// Fires once; `wait` answers whether it fired in time.

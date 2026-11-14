@@ -13,7 +13,8 @@ A project with no Swift packages yet (no Package.resolved, no SourcePackages)
 collects the rest.
 
 Output: a JSON array of {id, name, version?, license, url, text}, read by
-LicensesViewController.
+LicensesViewController and, for the version of a package the build links,
+by LinkedPackage.
 """
 
 import argparse
@@ -118,7 +119,22 @@ def excluded_paths(review):
             for identity, paths in review.get("excludedPaths", {}).items()}
 
 
-def package_entries(pins, checkouts, excluded):
+def stated_version(package, checkout, rule):
+    """The version a checkout states for itself, for a package pinned by
+    revision, whose pin names none: the one match of `pattern` in `file`.
+    The app shows it (Model Providers names the kwwk in use), so a checkout
+    that no longer states one where review.json says fails the build
+    rather than leaving a stale or missing version."""
+    path = os.path.join(checkout, rule["file"])
+    if not os.path.isfile(path):
+        fail(f"{package}: statedVersions file {rule['file']} is not in its checkout")
+    found = re.findall(rule["pattern"], read(path))
+    if len(found) != 1:
+        fail(f"{package}: {rule['file']} states {len(found)} versions, expected one")
+    return found[0]
+
+
+def package_entries(pins, checkouts, excluded, stated):
     entries = []
     for pin in sorted(pins, key=lambda pin: pin["identity"]):
         location = pin["location"]
@@ -128,6 +144,8 @@ def package_entries(pins, checkouts, excluded):
         checkout = os.path.join(checkouts, package)
         if not os.path.isdir(checkout):
             fail(f"{package} is pinned in Package.resolved but has no checkout under {checkouts}")
+        if pin["identity"] in stated:
+            version = stated_version(package, checkout, stated[pin["identity"]])
         found = []
         skipped = excluded.get(pin["identity"], [])
         for directory, subdirectories, files in os.walk(checkout):
@@ -240,7 +258,7 @@ def main():
     entries = [app_entry(arguments.project)]
     entries += vendored_entries(arguments.project, checkouts)
     review = json.load(open(os.path.join(arguments.project, "Licenses", "review.json"), encoding="utf-8"))
-    entries += package_entries(pins, checkouts, excluded_paths(review))
+    entries += package_entries(pins, checkouts, excluded_paths(review), review.get("statedVersions", {}))
     validate_review(review, pins, entries)
 
     os.makedirs(os.path.dirname(arguments.output), exist_ok=True)

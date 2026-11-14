@@ -76,27 +76,49 @@ public actor AccountDesk {
     public func list() async -> AgentAccountListResponse {
         let stored = await Set(store.providerIds())
         var accounts: [AgentAccount] = []
-        for provider in AgentProvider.signInOrder {
-            let others = Array(provider.signInMethods.dropFirst())
-            var account = AgentAccount(
-                provider: provider,
-                method: provider.signInMethod,
-                alternativeMethods: others.isEmpty ? nil : others,
-                signedIn: stored.contains(provider.storeID),
-            )
-            // An item that does not decode is still signed in: Sign Out is
-            // how it goes away.
-            if account.signedIn, let credentials = try? await store.credentials(for: provider.storeID) {
-                account.account = Self.accountLabel(provider, credentials)
-                account.expiresAt = Self.lapses(credentials)
-                account.models = ProviderModels.list(provider, credentials: credentials)
-                account.reasoningEfforts = ProviderModels.reasoningEfforts(provider, credentials: credentials)
-                account.serviceTiers = ProviderModels.serviceTiers(provider, credentials: credentials)
-                account.usesAPIKey = ProviderModels.usesAPIKey(provider, credentials: credentials) ? true : nil
+        for listed in AgentProvider.signInOrder {
+            for provider in Self.listed(listed, stored: stored) {
+                let others = Array(provider.signInMethods.dropFirst())
+                var account = AgentAccount(
+                    provider: provider,
+                    method: provider.signInMethod,
+                    alternativeMethods: others.isEmpty ? nil : others,
+                    signedIn: stored.contains(provider.storeID),
+                )
+                // An item that does not decode is still signed in: Sign Out is
+                // how it goes away.
+                if account.signedIn, let credentials = try? await store.credentials(for: provider.storeID) {
+                    account.account = Self.accountLabel(provider, credentials)
+                    account.expiresAt = Self.lapses(credentials)
+                    account.models = ProviderModels.list(provider, credentials: credentials)
+                    account.reasoningEfforts = ProviderModels.reasoningEfforts(provider, credentials: credentials)
+                    account.serviceTiers = ProviderModels.serviceTiers(provider, credentials: credentials)
+                    account.usesAPIKey = ProviderModels.usesAPIKey(provider, credentials: credentials) ? true : nil
+                }
+                accounts.append(account)
             }
-            accounts.append(account)
         }
         return AgentAccountListResponse(accounts: accounts)
+    }
+
+    /// What the list shows for `provider`: itself, and for the
+    /// OpenAI-compatible login every endpoint signed in to, in number
+    /// order, then one more that is not, so there is always one to add
+    /// (#60). The one to add is the first endpoint while that is free,
+    /// else the lowest number no endpoint has.
+    static func listed(_ provider: AgentProvider, stored: Set<String>) -> [AgentProvider] {
+        guard provider == .openAICompatible else { return [provider] }
+        let numbers = stored.compactMap(CredentialProviderID.endpointNumber).sorted()
+        var endpoints = numbers.map(AgentProvider.openAICompatibleEndpoint)
+        if stored.contains(provider.storeID) {
+            endpoints.insert(provider, at: 0)
+            if let free = AgentProvider.endpointNumbers.first(where: { !numbers.contains($0) }) {
+                endpoints.append(.openAICompatibleEndpoint(free))
+            }
+        } else {
+            endpoints.append(provider)
+        }
+        return endpoints
     }
 
     /// The explicit app-only editor reads the saved key directly; no task is

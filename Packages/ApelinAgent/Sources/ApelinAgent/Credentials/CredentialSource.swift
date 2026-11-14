@@ -28,6 +28,31 @@ public enum CredentialProviderID {
     public static let openAICompatible = "openai-compatible"
     public static let githubCopilot = "github-copilot"
     public static let deepSeek = "deepseek-api-key"
+
+    /// The numbers a further OpenAI-compatible endpoint takes; the first
+    /// endpoint is `openAICompatible` itself.
+    public static let endpointNumbers = 2 ... 99
+
+    /// A further OpenAI-compatible endpoint's item: `openai-compatible.<number>`.
+    public static func openAICompatibleEndpoint(_ number: Int) -> String {
+        "\(openAICompatible).\(number)"
+    }
+
+    /// The number of the further endpoint `storeID` names, in its one
+    /// spelling; nil for any other id, the first endpoint's included.
+    public static func endpointNumber(_ storeID: String) -> Int? {
+        let prefix = openAICompatible + "."
+        guard storeID.hasPrefix(prefix), let number = Int(storeID.dropFirst(prefix.count)),
+              endpointNumbers.contains(number), openAICompatibleEndpoint(number) == storeID
+        else { return nil }
+        return number
+    }
+
+    /// Whether `storeID` is an OpenAI-compatible endpoint's, the first or a
+    /// further one.
+    public static func isOpenAICompatible(_ storeID: String) -> Bool {
+        storeID == openAICompatible || endpointNumber(storeID) != nil
+    }
 }
 
 /// Credentials delivered by the app for this session, held in memory only.

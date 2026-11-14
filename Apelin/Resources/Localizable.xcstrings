@@ -34485,85 +34485,85 @@
         }
       }
     },
-    "Enter a complete http or https address." : {
+    "Enter a web address, such as example.com." : {
       "extractionState" : "manual",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "أدخل عنوان http أو https كاملًا."
+            "value" : "أدخل عنوان ويب، مثل example.com."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Gib eine vollständige http- oder https-Adresse ein."
+            "value" : "Gib eine Webadresse ein, zum Beispiel example.com."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Enter a complete http or https address."
+            "value" : "Enter a web address, such as example.com."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Introduce una dirección http o https completa."
+            "value" : "Introduce una dirección web, como example.com."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Saisissez une adresse http ou https complète."
+            "value" : "Saisissez une adresse web, par exemple example.com."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Inserisci un indirizzo http o https completo."
+            "value" : "Inserisci un indirizzo web, ad esempio example.com."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "完全なhttpまたはhttpsのアドレスを入力してください。"
+            "value" : "example.comのようなWebアドレスを入力してください。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "전체 http 또는 https 주소를 입력하세요."
+            "value" : "example.com과 같은 웹 주소를 입력하세요."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Digite um endereço http ou https completo."
+            "value" : "Digite um endereço web, como example.com."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Введите полный адрес http или https."
+            "value" : "Введите веб-адрес, например example.com."
           }
         },
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nhập địa chỉ http hoặc https đầy đủ."
+            "value" : "Nhập địa chỉ web, ví dụ example.com."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "请输入完整的 http 或 https 地址。"
+            "value" : "请输入网页地址，例如 example.com。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "請輸入完整的 http 或 https 網址。"
+            "value" : "請輸入網址，例如 example.com。"
           }
         }
       }
@@ -75699,6 +75699,82 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "憑證只會儲存在此裝置的鑰匙圈中。"
+          }
+        }
+      }
+    },
+    "Credentials stay in this device’s keychain. Currently using kwwk %@." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تبقى بيانات الاعتماد في سلسلة المفاتيح على هذا الجهاز. يُستخدم حاليًا kwwk %@."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zugangsdaten bleiben im Schlüsselbund dieses Geräts. Derzeit wird kwwk %@ verwendet."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Las credenciales se quedan en el llavero de este dispositivo. Actualmente se usa kwwk %@."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les identifiants restent dans le trousseau de cet appareil. Version de kwwk utilisée : %@."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le credenziali restano nel portachiavi di questo dispositivo. Attualmente è in uso kwwk %@."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "認証情報はこのデバイスのキーチェーンに保存されます。現在 kwwk %@ を使用しています。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "자격 증명은 이 기기의 키체인에 보관됩니다. 현재 kwwk %@ 버전을 사용하고 있습니다."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "As credenciais ficam nas chaves deste dispositivo. No momento, está em uso o kwwk %@."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Учётные данные хранятся в связке ключей этого устройства. Сейчас используется kwwk %@."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thông tin xác thực chỉ nằm trong chuỗi khóa của thiết bị này. Hiện đang dùng kwwk %@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "凭据只保存在这台设备的钥匙串中。当前使用 kwwk %@。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "憑證只會儲存在此裝置的鑰匙圈中。目前使用 kwwk %@。"
           }
         }
       }

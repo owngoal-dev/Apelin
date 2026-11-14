@@ -29,12 +29,7 @@ enum AgentHandler: DomainHandler {
         case .agentSteer:
             return await forward(request, AgentSteerRequest.self, host: host) { $0.sessionID }
         case .agentAbort:
-            let reply = await forward(request, AgentAbortRequest.self, host: host) { $0.sessionID }
-            // The shell_run calls the stopped run was waiting on stop with it.
-            if case .success = reply.0.result, let abort = try? request.decode(AgentAbortRequest.self) {
-                AgentRunCode.stop(session: abort.sessionID)
-            }
-            return reply
+            return await abort(request, host: host)
         case .agentCompact:
             return await forward(request, AgentCompactRequest.self, host: host) { $0.sessionID }
         case .agentApprove:
@@ -462,20 +457,63 @@ enum AgentHandler: DomainHandler {
         host: SessionHost,
         sessionID: (R) -> String,
     ) async -> HostReply {
-        let id: String
         do {
-            id = try sessionID(request.decode(R.self))
-            if let caller = try await callerSession(request, host: host) {
-                try await AgentConversationRules.mayStop(
-                    AgentSessionTable.shared.entry(id),
-                    caller: caller,
-                    sessionID: id,
-                )
-            }
+            let id = try await reachable(request, R.self, host: host, sessionID: sessionID)
+            return await deliver(request, request.request, to: id, host: host)
         } catch {
             return request.fail(error)
         }
-        return await deliver(request, request.request, to: id, host: host)
+    }
+
+    /// The session a request names, once its caller may reach it.
+    private static func reachable<R: OperationRequest>(
+        _ request: HostRequest,
+        _: R.Type,
+        host: SessionHost,
+        sessionID: (R) -> String,
+    ) async throws -> String {
+        let id = try sessionID(request.decode(R.self))
+        if let caller = try await callerSession(request, host: host) {
+            try await AgentConversationRules.mayStop(
+                AgentSessionTable.shared.entry(id),
+                caller: caller,
+                sessionID: id,
+            )
+        }
+        return id
+    }
+
+    /// How long a session's worker has to take a stop before the host ends
+    /// it: taking one only flags the run, so a worker that has not answered
+    /// by then is not serving its session any more.
+    static let stopPatience = 10.0
+
+    /// Stops a session's run, and the shell_run calls it was waiting on
+    /// with it. A worker that does not take the stop is ended (#59): its
+    /// task ends there, which the app reads as the turn's end, and the
+    /// conversation opens again on its next message with what its
+    /// transcript kept. Left running, it could be neither stopped nor
+    /// continued.
+    private static func abort(_ request: HostRequest, host: SessionHost) async -> HostReply {
+        let id: String
+        do {
+            id = try await reachable(request, AgentAbortRequest.self, host: host) { $0.sessionID }
+        } catch {
+            return request.fail(error)
+        }
+        let taken = await Patience.answer(within: stopPatience) {
+            await deliver(request, request.request, to: id, host: host)
+        }
+        guard let reply = taken else {
+            NSLog("apelind-session: agent session %@ did not take a stop; ending its worker", id)
+            AgentRunCode.stop(session: id)
+            await host.workers.end(.agent, instance: id)
+            return (.success(request.requestID, Acknowledged()), [])
+        }
+        if case .success = reply.0.result {
+            AgentRunCode.stop(session: id)
+        }
+        return reply
     }
 
     /// Sends `wire` to session `id`'s running worker, after `prepare`.

@@ -231,7 +231,15 @@ the same executable in session mode; the workers are its children.
   GPL-family text fails the build. Vendored code keeps its upstream `LICENSE`
   beside it and its header on each file; MIT / BSD / Apache only. `make check`
   requires the phase, the packager requires the file. Read the generated list
-  after adding a dependency.
+  after adding a dependency. A package pinned by revision has no version in
+  its pin, so one whose checkout states its own is read there
+  (`statedVersions` in `Licenses/review.json`: kwwk's, from
+  `Sources/KWWKCli/Theme.swift`; a checkout that no longer states exactly
+  one where the rule says fails the build). The app shows a linked
+  package's version only from this list (`LinkedPackage`): Model
+  Providers' footer ends "Currently using kwwk 0.1.121." (owner,
+  2026-11-14), which is the kwwk the workers of the same build link, with
+  no number kept by hand.
 - **No absolute build path in a shipped binary.** `#file` is concise
   (`SWIFT_UPCOMING_FEATURE_CONCISE_MAGIC_FILE`, prefix maps in `Base.xcconfig`);
   the packager greps every binary for the repository root and fails on a hit.
@@ -784,6 +792,14 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   writer's and the file tools' temporary files); a repository made
   without it is given it by its next git call once the project has an
   `Attachments` folder. SSH would exec `ssh`; HTTPS is the only transport.
+  libgit2 waits on a silent server for ever unless told otherwise, so
+  `GitLibrary` gives a remote 30 s to accept a connection and 120 s of
+  silence during a transfer (#59; `GIT_OPT_SET_SERVER_CONNECT_TIMEOUT`,
+  `GIT_OPT_SET_SERVER_TIMEOUT`, set through the two C functions of
+  `ApelinGitOptions`, since Swift cannot call the variadic
+  `git_libgit2_opts`): a stalled clone, fetch or push fails "timed out"
+  instead of holding its task, and whoever reads that task, for good.
+  `GitTimeoutTests` clones from a server that says nothing.
   Remotes (2026-10-22): `gitFetch`, `gitPull` (fetch, then a fast-forward
   only: a diverged branch or a worktree change it would overwrite is
   `conflict` and nothing changes) and `gitPush` (one branch to the branch
@@ -1017,10 +1033,18 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   of its table of contents) and is offered from there when Apple's catalog
   no longer names it (2026-11-06: Apple replaced 27.0 with 27.2 and went on
   serving 27.0's file, and it left every device's list). The catalog's own
-  entry wins, and the bytes are checked the same either way.
+  entry wins, and the bytes are checked the same either way. A package
+  Apple stops serving too is marked `withdrawn` and offered only while the
+  catalog lists it, since no device could download it (#58: 27.0's address
+  answers 403 from 2026-11-12, so the catalog now offers 27.2, 16.4, 15.3,
+  15.0 and 14.2). Its review stands: 27.0 stays in `releases`, so a
+  toolchain of it set up earlier, and a transfer file of one, still read.
+  A download Apple refuses (403 or 404) says that the server refused the
+  package and to pick another release if it keeps refusing.
   `.github/workflows/apple-catalog.yml` reads the catalog every day
   (`Scripts/check-apple-catalog.py`) and files one issue when a reviewed
-  package can no longer be downloaded or a new release waits for a review.
+  package can no longer be downloaded or a new release waits for a review;
+  a withdrawn package's address is not asked again.
   roothide Bootstrap, the TrollStore one, runs none of them (issue #35;
   `HostSigning` in ApelinCore): it trust-caches nothing it installs and
   runs only a Mach-O carrying the CoreTrust-bypass signature its dpkg
@@ -1348,7 +1372,30 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   has none), and a sign-in that is not saved stays `denied`, from
   `agentPrompt` too, which used to answer the error's Swift description.
   Prompt, steer, abort, compact, approve and close go
-  to that session's running worker and to no other. The worker refuses a
+  to that session's running worker and to no other. A stop always ends
+  the turn (#59: a conversation whose tool call waited on something that
+  never answered could be neither stopped nor continued, since the run
+  went on until the call returned and every later message queued behind
+  it). Three bounds, each for what the one before cannot reach.
+  `ToolRunner.run` no longer waits on a call once the run is stopped: the
+  call is cancelled, given `stopGrace` (2 s) to end in its own words (an
+  approval denied, a command's output up to where the host killed it) and
+  then left, its answer unread, with `ToolStoppedError` as the result the
+  model reads, which says the work it started on the device may still
+  finish; a build the call was reading is cancelled with it
+  (`ChannelHostBackend.read`, `buildCancel`), while an install, a
+  toolchain setup, an SDK import and a git transfer go on by themselves.
+  The worker then gives the stopped run 20 s to end (`WorkerState.abort`,
+  `AgentSession.StoppedWork`): one that has not, a model request or a
+  compaction that does not answer its cancellation, has its task ended
+  `cancelled` with an `error` saying so, and the process exits. And the
+  host gives the worker 10 s to take the stop at all
+  (`AgentHandler.abort`, `Patience`): one that does not is ended
+  (`WorkerSupervisor.end`: its channel closed, which ends its task, and
+  the process killed unless it was reaped already). Either way the app
+  reads the task's end as the turn's, and the conversation opens again on
+  its next message with the transcript its last finished run left; a run
+  that ends by itself in time loses nothing. The worker refuses a
   second `agentOpen` with `conflict` from its first suspension, and frees
   the place if the open fails. Its log, `sessions/<id>/events.jsonl`
   (`SessionEventLog`), joins streamed `textDelta`/`thinkingDelta` into one
@@ -2245,7 +2292,29 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   kwwk's registration order;
   `AccountDeskTests` fails when kwwk gains a subscription or a stored
   provider (`providerDirectory`) the table lacks, or when a provider here is
-  one neither kwwk nor Apelin can register for a session. OpenRouter signs in both ways
+  one neither kwwk nor Apelin can register for a session.
+  Several OpenAI-compatible endpoints (#60: there was one, and adding
+  another replaced it): the first is `openAICompatible` as before, and
+  each further one is a provider of its own, `openAICompatibleEndpoint(n)`,
+  `openAICompatible.<n>` on the wire in that one spelling, n from 2 to 99,
+  kept under `openai-compatible.<n>` (`CredentialProviderID`). So
+  `AgentProvider` is no longer a raw-value enum: it is `RawRepresentable`
+  and `Codable` by hand, one string as before, `allCases` lists the
+  providers there are to sign in to (never an endpoint), and `kind` names
+  the provider whose form, transport, name and mark an endpoint has.
+  Whatever is kept by provider is then kept for each endpoint by itself,
+  with nothing to migrate: the keychain item, the enabled, custom and
+  hidden model IDs, the composer's model. `agentAccountList` lists the
+  login once for each endpoint signed in to, in number order, each under
+  its host, then once more not signed in, which is the one to add: the
+  first while that is free, else the lowest number no endpoint has
+  (`AccountDesk.listed`). kwwk knows one OpenAI-compatible login, so
+  `ProviderRegistration` registers a further endpoint as that login from
+  its own credentials; the model carries its base URL and the key is
+  bound to the resolution, so two endpoints never share one. In Model
+  Providers they are told apart by host, in the list, in the model menu's
+  headings and in Sign Out's question, and Search finds one by its host.
+  OpenRouter signs in both ways
   under one store id: `AgentAccount.alternativeMethods` names the key form
   beside its browser sign-in, and `agentSignIn{provider, method}` picks one
   (any other method is refused `badRequest` before the task is accepted).
@@ -2721,7 +2790,7 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   (`ComposerDropPolicy`). Attachments use its
   horizontal preview layout, removal and Quick Look; camera, Photos and
   Files use system pickers, and web text uses FlowDown's ScrubberKit at its
-  pinned revision. Live assistant text uses `MarkdownStreamView` with a stable message identity and immediate first fill, so only streaming additions fade in. Each turn is followed while a reader can keep up (`TurnFollowing`): from its user message (a local row just sent, a message a run took, or one another conversation sent) the list follows new output to the end of the turn while the reply streams at no more than 50 tokens a second. The pace is the reply's estimated tokens (`TokenEstimate`: about four ASCII characters to a token, a token to each other character, so Chinese and English both count sensibly) over the time since its first text, judged once a second of it has passed; the first update marks the start and does not count, so neither the first coalesced chunk nor a backlog reads as speed. Faster than that, the turn is followed only until its message reaches the top of the visible area, under the bar's blur, at most a page; the list then holds still while the reply grows below and the downward chevron above the composer shows (Liquid Glass on iOS 26, the system material's blur before it). The chevron scrolls to the latest content once and does not follow again; a drag ends following for the turn, and reaching the bottom does not bring it back: only the next turn does. A message a running turn will take later is shown once on Send and starts no turn until it is taken. The chat header uses a 1 pt private `variableBlur` CAFilter with an alpha-gradient mask on an owned `CABackdropLayer`, following VariableBlur; the old transcript opacity mask and the system top scroll-edge effect are removed. Drafts persist their attachment bytes; submitted and received files are stored in the chat workspace. User attachments sit above the bubble with the same trailing edge. Image previews, PDF first pages and supported Quick Look thumbnails use the same album layout as assistant images; text and other files use document cards with a filename and up to three lines of text, preserving single line breaks and collapsing consecutive blank lines in at most eight passes over the 220-character preview. Each card is capped at the smallest of its natural content width, its user bubble’s width and 350 pt; size labels are omitted. All user attachment previews stay within the maximum user-bubble width. Each image album and document card is at most 30% of the window height; album fitting preserves tile proportions. An album is also no larger than its images (owner, 2026-10-30, issue #20; `MessageImageLayout.frames(aspectRatios:naturalSizes:…)`): shrunk until the image it enlarges least is drawn at its own size, one of its pixels (the original's, read by ImageIO, not the thumbnail's) to each of the screen's (`displayScale`), but no tile under 32 pt on its shorter side, and never larger than those limits, so an icon stays small and sharp while a photo or a screenshot fills the limits as before; an image of unknown size (a PDF page, a Quick Look thumbnail) keeps its album as large as the limits, and a small album's corners round as an icon's. Card borders use the user bubble’s background tint. Attachment changes cross-fade, while ordinary reconfiguration does not. Presentation thumbnails are bounded and cached separately from the original attachment, which remains unchanged for sending, persistence and Quick Look. Ordinary blocks share a 16 pt gap. Unordered, ordered and task-list items use MarkdownView’s independent list spacing with no extra item gap, retaining the renderer’s 4 pt wrapped-line spacing; the transcript normalizer preserves this instead of replacing it with 16 pt. An empty body adds neither height nor spacing. Imports are bound to a chat and draft ID, so a late result cannot
+  pinned revision. The address is read as it is typed (`WebAddress`, tested in `Tests/ChatTranscript`): without a scheme it is https, since the field's placeholder was `https://`, which read as if the scheme were there already, and every address typed without one was refused as invalid (#61; the placeholder is `example.com` now); another scheme, a name and password, white space, or a single word with no scheme is no address, and the notice that says so asks again with what was typed. Live assistant text uses `MarkdownStreamView` with a stable message identity and immediate first fill, so only streaming additions fade in. Each turn is followed while a reader can keep up (`TurnFollowing`): from its user message (a local row just sent, a message a run took, or one another conversation sent) the list follows new output to the end of the turn while the reply streams at no more than 50 tokens a second. The pace is the reply's estimated tokens (`TokenEstimate`: about four ASCII characters to a token, a token to each other character, so Chinese and English both count sensibly) over the time since its first text, judged once a second of it has passed; the first update marks the start and does not count, so neither the first coalesced chunk nor a backlog reads as speed. Faster than that, the turn is followed only until its message reaches the top of the visible area, under the bar's blur, at most a page; the list then holds still while the reply grows below and the downward chevron above the composer shows (Liquid Glass on iOS 26, the system material's blur before it). The chevron scrolls to the latest content once and does not follow again; a drag ends following for the turn, and reaching the bottom does not bring it back: only the next turn does. A message a running turn will take later is shown once on Send and starts no turn until it is taken. The chat header uses a 1 pt private `variableBlur` CAFilter with an alpha-gradient mask on an owned `CABackdropLayer`, following VariableBlur; the old transcript opacity mask and the system top scroll-edge effect are removed. Drafts persist their attachment bytes; submitted and received files are stored in the chat workspace. User attachments sit above the bubble with the same trailing edge. Image previews, PDF first pages and supported Quick Look thumbnails use the same album layout as assistant images; text and other files use document cards with a filename and up to three lines of text, preserving single line breaks and collapsing consecutive blank lines in at most eight passes over the 220-character preview. Each card is capped at the smallest of its natural content width, its user bubble’s width and 350 pt; size labels are omitted. All user attachment previews stay within the maximum user-bubble width. Each image album and document card is at most 30% of the window height; album fitting preserves tile proportions. An album is also no larger than its images (owner, 2026-10-30, issue #20; `MessageImageLayout.frames(aspectRatios:naturalSizes:…)`): shrunk until the image it enlarges least is drawn at its own size, one of its pixels (the original's, read by ImageIO, not the thumbnail's) to each of the screen's (`displayScale`), but no tile under 32 pt on its shorter side, and never larger than those limits, so an icon stays small and sharp while a photo or a screenshot fills the limits as before; an image of unknown size (a PDF page, a Quick Look thumbnail) keeps its album as large as the limits, and a small album's corners round as an icon's. Card borders use the user bubble’s background tint. Attachment changes cross-fade, while ordinary reconfiguration does not. Presentation thumbnails are bounded and cached separately from the original attachment, which remains unchanged for sending, persistence and Quick Look. Ordinary blocks share a 16 pt gap. Unordered, ordered and task-list items use MarkdownView’s independent list spacing with no extra item gap, retaining the renderer’s 4 pt wrapped-line spacing; the transcript normalizer preserves this instead of replacing it with 16 pt. An empty body adds neither height nor spacing. Imports are bound to a chat and draft ID, so a late result cannot
   land in a newly cleared draft. The model control is below the input
   (owner, 2026-11-12: 0.4.4 alone had it above, from PR #40, and the owner
   had it put back; it stays below), the import panel it gives way to in

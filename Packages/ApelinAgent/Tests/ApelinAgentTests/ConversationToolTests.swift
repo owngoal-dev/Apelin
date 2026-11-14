@@ -284,6 +284,80 @@ struct ConversationToolTests {
         #expect(Date().timeIntervalSince(started) < 10)
     }
 
+    /// #59: a call waiting on something that answers neither it nor its
+    /// cancellation (a request to the session host, a transfer that
+    /// stalled) held the run, so Stop did nothing and every later message
+    /// queued behind it.
+    @Test
+    func `a stop ends a call that would never answer`() async throws {
+        let cancellation = CancellationHandle()
+        let never = NeverAnswers()
+        let started = Date()
+        let call = Task {
+            try await ToolRunner.untilCancelled(cancellation, grace: .milliseconds(200)) {
+                await never.wait()
+                return 1
+            }
+        }
+        try await Task.sleep(for: .milliseconds(50))
+        cancellation.cancel(reason: "aborted")
+        await #expect(throws: CancellationError.self) { _ = try await call.value }
+        #expect(Date().timeIntervalSince(started) < 10)
+        never.answer()
+    }
+
+    /// What the worker's stop watch reads (`WorkerState.abort`): whether
+    /// the run a stop was stopping has ended, whatever started since.
+    @Test
+    func `a stop knows whether what it stopped has ended`() async throws {
+        #expect(AgentSession.StoppedWork([]).hasEnded, "nothing was running")
+        let never = NeverAnswers()
+        let stuck = Task { await never.wait() }
+        let quick = Task {}
+        await quick.value
+        let stopped = AgentSession.StoppedWork([quick, stuck])
+        try await Task.sleep(for: .milliseconds(100))
+        #expect(!stopped.hasEnded, "one of them is still going")
+        never.answer()
+        await stuck.value
+        try await Task.sleep(for: .milliseconds(100))
+        #expect(stopped.hasEnded)
+    }
+
+    /// A call that ends when it is cancelled says so itself: an approval
+    /// denied, a command's output up to where the stop killed it.
+    @Test
+    func `a stopped call that ends by itself keeps its own answer`() async throws {
+        struct Denied: Error {}
+        let cancellation = CancellationHandle()
+        let call = Task {
+            try await ToolRunner.untilCancelled(cancellation, grace: .seconds(20)) {
+                try? await Task.sleep(for: .seconds(30))
+                throw Denied()
+            }
+        }
+        try await Task.sleep(for: .milliseconds(50))
+        let stopped = Date()
+        cancellation.cancel(reason: "aborted")
+        await #expect(throws: Denied.self) { _ = try await call.value }
+        #expect(Date().timeIntervalSince(stopped) < 10)
+    }
+
+    @Test
+    func `a call that answers first is not disturbed by a later stop`() async throws {
+        let cancellation = CancellationHandle()
+        let answer = try await ToolRunner.untilCancelled(cancellation) { 7 }
+        cancellation.cancel(reason: "aborted")
+        #expect(answer == 7)
+        // one stopped before it began never runs to an answer
+        await #expect(throws: CancellationError.self) {
+            _ = try await ToolRunner.untilCancelled(cancellation) {
+                try await Task.sleep(for: .seconds(30))
+                return 1
+            }
+        }
+    }
+
     // MARK: Prompt
 
     @Test
@@ -356,5 +430,25 @@ actor SeenText {
     var text = ""
     func set(_ value: String) {
         text = value
+    }
+}
+
+/// A wait that ends only when told to, whatever its task's cancellation.
+private final class NeverAnswers: @unchecked Sendable {
+    private let lock = NSLock()
+    private var waiting: [CheckedContinuation<Void, Never>] = []
+
+    func wait() async {
+        await withCheckedContinuation { continuation in
+            lock.withLock { waiting.append(continuation) }
+        }
+    }
+
+    func answer() {
+        let waiting = lock.withLock {
+            defer { self.waiting = [] }
+            return self.waiting
+        }
+        waiting.forEach { $0.resume() }
     }
 }
