@@ -2,7 +2,8 @@ import ApelinCore
 import Then
 import UIKit
 
-/// Settings groups agent preferences, the development environment, Git and About.
+/// Settings groups agent preferences, the development environment, Git,
+/// the Discord status and About.
 /// Only Memories shows a count, refreshed whenever Settings appears.
 /// The `…` in the bar opens onboarding again or a new GitHub issue.
 final class SettingsViewController: TableController {
@@ -10,6 +11,7 @@ final class SettingsViewController: TableController {
         case agent
         case environment
         case git
+        case discord
         case about
     }
 
@@ -22,6 +24,7 @@ final class SettingsViewController: TableController {
         case sdks
         case templates
         case git
+        case discordStatus
         case version
         case licenses
         case logs
@@ -98,6 +101,7 @@ final class SettingsViewController: TableController {
         case .agent: [.modelProviders, .permissionMode, .memories, .skills]
         case .environment: [.toolchain, .sdks, .templates]
         case .git: [.git]
+        case .discord: [.discordStatus]
         case .about: [.version, .licenses, .logs]
         }
     }
@@ -118,6 +122,7 @@ final class SettingsViewController: TableController {
         case .agent: String(localized: "Agent")
         case .environment: String(localized: "Environment")
         case .git: nil
+        case .discord: nil
         case .about: String(localized: "About")
         }
     }
@@ -128,6 +133,7 @@ final class SettingsViewController: TableController {
         case .environment: nil
         case .git:
             String(localized: "The author of your commits, your GitHub account, and the package repository your releases are published to.")
+        case .discord: nil
         case .about: nil
         }
     }
@@ -156,6 +162,8 @@ final class SettingsViewController: TableController {
             content.text = String(localized: "Templates")
         case .git:
             content.text = String(localized: "Git")
+        case .discordStatus:
+            content.text = String(localized: "Discord Status")
         case .version:
             let info = Bundle.main.infoDictionary
             let version = info?["CFBundleShortVersionString"] as? String ?? "?"
@@ -193,6 +201,7 @@ final class SettingsViewController: TableController {
         case .sdks: page = SDKListController()
         case .templates: page = TemplatesController()
         case .git: page = GitSettingsController()
+        case .discordStatus: page = MenzenStatusController()
         case .licenses: page = LicensesViewController()
         case .logs: page = LogsController()
         case .version: return

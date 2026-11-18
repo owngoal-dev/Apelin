@@ -310,6 +310,7 @@ enum AgentHandler: DomainHandler {
         resolved.asksBeforeScreen = asksBeforeScreen
         let handle = await host.registry.create(kind: .agent, owner: .agent, ownerKey: sessionID)
         await host.notices.opened(session: sessionID, task: handle.taskID, headless: open.closeWhenFinished == true)
+        await host.menzen.opened(session: sessionID, project: project, headless: open.closeWhenFinished == true)
         // The host's own Confirm decisions (builds, installs, removals) read
         // the mode from the ledger, keyed by the worker's instance.
         await host.approvals.setMode(open.approvalMode, session: sessionID)

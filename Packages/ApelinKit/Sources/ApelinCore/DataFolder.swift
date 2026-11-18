@@ -79,6 +79,12 @@ public struct DataFolder: Sendable, Equatable {
         folder("console")
     }
 
+    /// `MenzenStatus.json`: what the Discord status shows
+    /// (`MenzenStatusOptions`).
+    public var menzenStatus: URL {
+        root.appendingPathComponent("MenzenStatus.json")
+    }
+
     public var consoleInbox: URL {
         console.appendingPathComponent("inbox", isDirectory: true)
     }

@@ -29,6 +29,8 @@ final class SessionHost: @unchecked Sendable {
     let toolHosts: ToolHostSessions
     /// Banners for agent sessions, posted as the app.
     let notices: AgentNotices
+    /// The agent's status on the reader's Discord profile, through Menzen.
+    let menzen: MenzenStatus
     /// Resumers by task kind: given a task the previous host left running,
     /// answer true once it is handled — kept, or ended with its own reason.
     /// Every other unfinished task is `interrupted`.
@@ -80,6 +82,7 @@ final class SessionHost: @unchecked Sendable {
             attachments: stateDirectory.appendingPathComponent("attachments", isDirectory: true),
         )
         notices = AgentNotices(stateDirectory: stateDirectory, sessions: dataFolder.sessions)
+        menzen = MenzenStatus(installRoot: installRoot, folder: dataFolder)
         proxy = WorkerChannel(adopting: WorkerMain.channelDescriptor)
         resumers[.install] = { [install] record in await install.resume(record) }
         let restart = TaskResume(
@@ -131,6 +134,7 @@ final class SessionHost: @unchecked Sendable {
 
         let ready = DispatchSemaphore(value: 0)
         Task {
+            await menzen.start()
             // A worker's events and its exit, applied in the order they came:
             // a task per event lets a final `state` overtake the `artifact`
             // before it, and an exit overtake the `state` it followed.
@@ -153,9 +157,13 @@ final class SessionHost: @unchecked Sendable {
                     }
                     await registry.append(taskID, kind: kind, payload: payload)
                     await notices.relayed(record, kind: kind, payload: payload)
+                    if worker.role == .agent, let key = worker.key {
+                        await menzen.relayed(session: key, kind: kind, payload: payload)
+                    }
                 case let .exit(worker):
                     await registry.ownerExited(role: worker.role, key: worker.key)
                     if worker.role == .agent {
+                        await menzen.exited(session: worker.key)
                         await toolHosts.closeAll(ownedBy: .worker(.agent, instance: worker.key))
                     }
                 }
