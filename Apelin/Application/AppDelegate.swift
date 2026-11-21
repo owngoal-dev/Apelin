@@ -27,6 +27,7 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
             AppJournal.note(recovered)
         }
         NetworkAccess.start()
+        EnabledModels.forgetRetiredProviders()
         ConversationNotices.start()
         // the progress card and the alerts carry the app's icon, as Fila's do
         AlertControllerConfiguration.alertImage = UIImage(named: "AppIconMark")

@@ -198,6 +198,30 @@ console now goes on after a restart only past a successful respring.
 
 ## Still to run on the owner's devices
 
+- [ ] An Antigravity sign-in left by 0.4.7, after the upgrade to 0.4.8
+      (2026-11-21, kwwk 0.1.126, AGENTS.md ▸ Agent sign-in; none has run
+      on a device). On 0.4.7, with another account signed in: put a
+      placeholder for store id `antigravity` through the credentials inbox
+      (`console/inbox/credentials/antigravity.json` in the data folder,
+      `{"access": "placeholder-not-a-token", "refresh":
+      "placeholder-refresh", "expires": 4102444800000}`, then
+      `device.py call agentCredentialImport`, whose `stored` and
+      `available` name `antigravity`), enable one of its models in
+      Settings ▸ Model Providers ▸ Antigravity (Save checks nothing with
+      Google) and pick it in a chat's composer. Start `device.py logs
+      --process apelin-agent --seconds 300`, install 0.4.8 and open a
+      chat. The
+      capture has "removed the saved sign-in of antigravity, a provider
+      Apelin no longer offers" once, with nothing of the placeholder;
+      `device.py call agentCredentialImport` names no `antigravity` in
+      `available`. The composer shows the first enabled model of a
+      signed-in account (with none enabled, Select Model, which opens
+      Model Providers), never the Antigravity one, and a message sent is
+      answered. Model Providers has no Antigravity row, and its footer
+      ends "Currently using kwwk 0.1.126.". The app's preferences
+      (`wiki.qaq.apelin.plist`, read once the app is in the background)
+      hold no key or value naming `antigravity`.
+
 - [ ] A message that cannot be sent, and errors by their reason, with real
       accounts (2026-11-14, 0.4.6; the record below has what ran). With a
       provider whose sign-in is exchanged when a chat opens (GitHub
@@ -1115,22 +1139,16 @@ console now goes on after a restart only past a successful respring.
       Settings ▸ Model Providers ▸ OpenCode Go (or Zen) takes the key,
       Fetch Models lists the plan's live models, and Save verifies the ones
       picked. A chat on one model of each wire the plan serves (Go:
-      `glm-5.2`, `grok-4.7`, `claude-haiku-5-5`, `gemini-4-argon`) reads a
+      `glm-5.3`, `grok-4.7`, `claude-haiku-5-5`, `gemini-4-argon`) reads a
       file with file_read and answers, and Compact… compacts it. A wrong
       key fails verification without the key in what the app shows. Kimi
       For Coding Global signs in with its code on kimi.ai, a chat answers,
       and a sign-in again keeps the device id the first one recorded.
-- [ ] Antigravity's Google sign-in (2026-11-04, kwwk 0.1.111, AGENTS.md ▸
-      Agent sign-in; no Google account has signed in on a device). With a
-      Google account, Settings ▸ Model Providers ▸ Antigravity opens
-      Google's page in Safari, which comes back to
-      `localhost:51121/oauth-callback` (or the address pasted from
-      Safari's address bar where it cannot), and Antigravity is listed
-      signed in. A chat on `gemini-4-argon` and one on `claude-sonnet-5-5`
-      read a file with file_read and answer, Compact… compacts one, and the
-      chat still answers after the hour Google's token lasts. A free
-      account and a Google AI Pro one say which of the listed models each
-      serves; one it does not serve fails in Google's words.
+- [x] Antigravity's Google sign-in (2026-11-04, kwwk 0.1.111): no longer
+      applicable, and never run with a Google account. kwwk 0.1.122 removed
+      the provider, and 0.4.8 removes it from Apelin (AGENTS.md ▸ Agent
+      sign-in); what is left to see is what an upgrade does with a sign-in
+      0.4.7 kept (2026-11-21 above).
 
 ## SDK and toolchain matrix (2026-10-19)
 

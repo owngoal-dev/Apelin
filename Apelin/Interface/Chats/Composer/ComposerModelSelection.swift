@@ -47,6 +47,20 @@ struct ComposerModelSelection: Codable, Equatable {
         }
     }
 
+    /// A choice of a retired provider's model (`AgentProvider.retired`) is
+    /// removed. It no longer decodes, so the composer already reads it as no
+    /// choice and takes another signed-in account's model, or asks for one.
+    static func forgetRetiredProvider() {
+        struct Named: Decodable {
+            var provider: String
+        }
+        guard let data = UserDefaults.standard.data(forKey: key),
+              let named = try? JSONDecoder().decode(Named.self, from: data),
+              AgentProvider.retired.contains(where: { $0.name == named.provider })
+        else { return }
+        UserDefaults.standard.removeObject(forKey: key)
+    }
+
     fileprivate static let key = "composer.modelSelection"
 }
 
