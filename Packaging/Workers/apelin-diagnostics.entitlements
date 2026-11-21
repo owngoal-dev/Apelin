@@ -9,9 +9,18 @@
 
 	Each group below is a row of Packages/ApelinDiagnostics/README.md's
 	privilege matrix, read from icli 0.8.6's docs/entitlements.md. Only the
-	rows apelin-diagnostics serves are here: no pasteboard, keychain, install,
-	location, launchd or reboot key. None has been run from an Apelin process
-	on a device yet; icli verified them as a whole profile.
+	rows apelin-diagnostics serves are here: no pasteboard, install, location,
+	launchd or reboot key. None has been run from an Apelin process on a
+	device yet; icli verified them as a whole profile.
+
+	keychain-access-groups: the device passcode the user saves in Settings
+	for the agent's unlock (service wiki.qaq.apelin.device-passcode), in a
+	group of its own that only this executable carries, this device only and
+	never synchronised. The app hands it over through devicePasscodeSave, so
+	the item is written and read by the same signing identity, and no reply
+	carries it. The passcode reaches the keybag only through icli's own
+	`device passcode unlock`, which carries com.apple.keystore.device; this
+	worker does not.
 
 	Never `wiki.qaq.apelin.client` and never the Mach-lookup of
 	`wiki.qaq.apelin.service`: a worker reaches the session host only
@@ -101,5 +110,12 @@
 	<true/>
 	<key>com.apple.frontboard.launchapplications</key>
 	<true/>
+
+	<!-- The device passcode (devicePasscodeState, devicePasscodeSave,
+	     devicePasscodeRemove, and uiAction press unlock). -->
+	<key>keychain-access-groups</key>
+	<array>
+		<string>wiki.qaq.apelin.device-passcode</string>
+	</array>
 </dict>
 </plist>

@@ -15,10 +15,24 @@ extension DiagnosticsService {
         return try ApelinProtocol.ReadUITreeResponse(tree: JSONValue(encoding: read))
     }
 
-    /// A wake answers the lock state it left, and a `type` what it left in
-    /// the fields, read back from the tree; every other action, an empty
-    /// reply.
+    /// A wake and an unlock answer the lock state they left, and a `type`
+    /// what it left in the fields, read back from the tree; every other
+    /// action, an empty reply.
+    ///
+    /// An unlock takes no target, and is not refused for an app on the
+    /// refused list in front: while the device is locked that app is only
+    /// the one beneath the Lock Screen (where the user locked it, Apelin
+    /// most often), and an unlock leaves the Home Screen in front, never it.
+    /// The session host's screen rules have let it through already.
     func uiAction(_ action: ApelinProtocol.UIActionRequest) async throws -> ApelinProtocol.UIActionResponse {
+        if case let .press(button) = action.action, button == DevicePasscode.unlockButton {
+            guard action.targetID == nil else {
+                throw ApelinError(.badRequest, "An unlock acts on the whole device and takes no target.")
+            }
+            let passcodes = try requireDeviceUnlock()
+            let left = try await blocking { try mapped { try passcodes.unlock() } }
+            return ApelinProtocol.UIActionResponse(locked: left.locked, screenOff: left.screenOff)
+        }
         let mappedAction = try Self.action(action.action)
         let outcome = try await blocking {
             let front = try requireTarget(action.targetID, refusing: action.refusedBundleIDs ?? [])
@@ -83,7 +97,8 @@ extension DiagnosticsService {
             )
         case let .press(button):
             guard let pressed = HardwareButton(rawValue: button) else {
-                let names = HardwareButton.allCases.map(\.rawValue).joined(separator: ", ")
+                let names = (HardwareButton.allCases.map(\.rawValue) + [DevicePasscode.unlockButton])
+                    .joined(separator: ", ")
                 throw ApelinError(.badRequest, "There is no \(button) button to press; the buttons are \(names).")
             }
             return .press(pressed)

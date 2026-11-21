@@ -321,7 +321,8 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   `fileRead`, `protectedEditOpen`, `protectedEditCommit`; `ptyOpen`,
   `ptyAttach`, `ptyResize`, `ptyClose`; `logStream`, `crashList`,
   `crashOpen`, `crashSymbolicate`; `confirmLoaded`, `confirmLoadedAttach`, `captureScreen`,
-  `readUITree`, `uiAction`; `agentOpen`, `agentPrompt`, `agentSteer`,
+  `readUITree`, `uiAction`, `devicePasscodeState`, `devicePasscodeSave`,
+  `devicePasscodeRemove`; `agentOpen`, `agentPrompt`, `agentSteer`,
   `agentAbort`, `agentCompact`, `agentApprove`, `agentAttach`, `agentList`, `agentClose`,
   `agentRunCode`, `agentCredentialImport`, `agentAccountList`, `agentSkillList`, `agentAPIConfiguration`, `agentModelList`, `agentModelActivate`, `agentSignIn`,
   `agentSignInRespond`, `agentSignInCancel`, `agentSignOut`; `toolHostOpen`, `toolHostClose`,
@@ -2450,18 +2451,83 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   at icli's own 30 ms a character and answers `typedTextMatches` and
   `fieldValues`, the values the visible elements took on while it went in
   (icli names no text-field role), so lost characters show.
-  `press` is `wake`, `home` or `lock` (IcliKit's `pressButton`, `lock` its
-  `power`; 2026-10-29). While the device is locked or its screen is off,
-  the UI tree and every action but a wake answer `conflict`, saying which
-  and that a wake comes first. A wake runs on either and answers what it
-  left (`locked`, `screenOff`): a device without a passcode is past its
-  lock screen, one with a passcode stays on it for the user to unlock.
-  Nothing in Apelin asks for, keeps or types a passcode: not icli's
-  `unlockDevice` (0.11.0 and later), nor its `device passcode`, which the
-  `apelin-icli` skill tells the agent never to run. IcliKit 1.0.0
-  has the press and the wake with the same iOS code as 0.9.0; it carries
-  `unlockDevice` too, never called, so apelin-diagnostics has no
-  `com.apple.keystore.device`. An agent's
+  `press` is `wake`, `home`, `lock` (IcliKit's `pressButton`, `lock` its
+  `power`; 2026-10-29) or `unlock` (below). While the device is locked or
+  its screen is off, the UI tree and every action but a wake and an unlock
+  answer `conflict`, saying which and that a wake comes first. A wake runs
+  on either and answers what it left (`locked`, `screenOff`): a device
+  without a passcode is past its lock screen, one with a passcode stays on
+  it. IcliKit 1.0.0 has the press and the wake with the same iOS code as
+  0.9.0; it carries `unlockDevice` too, never called in process, so
+  apelin-diagnostics has no `com.apple.keystore.device`.
+  *The device passcode* (owner, 2026-11-21, reversing "nothing in Apelin
+  asks for, keeps or types a passcode": "设置里面要允许保存解锁密码，这样
+  agent 可以走 apelin 的接口去 unlock device（唤醒、解锁、进入主屏幕），方便自动化测试。
+  密码保存到 keychain，要求调用 icli 设备解锁的 command line 测试通过才允许使用。
+  注意避免多次调用错误密码导致设备被锁"; `Operations/DevicePasscode.swift`,
+  `ApelinDiagnosticsWorker/DevicePasscode/`, Settings ▸ Agent ▸ Device
+  Passcode, `Apelin/Interface/Settings/DevicePasscodeController.swift`).
+  The user saves this device's passcode in Settings so that an agent can
+  unlock the device for automated testing. apelin-diagnostics alone keeps
+  it, in the keychain (`KeychainDevicePasscodeStore`: service and access
+  group `wiki.qaq.apelin.device-passcode`, `keychain-access-groups` on
+  apelin-diagnostics only, after first unlock, this device only, never
+  synchronised), and it reaches the keybag only through icli's command
+  line, `<install root>/usr/bin/icli device passcode unlock
+  --passcode-stdin --max-failures 1` (`IcliPasscodeCommand`; the executable
+  a regular file, root's and writable by root alone, in a folder the same;
+  the passcode on standard input, never in argv, the environment, a file,
+  an event, a log, a journal or a reply), which carries
+  `com.apple.keystore.device`. `devicePasscodeState`,
+  `devicePasscodeSave {passcode}` and `devicePasscodeRemove` are the app's
+  alone (CallerPolicy lets no worker call them), and the console refuses
+  `devicePasscodeSave` before sending it. *Test and Save* (`DeviceUnlock`)
+  is one request: icli's `status` read first (no passcode on the device:
+  `noPasscode`, nothing saved; icli without `device passcode`, exit 64:
+  `icliOutdated`; the keybag locked, a failed attempt on record or
+  unreadable, a back-off, a block: nothing tried), icli's ledger of
+  rejected passcodes cleared with `forget --force` when it holds any (the
+  user typed this passcode now, on a device whose own count reads zero),
+  the side button, a wait of up to 15 s for the keybag to read locked
+  (else `didNotLock`, nothing tried), one attempt, and the passcode saved
+  only when icli answered exit 0 with `result: unlocked` and `attempted:
+  true`; then Home and one swipe up pass the Lock Screen back to Apelin.
+  The reply comes once the test is over; the app, behind the Lock Screen
+  meanwhile, reads `devicePasscodeState` again if it is lost. *The
+  agent's unlock* is `uiAction` `press` `unlock` (`DevicePasscode.unlockButton`):
+  on a device already unlocked and lit it does nothing, on one unlocked
+  and dark it only wakes it; locked, it reads icli's status, and only when
+  the keybag is locked does it use the saved passcode, then wakes, passes
+  the Lock Screen (Home, then one swipe up from the bottom edge; nothing
+  types into it) and, once the app in front has settled (a Home pressed
+  while the Lock Screen goes is lost), presses Home, answering what it
+  left. It takes no
+  target, and an app on the refused list (Apelin) beneath the Lock Screen
+  does not hold it back, since it leaves the Home Screen in front; every screen rule
+  still holds — Strict asks, Ask Before Using the Screen asks every time.
+  Refusals: `conflict` with reason `devicePasscodeNotSaved` (locked, none
+  saved) or `devicePasscodeRefused` (a failed attempt on record, a
+  back-off, a rejected passcode in icli's ledger), nothing tried; `denied`
+  with `devicePasscodeRejected` once it tried and was rejected. *Never a
+  second wrong attempt*: an attempt is made only after icli's status read
+  zero failed attempts on the device's own counter (which only an unlock
+  clears), and icli checks it again under its ledger's lock with
+  `--max-failures 1`, so after one wrong passcode — anyone's, the user's
+  mistype on the Lock Screen included — nothing is tried, by this worker,
+  another or a script, until a person unlocks the device; at most one
+  attempt per press or test, never retried; the saved passcode is marked
+  `attempting` before each use and dropped unless the use is seen to
+  unlock or to try nothing (exit 0, or 5 with `attempted: false`; the
+  mark taken back only while it is still this use's), so a
+  rejection (3), one icli had rejected before (4), an uncounted keybag
+  error (6), any other status, a signal, no answer within 30 s (the run is
+  killed with its process group) or a crash mid-attempt leaves nothing to
+  try again; uses take turns in the worker. The agent is told (the screen
+  tool's description, `# This device`, the `apelin-icli` skill) to press
+  unlock, to ask the user when it is refused, and never to ask for, read
+  or type a passcode or run `icli device passcode`. A vphone cannot have a
+  passcode, so its keybag path has run on the Mac only (`DeviceUnlockTests`,
+  `IcliPasscodeCommandTests`); Device-Validation ▸ Still to run. An agent's
   action never reaches Apelin itself (`AgentUIActionRules`): the host sets
   its `refusedBundleIDs` to `wiki.qaq.apelin`, whatever the agent sent, and
   apelin-diagnostics answers `denied` for a target on that list, before
@@ -3407,7 +3473,8 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
 - **Diagnostics** use `owngoal-dev/icli` for everything it can do — logs,
   crash reports, screenshots, the UI tree and actions, respring — and gaps are
   filled in icli, not beside it. The package depends on the icli CLI too
-  (`com.icli.icli (>= 0.10.0)`, from apt.owngoal.dev; owner, 2026-10-26),
+  (`com.icli.icli (>= 0.11.0)`, from apt.owngoal.dev; owner, 2026-10-26;
+  0.11.0, 2026-11-21, for the device passcode's `device passcode`),
   which the agent runs through shell_run as the `apelin-icli` skill says —
   dedicated tools first, mobile's commands only, `icli probe` (a
   JavaScriptCore script with Objective-C reflection, in process, read-only

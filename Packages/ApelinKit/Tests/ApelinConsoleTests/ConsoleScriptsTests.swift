@@ -16,6 +16,7 @@ final class ConsoleScriptsTests: XCTestCase {
         .agentAPIConfiguration: "Only the editing form may read saved API keys; the console refuses it before sending.",
         .gitCredentialSet: "A git credential comes only from Sign In with GitHub in Settings ▸ Git; the console refuses it before sending.",
         .feedbackStar: "A star is given on the reader's GitHub account only by their tap in the app; the console refuses it before sending.",
+        .devicePasscodeSave: "The device passcode is typed by a person in Settings, and its test locks the device; the console refuses it before sending.",
     ]
 
     private static func consoleFolder(_ name: String) -> URL {

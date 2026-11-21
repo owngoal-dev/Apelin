@@ -198,6 +198,44 @@ console now goes on after a restart only past a successful respring.
 
 ## Still to run on the owner's devices
 
+- [ ] The device passcode and the agent's unlock on a device with a
+      passcode (2026-11-21, AGENTS.md ▸ Diagnostics ▸ The device passcode;
+      a vphone cannot have one, so the keybag path has run on the Mac
+      alone). On an iPhone with a 6-digit passcode, Require Passcode
+      Immediately, icli 0.11.0 or later and no failed attempt on record:
+      Settings ▸ Agent ▸ Device Passcode reads Not Saved; Test and Save
+      with the right passcode locks the screen, unlocks it within a few
+      seconds (`icli device passcode status` then reads `failed_attempts`
+      0 and `ledger_failures` 0), says Passcode Saved once Apelin is back,
+      and reads Saved. Whether the Lock Screen goes by itself
+      after the keybag unlock (Home, then one swipe up) on a Face ID and
+      on a Touch ID device, or waits for the user: icli's own notes say
+      Home alone does not on a Face ID iPhone 15 Pro. Then a conversation
+      with Ask Before Using the Screen on: the agent presses unlock on a
+      dark, locked device after asking, the card says it unlocks with the
+      saved passcode, and the answer is the Home Screen, unlocked (or the
+      Lock Screen still up, which the agent hands to the user). Only once,
+      with the passcode changed in Settings ▸ Face ID & Passcode
+      afterwards: the agent's unlock is refused as rejected, the device
+      counts exactly one failed attempt, the page reads Not Saved, and a
+      second press tries nothing (`failed_attempts` stays 1). A wrong
+      passcode in Test and Save: one failed attempt, Passcode Not Saved,
+      nothing saved. Never more than one wrong passcode in a row on the
+      device: unlock it by hand between tries. What has run (2026-11-21,
+      the iOS 27.0.1 iPhone vphone, roothide, icli 0.11.0, build 344 of
+      `device-unlock`): a passcode cannot be set there (Settings ▸
+      Passcode answers Passcode Change Failed, the SEP refusing it, as
+      vphone-cli's own research says), so the page reads Not Needed with
+      its footer; `devicePasscodeState` answers `noPasscode` (icli spawned
+      by apelin-diagnostics), `devicePasscodeRemove` succeeds (the
+      keychain group is entitled), an unlock with a target is
+      `badRequest`, one on the awake device does nothing, and the side
+      button, a second, then `press` `unlock` answered `locked` false in
+      2.2 s with the Home Screen in front (the first build pressed Home
+      while the Lock Screen was going and left Apelin in front; Home now
+      waits for the foreground to settle). `diagnostics.json` and
+      `p1-device-passcode.json` passed.
+
 - [ ] A message that cannot be sent, and errors by their reason, with real
       accounts (2026-11-14, 0.4.6; the record below has what ran). With a
       provider whose sign-in is exchanged when a chat opens (GitHub

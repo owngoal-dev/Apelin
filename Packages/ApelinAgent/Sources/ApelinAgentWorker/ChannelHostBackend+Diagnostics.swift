@@ -138,9 +138,13 @@ public extension ChannelHostBackend {
 
     func uiAction(_ request: ApelinAgent.UIActionRequest) async throws -> ApelinAgent.UIActionResponse {
         let response = try await service.uiAction(Self.action(request.action), targetID: request.targetID)
-        // A wake answers the lock state, a type what it read back; no
-        // action answers both.
-        let message = [Self.afterWake(response), Self.readBackMessage(response)].filter { !$0.isEmpty }
+        // A wake or an unlock answers the lock state, a type what it read
+        // back; no action answers both.
+        let unlocked = request.action == .pressButton(DevicePasscode.unlockButton)
+        let message = [
+            unlocked ? Self.afterUnlock(response) : Self.afterWake(response),
+            Self.readBackMessage(response),
+        ].filter { !$0.isEmpty }
         return ApelinAgent.UIActionResponse(
             performed: true,
             message: message.joined(separator: " "),
@@ -156,12 +160,23 @@ public extension ChannelHostBackend {
             return "The screen is still off. Press wake once more; if it stays off, ask the user to wake the device."
         }
         if response.locked == true {
-            return "The screen is on, but the device is still locked: a device with a passcode stays on its lock screen after a wake. For anything past the lock screen, ask the user to unlock the device, and never ask for or type the passcode."
+            return "The screen is on, but the device is still locked: a device with a passcode stays on its lock screen after a wake. Press unlock to get past it with the passcode the user saved in Apelin's Settings; if that is refused, ask the user to unlock the device, and never ask for or type the passcode."
         }
         if response.locked == false {
             return "The screen is on and the device is unlocked."
         }
         return ""
+    }
+
+    /// What an unlock left. Its refusals come back as errors that say why.
+    internal static func afterUnlock(_ response: ApelinProtocol.UIActionResponse) -> String {
+        if response.screenOff == true {
+            return "The screen is still off. Press unlock once more; if it stays off, ask the user to wake the device."
+        }
+        if response.locked == true {
+            return "The device's keybag is unlocked, but its lock screen is still up. Ask the user to swipe up or unlock the device, and never ask for or type the passcode."
+        }
+        return "The device is unlocked and its screen is on."
     }
 
     /// What to do when the text read back is not the text typed.

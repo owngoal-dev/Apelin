@@ -500,6 +500,21 @@ struct ChannelHostBackendTests {
     }
 
     @Test
+    func `an unlock says what it left, and a lock screen that stays is the user's`() async throws {
+        let fixture = try Fixture()
+        let press = ApelinAgent.UIActionRequest(context: fixture.context(), targetID: nil, action: .pressButton("unlock"))
+        fixture.host.on(.uiAction, reply: ApelinProtocol.UIActionResponse(locked: false, screenOff: false))
+        #expect(try await fixture.backend.uiAction(press).message == "The device is unlocked and its screen is on.")
+        #expect(fixture.host.requests(ApelinProtocol.UIActionRequest.self).map(\.action) == [.press(button: "unlock")])
+        fixture.host.on(.uiAction, reply: ApelinProtocol.UIActionResponse(locked: true, screenOff: false))
+        let stayed = try await fixture.backend.uiAction(press).message
+        #expect(stayed.contains("lock screen is still up"))
+        #expect(stayed.contains("never ask for or type the passcode"))
+        fixture.host.on(.uiAction, reply: ApelinProtocol.UIActionResponse(locked: true, screenOff: true))
+        #expect(try await fixture.backend.uiAction(press).message.hasPrefix("The screen is still off. Press unlock once more"))
+    }
+
+    @Test
     func `a swipe keeps its duration, and typed text answers what the fields hold`() async throws {
         let fixture = try Fixture()
         fixture.host.on(.uiAction, reply: ApelinProtocol.UIActionResponse())

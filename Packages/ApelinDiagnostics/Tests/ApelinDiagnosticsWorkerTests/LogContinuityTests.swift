@@ -188,6 +188,10 @@ private final class TimelineIcli: IcliSurface, @unchecked Sendable {
         [:]
     }
 
+    func screenInfo() -> [String: Any] {
+        [:]
+    }
+
     func runningApps() throws -> [String: Any] {
         throw unused()
     }
