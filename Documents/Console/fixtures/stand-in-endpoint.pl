@@ -14,14 +14,16 @@
 #   silent      takes the request and never answers
 #   stall       starts a reply, "Hello ", and goes silent
 #
-# Usage: perl stand-in-endpoint.pl [address] [port] [mode file]
+# Usage: perl stand-in-endpoint.pl address [port] [mode file], the address
+# the host has on its guests' network.
 # Each request is logged on one line, with the mode it was answered in.
 use strict;
 use warnings;
 use IO::Socket::INET;
 use POSIX qw(strftime);
 
-my $address = shift // '192.168.64.1';
+my $address = shift
+    // die "usage: perl stand-in-endpoint.pl address [port] [mode file]\n";
 my $port = shift // 8099;
 my $modes = shift // '/tmp/apelin-stand-in-mode';
 

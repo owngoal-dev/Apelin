@@ -257,13 +257,14 @@ console now goes on after a restart only past a successful respring.
 - [ ] A spent allowance, and Stop wherever a turn waits (2026-11-21, #67,
       AGENTS.md ▸ Agent sessions). On the Mac `SpentAllowanceTests`,
       `StopTests` and `StopWatchTests` ran against a provider on the Mac.
-      On the iPhone vphone (jp-01, iOS 26.4, then 27.0.1), with this
+      On the iPhone vphone (iOS 26.4, then 27.0.1), with this
       round's roothide package: copy `Documents/Console/fixtures/
       stand-in-endpoint.pl` to the host and run `perl stand-in-endpoint.pl
-      192.168.64.1 8099`; it answers as `/tmp/apelin-stand-in-mode` says
+      <host> 8099`, `<host>` the host's address on its guests' network;
+      it answers as `/tmp/apelin-stand-in-mode` says
       when each request comes and logs each request. In Settings ▸ Model
       Providers ▸ OpenAI-Compatible API, any key and
-      `http://192.168.64.1:8099/v1`, Fetch Models, enable `stand-in`, Save
+      `http://<host>:8099/v1`, Fetch Models, enable `stand-in`, Save
       (mode `ok`). In a chat on `stand-in`, each mode written to the file
       before the message:
       1. `quota`: the turn ends within 2 s on "Usage Limit Reached" with
