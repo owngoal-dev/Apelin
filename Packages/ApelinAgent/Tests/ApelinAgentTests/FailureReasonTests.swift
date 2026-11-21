@@ -47,6 +47,22 @@ struct FailureReasonTests {
         #expect(FailureReason.of(Self.status(400, "prompt is too long: 250000 tokens > 200000 maximum"), hasRoute: true) == .contextOverflow)
     }
 
+    /// kwwk's preflight, when compacting cannot bring the conversation under
+    /// the window, as a device saw it with a 65,000-token window and one
+    /// 100 KB tool result: the chat is too long, said as such.
+    @Test
+    func `a conversation compaction cannot fit in the window is too long`() {
+        for message in [
+            "context is too large and compaction failed: compaction left 51590 tokens, above the recovery target of 39000",
+            "context is too large and could not be compacted",
+            "context requires approximately 70000 input tokens, exceeding the usable 60000-token input budget even after compaction",
+        ] {
+            #expect(FailureReason.of(ProviderFailure(message: message), hasRoute: true) == .contextOverflow, "\(message)")
+        }
+        // a provider's own refusal in those words keeps its status's reading
+        #expect(FailureReason.of(Self.status(503, "context is too large and compaction failed"), hasRoute: true) == .server)
+    }
+
     @Test
     func `a request the provider would not take keeps its own words`() {
         #expect(FailureReason.of(Self.status(404, "model not found"), hasRoute: true) == nil)

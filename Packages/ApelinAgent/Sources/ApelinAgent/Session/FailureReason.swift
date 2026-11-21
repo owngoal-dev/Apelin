@@ -13,10 +13,32 @@ public enum FailureReason {
         NSURLErrorNotConnectedToInternet, NSURLErrorDataNotAllowed, NSURLErrorInternationalRoamingOff,
     ]
 
+    /// kwwk's own words when the conversation does not fit the model's
+    /// window even after compacting it, before a request is sent. It says so
+    /// with no status or provider code, in words meant for a log ("compaction
+    /// left 51590 tokens, above the recovery target of 39000"): a single
+    /// tool result larger than the window has room for, under a small
+    /// window the user set (#68).
+    private static let contextTooLarge = [
+        "context is too large and compaction failed",
+        "context is too large and could not be compacted",
+        "input token budget even after compaction",
+    ]
+
     /// The reason for `failure`, nil where its own words say it best: a
     /// refusal, a request the provider would not take, a stop.
     /// `hasRoute`: whether the device has a route to the network now.
     public static func of(_ failure: ProviderFailure, hasRoute: Bool) -> ApelinError.Reason? {
+        // a spent allowance kwwk reads as a rate limit is the quota all the
+        // same (`SpentAllowance`)
+        if SpentAllowance.isSpent(failure) {
+            return .quota
+        }
+        if failure.httpStatus == nil, failure.providerCode == nil,
+           contextTooLarge.contains(where: failure.message.contains)
+        {
+            return .contextOverflow
+        }
         switch failure.category {
         case .transport:
             let saysOffline = failure.transportDomain == NSURLErrorDomain

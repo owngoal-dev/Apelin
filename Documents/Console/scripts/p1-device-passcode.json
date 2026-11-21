@@ -1,0 +1,10 @@
+{
+  "name": "p1-device-passcode: REMOVES the device passcode a person saved and tested in Settings, then reads that none is saved. Test and Save stays a person's, in Settings: the console refuses it before sending",
+  "steps": [
+    {"op": "hello"},
+    {"op": "devicePasscodeState", "label": "before", "request": {}},
+    {"op": "devicePasscodeRemove", "request": {}},
+    {"op": "devicePasscodeState", "label": "after", "request": {}},
+    {"op": "expect", "request": {"step": "after", "path": "response.saved", "equals": false}}
+  ]
+}

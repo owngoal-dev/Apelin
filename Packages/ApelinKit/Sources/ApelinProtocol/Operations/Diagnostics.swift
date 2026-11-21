@@ -175,13 +175,19 @@ public enum UIAction: Codable, Sendable, Equatable {
     case tapElement(text: String?, identifier: String?)
     case type(text: String)
     case swipe(fromX: Double, fromY: Double, toX: Double, toY: Double, durationMilliseconds: Int)
-    /// `wake`, `home` or `lock` (the side button). Only a wake runs while
-    /// the device is locked or its screen is off.
+    /// `wake`, `home`, `lock` (the side button) or `unlock`. Only a wake and
+    /// an unlock run while the device is locked or its screen is off. An
+    /// unlock (`DevicePasscode.unlockButton`) wakes the device, unlocks its
+    /// keybag with the passcode saved and tested in Settings when it is
+    /// locked, passes the Lock Screen and goes to the Home Screen; on a
+    /// device already unlocked and lit it does nothing. It takes no target,
+    /// and the app beneath the Lock Screen does not refuse it, since what it
+    /// leaves in front is the Home Screen.
     case press(button: String)
 }
 
-/// What an action left. A wake says whether the device is still locked and
-/// its screen still off. A `type` says what it left in the frontmost app,
+/// What an action left. A wake and an unlock say whether the device is
+/// still locked and its screen still off. A `type` says what it left in the frontmost app,
 /// read back from its UI tree: the values its visible elements took on
 /// while the text went in, and whether one holds the text, so characters
 /// that did not land can be seen. Every other action, and a `type` whose
@@ -191,17 +197,22 @@ public struct UIActionResponse: Codable, Sendable, Equatable {
     public var screenOff: Bool?
     public var typedTextMatches: Bool?
     public var fieldValues: [String]?
+    /// An unlock's way past the lock: absent for every other action, and
+    /// from a worker older than 0.4.8.
+    public var unlockedBy: DeviceUnlockPath?
 
     public init(
         locked: Bool? = nil,
         screenOff: Bool? = nil,
         typedTextMatches: Bool? = nil,
         fieldValues: [String]? = nil,
+        unlockedBy: DeviceUnlockPath? = nil,
     ) {
         self.locked = locked
         self.screenOff = screenOff
         self.typedTextMatches = typedTextMatches
         self.fieldValues = fieldValues
+        self.unlockedBy = unlockedBy
     }
 }
 

@@ -132,6 +132,9 @@
     "a3-endpoint-beside": {
       "note": "signs in to and out of OpenAI-compatible endpoint 99 with a placeholder key; the device's own sign-ins stay as they are"
     },
+    "p1-device-passcode": {
+      "manual": "removes the device passcode a person saved and tested in Settings; run it by name on a device whose saved passcode may go"
+    },
     "t5-toolchain-auto-sdk": {
       "needs": ["package:wiki.qaq.irisin>=4.7.3"],
       "timeout": 3600,

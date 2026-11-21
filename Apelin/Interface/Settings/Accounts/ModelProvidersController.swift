@@ -224,13 +224,13 @@ final class ModelProvidersController: TableController, UISearchResultsUpdating {
         return cell
     }
 
+    /// Who is signed in, and until when where the sign-in ends: one phrase,
+    /// never words set apart by a middle dot (owner, 2026-11-21).
     private static func signedInLine(_ account: AgentAccount) -> String {
-        var parts = [account.account ?? String(localized: "Signed In")]
-        if let expiresAt = account.expiresAt {
-            let date = expiresAt.formatted(date: .abbreviated, time: .shortened)
-            parts.append(expiresAt < Date() ? String(localized: "Expired \(date)") : String(localized: "Until \(date)"))
-        }
-        return parts.joined(separator: " · ")
+        let name = account.account ?? String(localized: "Signed In")
+        guard let expiresAt = account.expiresAt else { return name }
+        let date = expiresAt.formatted(date: .abbreviated, time: .shortened)
+        return expiresAt < Date() ? String(localized: "\(name), expired \(date)") : String(localized: "\(name), until \(date)")
     }
 
     /// `…` with no circle, its menu read each time it opens.

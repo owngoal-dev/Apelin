@@ -39,6 +39,17 @@ public actor AgentSession {
     /// sign-in keep that resolution: resolving again exchanges some
     /// providers' tokens over the network, before the message is recorded.
     private var resolvedFrom: (provider: ProviderConfiguration, credentials: OAuthCredentials?)
+    /// The model as it resolved, before the user's limits: what a change of
+    /// the limits alone is applied to again.
+    private var resolvedModel: Model
+    /// The agent asked to compact (`apelin_conversation_compact`): done at
+    /// the run's next step, before its next request.
+    private var compactionAsked = false
+    /// The notes that told the model how full the context is.
+    private var contextNote = ContextNote()
+    /// The calls whose result ended with one, and the note: the model read
+    /// it, the event the app shows has the tool's output alone.
+    private var notedCalls: [String: String] = [:]
     private var titleTask: Task<Void, Never>?
     private var hasTitle = false
     /// Title completions that named nothing. Each prompt asks again until
@@ -82,6 +93,8 @@ public actor AgentSession {
     private var ownCalls: [String: (tool: AgentToolName, arguments: KWWKAI.JSONValue)] = [:]
     /// What the current run has received, for the app's counter.
     private var output = OutputTally()
+    /// Why the current run's last failure happened, as its `error` said.
+    private var runFailure: ApelinError.Reason?
 
     /// Opens a session. When `sessions/<id>/` already exists, its transcript
     /// is resumed and its event sequence continues; approvals that were left
@@ -146,7 +159,9 @@ public actor AgentSession {
             journal.sessionOpenFailed(error)
             throw error
         }
-        journal.sessionOpened(configuration, model: resolved.model, reopened: previous != nil, historyMessages: transcript.count)
+        let limits = configuration.modelLimits?.sanitized
+        let model = limits?.applied(to: resolved.model) ?? resolved.model
+        journal.sessionOpened(configuration, model: model, reopened: previous != nil, historyMessages: transcript.count)
         journal.closeUnfinishedCalls()
         for id in log.opened.openApprovals {
             journal.approvalResolved(id: id, decision: Self.abandonedApproval)
@@ -188,18 +203,19 @@ public actor AgentSession {
         let agent = Agent(options: AgentOptions(
             initialState: AgentInitialState(
                 systemPrompt: systemPrompt,
-                model: resolved.model,
+                model: model,
                 thinkingLevel: configuration.thinking,
                 tools: runner.agentTools(mcp: mcpTools, extensions: toolExtensions.extensions),
                 messages: transcript,
             ),
-            // a request the network failed waits for it to come back; each
+            // a request the network failed waits for it to come back, one
+            // that says the allowance is spent is not asked again, and each
             // that failed is journaled
             streamFn: NetworkRecovery.stream(
                 path: configuration.network,
-                inner: journal.observingRequests { model, context, options in
+                inner: SpentAllowance.stream(journal.observingRequests { model, context, options in
                     try await KWWKAI.stream(model: model, context: context, options: options)
-                },
+                }),
             ) { wait in
                 journal.waitingForNetwork()
                 _ = try? await log.append(wait == .route ? .waitingForNetwork : .reconnecting)
@@ -208,7 +224,12 @@ public actor AgentSession {
             sessionId: configuration.id,
             cwd: root.path,
             maxTurns: configuration.maxTurns,
-            autoCompact: AgentAutoCompactOptions(config: journal.observingCompaction(NativeCompactionFallback.configuration)),
+            // Before any request past three quarters of the window, said
+            // here rather than left to kwwk's default (owner, 2026-11-21)
+            autoCompact: AgentAutoCompactOptions(
+                threshold: AgentContextBudget.automaticCompaction,
+                config: journal.observingCompaction(NativeCompactionFallback.configuration),
+            ),
             authResolver: resolved.authResolver,
         ))
         agent.state.serviceTier = configuration.serviceTier
@@ -218,6 +239,7 @@ public actor AgentSession {
         // a conversation with nothing in it named nothing that went stale
         restartUntold = configuration.hostRestarted && !transcript.isEmpty
         resolvedFrom = (configuration.provider, resolved.credentials)
+        resolvedModel = resolved.model
         self.configuration = configuration
         self.log = log
         self.journal = journal
@@ -237,14 +259,28 @@ public actor AgentSession {
             await self?.handle(event)
         }
         unsubscribe = subscription
+        // The agent's own compaction, at the step after its call, and the
+        // notes that suggest it (`ContextNote`).
+        agent.betweenTurns = { [weak self] context, cancellation in
+            await self?.compactIfAsked(context, cancellation: cancellation) ?? nil
+        }
+        agent.afterToolCall = { [weak self] call, _ in
+            await self?.noteContext(after: call) ?? nil
+        }
+        await runner.setCompaction { [weak self] in
+            guard let self else { throw ToolDeniedError(message: "The conversation is closing.") }
+            return try await askCompaction()
+        }
     }
 
     /// Model changes take effect between runs, never halfway through a tool turn.
     /// A signed-out provider is refused here, as when the session opened.
+    /// `modelLimits` are the user's for that model, nil for none.
     public func configure(
         provider: ProviderConfiguration,
         thinking: ThinkingLevel,
         serviceTier: ServiceTier? = nil,
+        modelLimits: AgentModelLimits? = nil,
         credentials: any CredentialSource,
     ) async throws {
         guard runTask == nil else { return }
@@ -253,6 +289,7 @@ public actor AgentSession {
             guard runTask == nil else { return }
             agent.state.thinkingLevel = thinking
             agent.state.serviceTier = serviceTier
+            useModel(resolvedModel, limits: modelLimits)
             return
         }
         let resolved = try await ProviderResolver.resolve(
@@ -261,12 +298,21 @@ public actor AgentSession {
             network: configuration.network,
         )
         guard runTask == nil else { return }
-        agent.state.model = resolved.model
         agent.state.thinkingLevel = thinking
         agent.state.serviceTier = serviceTier
         agent.authResolver = resolved.authResolver
         resolvedFrom = (provider, resolved.credentials)
-        journal.modelChanged(to: resolved.model)
+        useModel(resolved.model, limits: modelLimits)
+    }
+
+    /// Talks to `model` with the user's `limits` from the next run on.
+    private func useModel(_ model: Model, limits: AgentModelLimits?) {
+        let limits = limits?.sanitized
+        let limited = limits?.applied(to: model) ?? model
+        resolvedModel = model
+        guard limited != agent.state.model else { return }
+        agent.state.model = limited
+        journal.modelChanged(to: limited, userLimits: limits != nil)
     }
 
     // MARK: - Control
@@ -709,7 +755,16 @@ public actor AgentSession {
     }
 
     private func compactionEnded(_ outcome: AgentContextCompactionOutcome) async {
-        journal.compactionEnded(outcome, usage: contextUsage, nativeSummary: goesOnFromNativeSummary, stopped: aborted)
+        await finishCompaction(outcome, stopped: aborted)
+        compaction = nil
+    }
+
+    /// Journals how a compaction the app or the agent asked for ended, keeps
+    /// a compacted conversation for a reopened session to read back, and
+    /// records `compactionFinished`, which the app shows. Answers it.
+    @discardableResult
+    private func finishCompaction(_ outcome: AgentContextCompactionOutcome, stopped: Bool) async -> AgentCompactionResult {
+        journal.compactionEnded(outcome, usage: contextUsage, nativeSummary: goesOnFromNativeSummary, stopped: stopped)
         let result = switch outcome {
         case let .compacted(messagesCompacted, _):
             AgentCompactionResult(
@@ -722,7 +777,7 @@ public actor AgentSession {
         case .refusedAgentBusy:
             AgentCompactionResult(outcome: .failed, message: "The chat was busy. Try again when the reply has finished.")
         case let .failed(reason):
-            aborted
+            stopped
                 ? AgentCompactionResult(outcome: .cancelled)
                 : AgentCompactionResult(outcome: .failed, message: ErrorDescription.localized(reason))
         }
@@ -736,7 +791,133 @@ public actor AgentSession {
             }
         }
         await record(.compactionFinished(result))
-        compaction = nil
+        return result
+    }
+
+    // MARK: - The agent's own compaction
+
+    /// `apelin_conversation_compact`: the conversation is compacted at the
+    /// run's next step, before its next request (`compactIfAsked`), since
+    /// the call cannot rewrite the conversation it is part of. Refused while
+    /// the context is under `AgentContextBudget.compactionFloor` of the
+    /// window or the conversation is shorter than kwwk compacts. Answers
+    /// what the model is told.
+    func askCompaction() throws -> String {
+        guard runTask != nil, compaction == nil else {
+            throw ToolDeniedError(message: "The conversation can be compacted only while you are working on a task.")
+        }
+        guard !compactionAsked else {
+            return "Already asked: Apelin compacts this conversation before your next step."
+        }
+        let usage = requestUsage
+        let percent = ContextNote.percent(usage)
+        guard agent.state.messages.count >= agentCompactMinMessages else {
+            throw ToolDeniedError(message: "Not compacted: the conversation is too short to summarize. Carry on with the task.")
+        }
+        guard percent >= AgentContextBudget.compactionFloor else {
+            throw ToolDeniedError(message: """
+            Not compacted: the context is only \(percent)% full (about \(usage.tokens) of \(usage.window) tokens), and \
+            compacting now would lose detail for little space. Carry on with the task; compact at a good stopping \
+            point once it is past half full, and at \(ContextNote.automaticPercent)% Apelin compacts it on its own.
+            """)
+        }
+        compactionAsked = true
+        return """
+        Apelin compacts this conversation before your next step: the earlier messages become a summary you go on \
+        from, and the most recent stay as they are. The context is \(percent)% full now. Carry on with the task.
+        """
+    }
+
+    /// At the step after the agent asked: compacts the conversation as
+    /// `compact` does, natively where the provider can, with the events the
+    /// app shows (`compactionStarted`, `compactionFinished` and its
+    /// Compacted row) and the journal's Compaction lines. Answers the
+    /// compacted conversation for the run to go on from; one that was not
+    /// compacted goes on as it was, and the model is told why.
+    func compactIfAsked(_ context: AgentContext, cancellation: CancellationHandle?) async -> AgentContext? {
+        guard compactionAsked else { return nil }
+        compactionAsked = false
+        guard cancellation?.isCancelled != true, !aborted else { return nil }
+        let agent = agent
+        journal.compactionStarted(.tool, model: agent.state.model, messages: context.messages.count, usage: contextUsage)
+        await record(.compactionStarted)
+        // What is compacted is the agent's conversation, which the run's
+        // must be: kwwk commits the summary there.
+        let outcome: AgentContextCompactionOutcome = if agent.state.messages == context.messages {
+            await AgentContextCompactor.compactAgent(
+                agent: agent,
+                backgroundManager: agent.autoCompact?.backgroundManager,
+                sessionId: id,
+                config: agent.autoCompact?.config ?? NativeCompactionFallback.configuration,
+                // the run is this step's, and waits for it
+                ignoreStreaming: true,
+                cancellation: cancellation,
+            )
+        } else {
+            .failed("The conversation changed while it was being compacted.")
+        }
+        let result = await finishCompaction(outcome, stopped: aborted || cancellation?.isCancelled == true)
+        switch result.outcome {
+        case .compacted:
+            var compacted = context
+            compacted.messages = agent.state.messages
+            return compacted
+        case .tooShort:
+            agent.aside("The compaction you asked for did not happen: there is too little to summarize yet. The conversation goes on as it was.")
+        case .failed:
+            agent.aside("The compaction you asked for did not happen: \(result.message ?? "it failed"). The conversation goes on as it was.")
+        case .cancelled:
+            break
+        }
+        return nil
+    }
+
+    /// After each call: ends its result with a note saying how full the
+    /// context is, when one is due (`ContextNote`), measured as kwwk
+    /// measures it before a request, this result included.
+    func noteContext(after call: AfterToolCallContext) -> AfterToolCallResult? {
+        var measured = AgentContext(
+            systemPrompt: agent.state.effectiveSystemPrompt,
+            messages: agent.state.messages,
+            tools: agent.state.effectiveTools,
+        )
+        measured.messages.append(.toolResult(ToolResultMessage(
+            toolCallId: call.toolCall.id,
+            toolName: call.toolCall.name,
+            content: call.result.content,
+            details: call.result.details,
+            isError: call.isError,
+        )))
+        let usage = AgentContextCompactor.currentUsage(context: measured, model: agent.state.model)
+        let percent = ContextNote.percent(usage)
+        guard let note = contextNote.note(percent: percent) else { return nil }
+        notedCalls[call.toolCall.id] = note
+        journal.contextNoted(percent: percent, usage: usage, call: call.toolCall.id)
+        return AfterToolCallResult(content: call.result.content + [.text(TextContent(text: note))])
+    }
+
+    /// The model the next run talks to, the user's limits applied.
+    var currentModel: Model {
+        agent.state.model
+    }
+
+    /// The share of the window past which the conversation is compacted
+    /// before a request.
+    var automaticCompactionThreshold: Double? {
+        agent.autoCompact?.threshold
+    }
+
+    /// How full the context is as kwwk measures it before a request: the
+    /// system prompt and the tools with the conversation.
+    var requestUsage: AgentContextUsage {
+        AgentContextCompactor.currentUsage(
+            context: AgentContext(
+                systemPrompt: agent.state.effectiveSystemPrompt,
+                messages: agent.state.messages,
+                tools: agent.state.effectiveTools,
+            ),
+            model: agent.state.model,
+        )
     }
 
     /// What a stop was stopping, for whoever must know whether it ended.
@@ -822,13 +1003,14 @@ public actor AgentSession {
         case .agentStart:
             // the counter counts each run's output from nothing
             output = OutputTally()
+            runFailure = nil
             journal.runStarted(model: agent.state.model, messages: agent.state.messages.count)
         case let .messageStart(message):
             switch message {
             case .assistant:
                 output.startMessage()
                 await record(.messageStarted)
-            case let .user(user) where !queued.isEmpty:
+            case let .user(user) where !queued.isEmpty && user.source != .runtime:
                 // the loop took a queued message: it is in the conversation now
                 let injected = user.content.compactMap { block -> String? in
                     if case let .text(content) = block {
@@ -865,10 +1047,12 @@ public actor AgentSession {
             await record(.messageFinished(text: Self.text(of: assistant.content)))
             if assistant.stopReason == .error {
                 journal.replyFailed(assistant)
+                let reason = assistant.providerFailure.flatMap { FailureReason.of($0, hasRoute: hasRoute) }
+                runFailure = reason
                 await record(.error(
                     message: assistant.errorMessage.map(ErrorDescription.localized)
                         ?? "The model provider returned an error. Try again.",
-                    reason: assistant.providerFailure.flatMap { FailureReason.of($0, hasRoute: hasRoute) },
+                    reason: reason,
                 ))
             }
         case .streamRewind:
@@ -892,7 +1076,12 @@ public actor AgentSession {
             }
             journal.toolStarted(id: id, name: name, arguments: args)
             await record(.toolCallStarted(ToolCallRecord(id: id, name: name, arguments: args.canonicalJSON)))
-        case let .toolExecutionEnd(id, name, result, isError):
+        case .toolExecutionEnd(let id, let name, var result, let isError):
+            // The context note is Apelin's to the model, as <system-state>
+            // is: the trace and the journal have the tool's output alone.
+            if let note = notedCalls.removeValue(forKey: id) {
+                result.content = ContextNote.removing(note, from: result.content)
+            }
             journal.toolEnded(id: id, name: name, result: result, isError: isError, runStopped: aborted)
             if let call = ownCalls.removeValue(forKey: id), !isError {
                 // the tool's result told the model; no delta repeats it
@@ -984,9 +1173,11 @@ public actor AgentSession {
             return
         }
         journal.runFailed(error.localizedDescription)
+        let reason = FailureReason.of(error, hasRoute: hasRoute)
+        runFailure = reason
         await record(.error(
             message: ErrorDescription.localized(error.localizedDescription),
-            reason: FailureReason.of(error, hasRoute: hasRoute),
+            reason: reason,
         ))
     }
 
@@ -1015,16 +1206,20 @@ public actor AgentSession {
         let reason: FinishReason = aborted ? .aborted : (lastFinishedWithError ? .failed : .completed)
         // A loop that ended on an error, or just before a message was
         // queued, never drained it: the next run takes it. Not after a
-        // stop, nor when this run was started for it and took none: what
-        // is dropped, the app puts back in the composer.
+        // stop, nor when this run was started for it and took none, nor
+        // after a spent allowance, which would fail that run the same way
+        // (#67): what is dropped, the app puts back in the composer, where
+        // the reader can choose another model first.
         let waiting = queued.map(\.id)
-        let next = aborted || waiting == carried ? [] : waiting
+        let next = aborted || waiting == carried || runFailure == .quota ? [] : waiting
         if next.isEmpty {
             // otherwise the next run would read them first
             agent.clearSteeringQueue()
             await dropQueued()
         }
         await runner.turnEnded()
+        // a request the run never reached a step for goes with it
+        compactionAsked = false
         journal.runEnded(reason)
         await record(.finished(reason: reason))
         // a stop meanwhile dropped them

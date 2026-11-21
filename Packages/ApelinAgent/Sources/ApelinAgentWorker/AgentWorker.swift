@@ -30,7 +30,7 @@ public enum AgentWorker {
                 if await accounts.cancel(taskID) {
                     return
                 }
-                await state.abort()
+                await state.stop()
             }
         }, onClose: {
             // the host has gone and the worker exits next: what still runs
@@ -73,6 +73,7 @@ public enum AgentWorker {
                             provider: AgentWorker.provider(AgentOpenRequest(provider: provider, model: prompt.model)),
                             thinking: .init(rawValue: prompt.reasoningEffort?.rawValue ?? "off") ?? .off,
                             serviceTier: AgentWorker.serviceTier(prompt.serviceTier),
+                            modelLimits: prompt.modelLimits,
                             credentials: KeychainCredentialSource(accessGroup: keychainAccessGroup),
                         )
                     } catch let error as ProviderResolutionError {
@@ -83,6 +84,7 @@ public enum AgentWorker {
                         model: prompt.model,
                         reasoningEffort: prompt.reasoningEffort,
                         serviceTier: prompt.serviceTier,
+                        modelLimits: prompt.modelLimits,
                     )
                 }
                 guard (prompt.attachments?.count ?? 0) <= 8 else {
@@ -123,8 +125,10 @@ public enum AgentWorker {
                 return Acknowledged()
             }
         case .agentAbort:
+            // the app's Stop: timed by the worker, so a run that does not
+            // end is ended (`WorkerState.stop`)
             await WorkerMain.serve(AgentAbortRequest.self, request) { abort in
-                try await (state.session(abort.sessionID)).abort()
+                try await state.stop(abort.sessionID)
                 return Acknowledged()
             }
         case .agentCompact:
@@ -163,7 +167,7 @@ public enum AgentWorker {
             }
         case .agentModelList:
             await WorkerMain.serve(AgentModelListRequest.self, request) { query in
-                try await accounts.models(for: query.provider)
+                try await accounts.models(for: query.provider, limitsFor: query.limitsFor ?? [])
             }
         case .agentModelActivate:
             await WorkerMain.serve(AgentModelActivateRequest.self, request) { query in
@@ -255,7 +259,7 @@ public enum AgentWorker {
         case .openAICompatible:
             guard let model else { throw ApelinError(.badRequest, "name the model for \(provider.rawValue)") }
             return .openAICompatible(model: model)
-        case .openAICodex, .cursor, .devin, .kiro, .antigravity, .qoder, .qoderCN, .workBuddy, .workBuddyAI,
+        case .openAICodex, .cursor, .devin, .kiro, .qoder, .qoderCN, .workBuddy, .workBuddyAI,
              .trae, .traeIntl, .raccoon,
              .kimiCoding, .kimiCodingGlobal, .xai, .zai, .zaiCodingCN, .openRouter, .openAI, .google, .deepSeek,
              .openCodeGo, .openCodeZen:
@@ -273,6 +277,13 @@ public enum AgentWorker {
 actor WorkerState {
     /// What the session runs with now, which a conversation it opens starts with.
     let modelChoice = SessionModelChoice()
+    /// How long a stopped run has to end. A tool call no longer holds it
+    /// (`ToolRunner.run`); this is for what is left, a model request, a
+    /// sign-in's renewal or a compaction that does not answer its
+    /// cancellation.
+    private let stopPatience: Duration
+    /// Ends the process, a moment after the task it served has ended.
+    private let exitProcess: @Sendable () -> Void
     private var session: AgentSession?
     /// An open is under way. It takes the place before its first
     /// suspension, so an open the host sends meanwhile is refused rather
@@ -283,6 +294,11 @@ actor WorkerState {
     private var relay: Task<Void, Never>?
     private var closeWhenFinished = false
     private var finished = false
+
+    init(stopPatience: Duration = .seconds(20), exitProcess: @escaping @Sendable () -> Void = { exit(0) }) {
+        self.stopPatience = stopPatience
+        self.exitProcess = exitProcess
+    }
 
     func open(_ open: AgentOpenRequest, taskID: TaskID, context: WorkerContext) async throws {
         guard session == nil, !opening else {
@@ -327,6 +343,7 @@ actor WorkerState {
                     dataRoot: dataRoot,
                     thinking: .init(rawValue: open.reasoningEffort?.rawValue ?? "off") ?? .off,
                     serviceTier: AgentWorker.serviceTier(open.serviceTier),
+                    modelLimits: open.modelLimits,
                     installRoot: context.assignment.installRoot,
                     hostRestarted: open.hostRestarted == true,
                 ),
@@ -349,17 +366,33 @@ actor WorkerState {
             throw ApelinError(.internal, error.localizedDescription)
         }
 
-        self.session = session
-        self.taskID = taskID
-        self.context = context
-        closeWhenFinished = open.closeWhenFinished == true
+        try await serve(session, taskID: taskID, context: context, closeWhenFinished: open.closeWhenFinished == true)
         await modelChoice.set(
             provider: open.provider,
             model: open.model,
             reasoningEffort: open.reasoningEffort,
             serviceTier: open.serviceTier,
+            modelLimits: open.modelLimits,
         )
+        if let prompt = open.prompt, !prompt.isEmpty {
+            try await session.prompt(prompt)
+            // A conversation another agent opened is named by its opener,
+            // or like one the user started; a headless run is not named.
+            if let title = open.title {
+                await session.setTitle(title)
+            } else if !closeWhenFinished {
+                await session.generateTitle(for: prompt)
+            }
+        }
+    }
 
+    /// Serves `session` as task `taskID`: its events go to the host as the
+    /// task's, from the first.
+    func serve(_ session: AgentSession, taskID: TaskID, context: WorkerContext, closeWhenFinished: Bool = false) async throws {
+        self.session = session
+        self.taskID = taskID
+        self.context = context
+        self.closeWhenFinished = closeWhenFinished
         let events = try await session.events(afterSeq: 0)
         let relay = EventRelay(context: context, taskID: taskID)
         self.relay = Task { [weak self] in
@@ -371,16 +404,6 @@ actor WorkerState {
                 }
             }
             await relay.flush()
-        }
-        if let prompt = open.prompt, !prompt.isEmpty {
-            try await session.prompt(prompt)
-            // A conversation another agent opened is named by its opener,
-            // or like one the user started; a headless run is not named.
-            if let title = open.title {
-                await session.setTitle(title)
-            } else if !closeWhenFinished {
-                await session.generateTitle(for: prompt)
-            }
         }
     }
 
@@ -409,21 +432,25 @@ actor WorkerState {
         return .approve(approve.scope == .session ? .session : .once)
     }
 
-    /// How long a stopped run has to end. A tool call no longer holds it
-    /// (`ToolRunner.run`); this is for what is left, a model request or a
-    /// compaction that does not answer its cancellation.
-    static let stopPatience: Duration = .seconds(20)
+    /// Stops the run of session `sessionID`, the app's Stop (`agentAbort`).
+    func stop(_ sessionID: String) async throws {
+        _ = try session(sessionID)
+        await stop()
+    }
 
     /// Stops the run. One that has not ended `stopPatience` later would
     /// leave the conversation working with Stop spent and every later
     /// message queued behind it (#59), so the session's task is ended
     /// instead (`endUnstopped`). Each stop is timed by itself: a second
-    /// one does not give the run more time.
-    func abort() async {
+    /// one does not give the run more time. Until #67 the app's Stop
+    /// stopped the session without this, so a run that did not answer its
+    /// cancellation went on working however often Stop was tapped.
+    func stop() async {
         guard let session else { return }
         let stopped = await session.abort()
+        let patience = stopPatience
         Task { [weak self] in
-            try? await Task.sleep(for: Self.stopPatience)
+            try? await Task.sleep(for: patience)
             if !stopped.hasEnded {
                 await self?.endUnstopped()
             }
@@ -438,13 +465,19 @@ actor WorkerState {
         guard !finished else { return }
         finished = true
         if let context, let taskID {
+            // the reason the app says it by, in the reader's language; an
+            // app that does not know it shows the message
             let message = "This chat did not stop in time, so Apelin ended it. Send a message to continue."
-            context.emit(taskID, "error", .object(["message": .string(message)]))
+            context.emit(taskID, "error", .object([
+                "message": .string(message),
+                "reason": .string(ApelinError.Reason.unstopped.rawValue),
+            ]))
             context.finish(taskID, .cancelled, message: message)
         }
+        let exitProcess = exitProcess
         Task.detached {
             try? await Task.sleep(nanoseconds: 500_000_000)
-            exit(0)
+            exitProcess()
         }
     }
 
@@ -466,13 +499,14 @@ actor WorkerState {
         let session = session
         let context = context
         let taskID = taskID
+        let exitProcess = exitProcess
         Task.detached {
             await session?.close()
             if let context, let taskID {
                 context.finish(taskID, state, message: message)
             }
             try? await Task.sleep(nanoseconds: 500_000_000)
-            exit(0)
+            exitProcess()
         }
     }
 }

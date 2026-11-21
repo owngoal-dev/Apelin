@@ -288,7 +288,7 @@ final class ProjectDistributionController: TableController {
                 return RowContent(
                     row: .package(package.bootstrap),
                     text: package.bootstrap.rawValue,
-                    secondaryText: "\(package.version) · \(state)",
+                    secondaryText: String(localized: "\(package.version), \(state)"),
                     spokenText: "\(package.bootstrap.rawValue), \(package.version)",
                     spokenValue: state,
                     selected: selectedPackages.contains(package.artifactID),

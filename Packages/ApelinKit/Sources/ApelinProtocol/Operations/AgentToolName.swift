@@ -79,6 +79,7 @@ public enum AgentToolName: String, Sendable, Hashable, Codable, CaseIterable {
     case conversationList = "apelin_conversation_list"
     case conversationRead = "apelin_conversation_read"
     case conversationStop = "apelin_conversation_stop"
+    case conversationCompact = "apelin_conversation_compact"
     case toolchainList = "apelin_toolchain_list"
     case sdkList = "apelin_sdk_list"
     case toolchainSetup = "apelin_toolchain_setup"

@@ -22,6 +22,7 @@ public extension ChannelHostBackend {
                 approvalMode: .confirm,
                 reasoningEffort: choice.reasoningEffort,
                 serviceTier: choice.serviceTier,
+                modelLimits: choice.modelLimits,
                 prompt: request.prompt,
                 title: request.title,
             ))

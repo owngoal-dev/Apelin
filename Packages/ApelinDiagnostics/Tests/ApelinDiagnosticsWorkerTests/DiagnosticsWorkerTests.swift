@@ -116,6 +116,10 @@ private final class FakeIcli: IcliSurface, @unchecked Sendable {
         lockAnswer
     }
 
+    func screenInfo() -> [String: Any] {
+        ["width": 430, "height": 932, "locked": lockAnswer["locked"] ?? false, "screen_off": lockAnswer["screen_off"] ?? false]
+    }
+
     func runningApps() throws -> [String: Any] {
         ["apps": [["pid": 77, "name": "Preferences", "executable": "/Applications/Preferences.app/Preferences", "bundle_id": "com.apple.Preferences"]]]
     }
