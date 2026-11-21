@@ -516,7 +516,14 @@ precondition(failureRow(["message": .string(wholeError)])?.failure?.detail == "T
 precondition(noRoute?.failure?.spoken == "No Internet Connection\nConnect to the internet, then send your message again.")
 precondition(ChatTranscript(events: [event(1, "message", ["text": .string("Done.")])]) { _ in nil }.messages.allSatisfy { $0.failure == nil },
              "a reply is no failure")
-for reason in ["offline", "network", "timeout", "authentication", "quota", "rateLimit", "server", "contextOverflow"] {
+// #67: a stopped run the worker had to end itself
+let unstopped = failureRow([
+    "message": .string("This chat did not stop in time, so Apelin ended it. Send a message to continue."),
+    "reason": .string("unstopped"),
+])
+precondition(unstopped?.failure?.title == "Did Not Stop in Time")
+precondition(unstopped?.failure?.detail == "Apelin ended this reply. Send a message to continue.", "said in the reader's language")
+for reason in ["offline", "network", "timeout", "authentication", "quota", "rateLimit", "server", "contextOverflow", "unstopped"] {
     precondition(ChatFailure.title(for: ApelinError.Reason(rawValue: reason)) != nil, "\(reason) has a line of its own")
 }
 

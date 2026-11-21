@@ -82,6 +82,8 @@ public actor AgentSession {
     private var ownCalls: [String: (tool: AgentToolName, arguments: KWWKAI.JSONValue)] = [:]
     /// What the current run has received, for the app's counter.
     private var output = OutputTally()
+    /// Why the current run's last failure happened, as its `error` said.
+    private var runFailure: ApelinError.Reason?
 
     /// Opens a session. When `sessions/<id>/` already exists, its transcript
     /// is resumed and its event sequence continues; approvals that were left
@@ -193,13 +195,14 @@ public actor AgentSession {
                 tools: runner.agentTools(mcp: mcpTools, extensions: toolExtensions.extensions),
                 messages: transcript,
             ),
-            // a request the network failed waits for it to come back; each
+            // a request the network failed waits for it to come back, one
+            // that says the allowance is spent is not asked again, and each
             // that failed is journaled
             streamFn: NetworkRecovery.stream(
                 path: configuration.network,
-                inner: journal.observingRequests { model, context, options in
+                inner: SpentAllowance.stream(journal.observingRequests { model, context, options in
                     try await KWWKAI.stream(model: model, context: context, options: options)
-                },
+                }),
             ) { wait in
                 journal.waitingForNetwork()
                 _ = try? await log.append(wait == .route ? .waitingForNetwork : .reconnecting)
@@ -822,6 +825,7 @@ public actor AgentSession {
         case .agentStart:
             // the counter counts each run's output from nothing
             output = OutputTally()
+            runFailure = nil
             journal.runStarted(model: agent.state.model, messages: agent.state.messages.count)
         case let .messageStart(message):
             switch message {
@@ -865,10 +869,12 @@ public actor AgentSession {
             await record(.messageFinished(text: Self.text(of: assistant.content)))
             if assistant.stopReason == .error {
                 journal.replyFailed(assistant)
+                let reason = assistant.providerFailure.flatMap { FailureReason.of($0, hasRoute: hasRoute) }
+                runFailure = reason
                 await record(.error(
                     message: assistant.errorMessage.map(ErrorDescription.localized)
                         ?? "The model provider returned an error. Try again.",
-                    reason: assistant.providerFailure.flatMap { FailureReason.of($0, hasRoute: hasRoute) },
+                    reason: reason,
                 ))
             }
         case .streamRewind:
@@ -984,9 +990,11 @@ public actor AgentSession {
             return
         }
         journal.runFailed(error.localizedDescription)
+        let reason = FailureReason.of(error, hasRoute: hasRoute)
+        runFailure = reason
         await record(.error(
             message: ErrorDescription.localized(error.localizedDescription),
-            reason: FailureReason.of(error, hasRoute: hasRoute),
+            reason: reason,
         ))
     }
 
@@ -1015,10 +1023,12 @@ public actor AgentSession {
         let reason: FinishReason = aborted ? .aborted : (lastFinishedWithError ? .failed : .completed)
         // A loop that ended on an error, or just before a message was
         // queued, never drained it: the next run takes it. Not after a
-        // stop, nor when this run was started for it and took none: what
-        // is dropped, the app puts back in the composer.
+        // stop, nor when this run was started for it and took none, nor
+        // after a spent allowance, which would fail that run the same way
+        // (#67): what is dropped, the app puts back in the composer, where
+        // the reader can choose another model first.
         let waiting = queued.map(\.id)
-        let next = aborted || waiting == carried ? [] : waiting
+        let next = aborted || waiting == carried || runFailure == .quota ? [] : waiting
         if next.isEmpty {
             // otherwise the next run would read them first
             agent.clearSteeringQueue()
