@@ -122,6 +122,10 @@ final class FakeIcli: IcliSurface, @unchecked Sendable {
         lockStateResponse ?? answer("lockState")
     }
 
+    func screenInfo() -> [String: Any] {
+        answer("screenInfo")
+    }
+
     func runningApps() throws -> [String: Any] {
         answer("runningApps")
     }

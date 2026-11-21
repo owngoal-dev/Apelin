@@ -93,6 +93,11 @@ enum CallerPolicy {
         .agentOpen, .agentPrompt, .agentList, .agentAttach, .agentAbort, .agentClose,
     ]
 
+    /// The device passcode (`devicePasscodeState`, `devicePasscodeSave`,
+    /// `devicePasscodeRemove`) is in no worker's list: only the app saves,
+    /// tests, reads or removes it. An agent reaches it only through
+    /// `uiAction` `press` `unlock`, under the screen's rules.
+    ///
     /// The diagnostics worker asks the host for a protected crash report by
     /// id, and for the respring `confirmLoaded` triggers; nothing else.
     static let diagnosticsOperations: Set<AppOperation> = [.crashOpen, .respring]

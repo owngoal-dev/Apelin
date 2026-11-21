@@ -127,6 +127,13 @@ final class ServiceTableTests: XCTestCase {
             return Row(reply: ReadUITreeResponse(tree: .object([:]))) { _ = try await $0.readUITree() }
         case .uiAction:
             return Row(reply: UIActionResponse()) { _ = try await $0.uiAction(.tap(x: 1, y: 2)) }
+        case .devicePasscodeState:
+            return Row(reply: DevicePasscodeState(saved: false, device: .noPasscode)) { _ = try await $0.devicePasscodeState() }
+        case .devicePasscodeSave:
+            let tested = DevicePasscodeSaveResponse(outcome: .noPasscode, state: DevicePasscodeState(saved: false, device: .noPasscode))
+            return Row(reply: tested) { _ = try await $0.devicePasscodeSave(DevicePasscodeSaveRequest(passcode: "1472")) }
+        case .devicePasscodeRemove:
+            return Row(reply: ack) { try await $0.devicePasscodeRemove() }
         case .agentOpen:
             return Row(reply: AgentOpenResponse(sessionID: "s", task: TaskHandle(taskID: id, kind: .agent))) {
                 _ = try await $0.agentOpen(AgentOpenRequest(projectName: "Hello"))

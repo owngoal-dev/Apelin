@@ -132,6 +132,27 @@ final class ConsoleRunnerTests: XCTestCase {
         XCTAssertFalse(log.lines.joined().contains(secret))
     }
 
+    /// The device passcode is typed by a person in Settings, and its test
+    /// locks the device: a script never sends one, and the passcode never
+    /// reaches the output or the log. Reading the state goes out.
+    func testConsoleNeverSavesTheDevicePasscode() async throws {
+        let passcode = "147258-not-sent"
+        fake.reply(.devicePasscodeState, with: DevicePasscodeState(saved: false, device: .passcode))
+        let log = RecordingLog()
+        runner = ConsoleRunner(service: ApelinService(transport: fake), folder: folder, log: log)
+        let runID = try await runInbox("""
+        [{"op": "devicePasscodeSave", "allowError": true, "label": "save", "request": {"passcode": "\(passcode)"}},
+         {"op": "expect", "request": {"step": "save", "errorCode": "denied"}},
+         {"op": "devicePasscodeState", "label": "state"},
+         {"op": "expect", "request": {"step": "state", "path": "response.saved", "equals": false}}]
+        """)
+        let lines = output(runID)
+        XCTAssertEqual(lines.last?["ok"], .bool(true))
+        XCTAssertEqual(fake.operations, [.devicePasscodeState], "the passcode never goes out")
+        XCTAssertFalse(String(describing: lines).contains(passcode))
+        XCTAssertFalse(log.lines.joined().contains(passcode))
+    }
+
     /// A star is given on the reader's GitHub account by their own tap in
     /// the app, so a script cannot give one; reading whether there is one
     /// goes out.

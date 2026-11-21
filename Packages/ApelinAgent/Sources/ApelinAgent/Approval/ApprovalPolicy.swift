@@ -326,6 +326,8 @@ public struct ApprovalPolicy: Sendable, Hashable {
         case let .pressButton(button):
             switch button {
             case "wake": "Presses wake, which turns the screen on"
+            case "unlock":
+                "Unlocks the device, with the passcode saved in Apelin's Settings when it is locked, and goes to the Home Screen"
             case "home": "Presses Home, which sends the app in front to the home screen"
             case "lock": "Presses the side button, which turns the screen off and locks the device"
             default: "Presses \(button)"

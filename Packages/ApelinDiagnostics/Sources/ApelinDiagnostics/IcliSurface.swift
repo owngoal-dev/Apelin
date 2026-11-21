@@ -57,6 +57,9 @@ public protocol IcliSurface: Sendable {
     func pressButton(_ name: String) throws -> [String: Any]
     func frontmostApp() -> [String: Any]
     func lockState() -> [String: Any]
+    /// icli's `screenInfo`: `width` and `height` in points in the
+    /// orientation shown, with `locked` and `screen_off`.
+    func screenInfo() -> [String: Any]
     func runningApps() throws -> [String: Any]
     func respring() throws -> [String: Any]
 }
