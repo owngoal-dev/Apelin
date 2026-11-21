@@ -198,33 +198,13 @@ console now goes on after a restart only past a successful respring.
 
 ## Still to run on the owner's devices
 
-- [ ] An Antigravity sign-in left by 0.4.7, after the upgrade to 0.4.8
-      (2026-11-21, kwwk 0.1.126, AGENTS.md ▸ Agent sign-in; none has run
-      on a device). On 0.4.7, with another account signed in: put a
-      placeholder for store id `antigravity` through the credentials inbox
-      (`console/inbox/credentials/antigravity.json` in the data folder,
-      `{"access": "placeholder-not-a-token", "refresh":
-      "placeholder-refresh", "expires": 4102444800000}`, then
-      `device.py call agentCredentialImport`, whose `stored` and
-      `available` name `antigravity`), enable one of its models in
-      Settings ▸ Model Providers ▸ Antigravity (Save checks nothing with
-      Google) and pick it in a chat's composer. Start `device.py logs
-      --process apelin-agent --seconds 300`, install 0.4.8 and open a
-      chat. The
-      capture has "removed the saved sign-in of antigravity, a provider
-      Apelin no longer offers" once, with nothing of the placeholder;
-      `device.py call agentCredentialImport` names no `antigravity` in
-      `available`. The composer shows the first enabled model of a
-      signed-in account (with none enabled, Select Model, which opens
-      Model Providers), never the Antigravity one, and a message sent is
-      answered. Model Providers has no Antigravity row, and its footer
-      ends "Currently using kwwk 0.1.126.". The app's preferences
-      (`wiki.qaq.apelin.plist`, read once the app is in the background)
-      hold no key or value naming `antigravity`.
-
 - [ ] Why Irisin did not answer, and who holds the package database
-      (2026-11-21, issue #66, AGENTS.md ▸ Install bridge; only the Mac's
-      `InstallServiceChecks.swift` has run). The session host asks irisind
+      (2026-11-21, issue #66, AGENTS.md ▸ Install bridge; all four cases
+      ran on the iOS 26.4 iPad vphone, and the first in a chat on the iPhone
+      one, with dpkg itself holding the locks there: the 0.4.8 record
+      below; what is left is the reporter's kind of device, an iPhone with
+      a background `dpkg-fill` after every package run, the holder named
+      there). The session host asks irisind
       once per run, so before each case `Scripts/device.py kill-host`;
       then an install (`make device-run SCRIPT=i1-smoke`, or Settings ▸
       Toolchains ▸ a setup) fails with the case's sentence, in English;
@@ -256,8 +236,9 @@ console now goes on after a restart only past a successful respring.
 
 - [ ] A spent allowance, and Stop wherever a turn waits (2026-11-21, #67,
       AGENTS.md ▸ Agent sessions). On the Mac `SpentAllowanceTests`,
-      `StopTests` and `StopWatchTests` ran against a provider on the Mac.
-      On the iPhone vphone (iOS 26.4, then 27.0.1), with this
+      `StopTests` and `StopWatchTests` ran against a provider on the Mac;
+      1 to 5 below ran on the iOS 26.4 iPad vphone (the 0.4.8 record), not
+      yet on an iPhone. On the iPhone vphone (iOS 26.4, then 27.0.1), with this
       round's roothide package: copy `Documents/Console/fixtures/
       stand-in-endpoint.pl` to the host and run `perl stand-in-endpoint.pl
       <host> 8099`, `<host>` the host's address on its guests' network;
@@ -292,9 +273,11 @@ console now goes on after a restart only past a successful respring.
       `StopWatchTests` alone shows it.
 
 - [ ] Token limits and compaction (2026-11-21, issue #68, AGENTS.md ▸ Agent
-      sign-in ▸ Model limits and Agent sessions ▸ Compaction; only the Mac's
-      `ContextLimitsTests`, `AgentModelLimitsTests`, the session host's
-      checks and the transcript harness have run). After `make vphone` on
+      sign-in ▸ Model limits and Agent sessions ▸ Compaction; all of it but
+      right to left ran on the iOS 26.4 vphones, the chat on the iPhone's
+      DeepSeek key: the 0.4.8 record below, where one 100 KB file read
+      under the 65,000 window left a conversation compaction could not fit,
+      now said as Chat Too Long). After `make vphone` on
       the iPhone vphone, with its DeepSeek sign-in (an OpenAI-compatible key
       on api.deepseek.com, model deepseek-v4-pro): Settings ▸ Model
       Providers ▸ the endpoint's `…` ▸ Models. Each row leads with its check
@@ -364,7 +347,12 @@ console now goes on after a restart only past a successful respring.
       2.2 s with the Home Screen in front (the first build pressed Home
       while the Lock Screen was going and left Apelin in front; Home now
       waits for the foreground to settle). `diagnostics.json` and
-      `p1-device-passcode.json` passed.
+      `p1-device-passcode.json` passed. On 0.4.8's own package the iOS 26.4
+      vphones read the page the same way and passed the same scripts; a
+      console run pressing lock, then unlock passed once on the iPad, but
+      the app the console lives in may be suspended under the Lock Screen,
+      so it waited there for the guest to be woken on the iPhone and once
+      on the iPad (the 0.4.8 record below).
 
 - [ ] A message that cannot be sent, and errors by their reason, with real
       accounts (2026-11-14, 0.4.6; the record below has what ran). With a
@@ -3370,3 +3358,169 @@ Not run: the iPad vphone, whose host was running another session's VM for
 the whole round; the rootless package on a device; the worker's own 20 s
 bound on a stopped run, which needs a model request that ignores its
 cancellation.
+
+## Antigravity gone, Irisin's silence explained, Stop and a spent allowance, token limits, the device passcode (2026-11-21, 0.4.8)
+
+On the Mac: `make check`, the full `make harness` and `make deb-all` on
+`integrate/0.4.8` (the agent-tool packages with the Xcode in
+/Applications: SwiftPM writes an rpath to the toolchain of an Xcode under
+the home folder, which their packager refuses), and
+`Scripts/audit-objc-selectors.sh`, with this round's tests: the retired
+provider's sign-in deleted (`AccountDeskTests`), irisind's handshake and
+the held database (`InstallServiceChecks.swift`), `SpentAllowanceTests`,
+`StopTests`, `StopWatchTests`, `ContextLimitsTests`,
+`AgentModelLimitsTests`, `DeviceUnlockTests`, `IcliPasscodeCommandTests`.
+CI passed on the pull request (build 163).
+
+On the iPad vphone (iOS 26.4, roothide, Irisin 5.1.6, icli 0.11.0, no
+model account), first with this branch's roothide package before the
+device-unlock merge (build 356), then CI's (build 163), and a stand-in
+OpenAI-compatible endpoint on the host
+(`Documents/Console/fixtures/stand-in-endpoint.pl`) signed in through the
+console:
+
+- Antigravity after the upgrade, twice from 0.4.7 (official, build 159):
+  there, a placeholder sign-in imported under store id `antigravity`
+  (`stored` and `available` named it), gemini-4-argon enabled in Model
+  Providers ▸ Antigravity ▸ Models and picked in the composer (the
+  preferences held `enabledModels`, `customModels` and
+  `hiddenModels.antigravity` and a composer choice naming it). After the
+  upgrade: `agentCredentialImport`'s `available` named only
+  `openai-compatible`; the preferences held nothing naming `antigravity`;
+  the composer showed the stand-in's model; Model Providers had no
+  Antigravity row and its footer ended "Currently using kwwk 0.1.126.";
+  a message was answered. apelin-agent's log around the first list had
+  the keychain deletion (`SecItemDelete`) and one line the unified log
+  shows only as `<private>`: the NSLog that names the store id is
+  redacted there, as every NSLog of apelin-agent is. A placeholder
+  `antigravity.json` dropped into the credentials inbox on the new build
+  is refused ("not a kwwk credential or auth.json map; removed").
+- A spent allowance (the stand-in's modes): `quota` ended the turn within
+  2 s on "Usage Limit Reached" over "You have exceeded your premium
+  request allowance.", never "Reconnecting…"; the stand-in saw the turn's
+  request and the new chat's title request, in the same second, and none
+  after. `quota-late` with a second message sent while "Thinking…": 6 s
+  after the first, the turn ended on the same row, the second message was
+  back in the field under a passing "Message Not Sent", "Back in the input
+  box", and no second run asked. `ratelimit`: "Reconnecting…" at once;
+  Stop ended the turn within a quarter of a second, and the next message
+  (`ok`) was answered. `silent` and `stall` ("Hello " and nothing more):
+  Stop ended each within a quarter of a second, the next message
+  answered. With the app in Simplified Chinese the rows read 已达用量上限
+  over the provider's words; the tree reads each row as one element.
+- Token Limits: each row of the endpoint's Models ends with a button
+  VoiceOver names "Token Limits"; its page, titled `stand-in`, read
+  Automatic (131,072) and Automatic (32,000) under Context Window and
+  Maximum Output, with both footers. 1000 in the window: "Invalid Token
+  Limit" over "Enter a context window between 1,024 and 10,000,000
+  tokens."; 20000: "Save Token Limits?" with the small-window warning;
+  20000 and 300: that alert, then a second with "A maximum output under
+  1,024 tokens may cut off longer replies and the model’s thinking.", and
+  Cancel on it saved nothing. 65000 with the output empty saved without a
+  question; the row then read "Custom token limits", the page read 65000
+  back, and a chat's journal opened with `window=65,000 output=32,000
+  limits=user`. Cleared afterwards (no `modelLimits` key left). At the
+  largest accessibility size the page wraps and scrolls; there the
+  sidebar's bottom bar pushes the Settings button partly off its edge
+  (not new).
+- Why Irisin did not answer, each case with a fresh session host and the
+  smoke fixture's install, each change put back at once: irisind's job
+  booted out: "Irisin's background service is not loaded. Reinstall
+  Irisin, or restart your device and jailbreak it again, then try
+  again." (12 s). Its plist moved aside too: "Irisin's background service
+  is missing <jbroot>/Library/LaunchDaemons/wiki.qaq.irisind.plist.
+  Reinstall Irisin, then try again." `chmod 775 usr/libexec`: "Irisin
+  rejected Apelin's background service because the folder
+  <jbroot>/usr/libexec has unsafe permissions (owner 0, permissions 775).
+  Set its owner to root and its permissions to 755, then try again." A
+  job of irisind's Mach service running `sleep 600`: "Irisin's background
+  service is not responding. Restart your device and jailbreak it again,
+  then try again." after 21 s. dpkg holding both locks (`sleep 45 | dpkg
+  --set-selections`; the guest has no perl or python3): "The package
+  database is in use by dpkg (process <pid>). Wait for it to finish, then
+  try again. Irisin reported: [!!] Installation stopped: Failure(errno:
+  35)" within 3 s. roothide's launchctl rewrote the plist's program path
+  from /private/var to /var on each bootstrap (the same file), put back;
+  dpkg added a blank line to its status file, put back from `status-old`.
+- The device passcode (build 163): Settings ▸ Agent ▸ Device Passcode
+  read "Status, Not Needed" over "This device has no passcode, so the
+  agent can unlock it without one."; `p1-device-passcode.json` passed
+  (`noPasscode`, nothing saved); a console run pressing lock, waiting a
+  second and pressing unlock answered `locked` false, `screenOff` false in
+  2.2 s. A second run of it stayed after the lock press until the guest
+  was woken: the console lives in the app, which iOS may suspend once the
+  screen locks, so that script cannot always run unattended.
+- `suite smoke` (build 356 and build 163): 6 pass, 1 skip (`files`: no
+  tweak extension, toolchain or SDK there). `suite regression` (build
+  163): 13 pass, 15 skip (no toolchain, SDK or agent tools), 1 fail,
+  `i2-git-commit` step 14: its one-commit squash is refused for the
+  missing author ("Set an author name and email in Settings ▸ Git") before
+  the refusal the script expects; this guest has no git author, and the
+  iPhone, which has one, passes it.
+
+On the iPhone vphone (iOS 26.4, roothide, Irisin 5.1.7, icli 0.11.0, a
+DeepSeek key on api.deepseek.com, deepseek-v4-pro), CI's package
+(build 163) over the official 0.4.7:
+
+- Antigravity after the upgrade, as on the iPad, with the device's own
+  DeepSeek sign-in beside the placeholder: afterwards `available` named
+  only `openai-compatible`, the preferences nothing naming `antigravity`,
+  the composer showed deepseek-v4-pro, Model Providers no Antigravity row;
+  the log, the deletion and the redacted line.
+- Token Limits on deepseek-v4-pro: Automatic (1,000,000) and Automatic
+  (64,000). With the window at 65,000: a chat told to read SDK headers one
+  at a time got `Suggested … full=63%` after NSString.h (52 KB), called
+  apelin_conversation_compact at once (its trace step "Compact the
+  context"; the journal `Started trigger=tool messages=10 tokens≈42,847`,
+  `Ended outcome=compacted trigger=tool … summary=local`), showed a
+  Compacted row inside the turn, which opens the summary, then
+  `Suggested … full=52%` once past half again. A 100 KB header then took
+  the context from about half to 93 %: `Started trigger=automatic`, and
+  the compaction could not get under the window with that result kept
+  among the recent messages, so the turn ended on "Something Went Wrong"
+  over kwwk's "context is too large and compaction failed: compaction left
+  51590 tokens, above the recovery target of 39000". That is now read as
+  `contextOverflow` ("Chat Too Long"; 671e0c6e). With the window cleared
+  and Maximum Output at 300 (asked first, for the short replies), a
+  500-word story stopped mid-sentence, the journal `output=300
+  limits=user`. Cleared afterwards.
+- The device passcode: the page as on the iPad. The agent, asked to press
+  lock then unlock, said what it would do and waited; with the consent in
+  the message, the card ("Interact with the screen") asked, and the lock
+  press was refused while Apelin was in front, as every agent action on
+  Apelin is. Asked to press unlock once: the card asked, and it answered
+  the device unlocked with the screen on. The console's lock-then-unlock
+  run stayed after the lock press until the guest was woken (the app
+  suspended under the Lock Screen), so on the iPhone the unlock from a
+  locked screen is still to be seen.
+- Why Irisin did not answer, in a chat: with irisind's job booted out, a
+  project's conversation built Demo CLI, asked first about its
+  placeholder package ID, and on "keep it and install now" quoted
+  "unavailable: Irisin's background service is not loaded. Reinstall
+  Irisin, or restart your device and jailbreak it again, then try again."
+  Put back at once.
+- `suite smoke`: 7 pass. `suite regression`: 25 pass, 3 skip, 1 fail,
+  `t2-toolchain-remove`, as on every round: the device's one toolchain is
+  bound by its projects. `p1-device-passcode.json` passed.
+
+On the iPad vphone (iOS 27.0.1, Irisin 5.1.4, icli 0.11.0), CI's package
+over 0.2.0: `suite smoke` 6 pass, 1 skip (`files`).
+
+On the iPhone vphone (iOS 27.0.1, Irisin 5.1.7, icli 0.11.0), CI's package
+over the device-unlock branch's 0.4.7 (build 344): `suite smoke`:
+7 pass.
+
+With CI's package of the change that reads that failure as too long
+(build 164), on the iOS 26.4 iPhone, deepseek-v4-pro at a 65,000 window:
+one 100 KB header in a new chat came to 66 % (`Suggested … full=66%`);
+four large UIKit headers in turn took it to 88,464 tokens, `Started
+trigger=automatic`, `Ended outcome=compacted trigger=automatic`, and the
+turn finished. The failure of the first run, a result too large to compact
+past, did not come again, so its new wording is held by
+`FailureReasonTests` alone. The window cleared again; `suite smoke`: 7
+pass.
+
+Not run: the #67 stand-in modes on an iPhone (the iPad ran them), a real
+provider's spent allowance, the worker's own 20 s bound on a stopped run,
+right to left, the rootless package on a device, and a device with a
+passcode.
