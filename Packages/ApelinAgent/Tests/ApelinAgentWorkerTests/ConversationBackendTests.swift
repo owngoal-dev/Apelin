@@ -41,13 +41,14 @@ struct ConversationBackendTests {
     }
 
     @Test
-    func `create opens in the session's project with the session's provider, model, effort and tier, and does not wait`() async throws {
+    func `create opens in the session's project with the session's provider, model, effort, tier and limits, and does not wait`() async throws {
         let fixture = try Fixture()
         await fixture.backend.modelChoice.set(
             provider: .openAICodex,
             model: "gpt-6.1-sol",
             reasoningEffort: .high,
             serviceTier: .ultrafast,
+            modelLimits: AgentModelLimits(contextWindow: 65000),
         )
         fixture.host.on(.agentOpen, reply: AgentOpenResponse(sessionID: Self.child, task: Self.childTask))
         let opened = try await fixture.backend.conversationCreate(ConversationCreateToolRequest(
@@ -60,6 +61,7 @@ struct ConversationBackendTests {
         #expect(sent.projectID == fixture.project.id && sent.projectName == "Hello")
         #expect(sent.provider == .openAICodex && sent.model == "gpt-6.1-sol" && sent.reasoningEffort == .high)
         #expect(sent.serviceTier == .ultrafast)
+        #expect(sent.modelLimits == AgentModelLimits(contextWindow: 65000))
         #expect(sent.prompt == "Write the README" && sent.title == "Docs")
         #expect(sent.sessionID == nil && sent.temporaryID == nil && sent.closeWhenFinished == nil)
         #expect(opened == ConversationCreateToolResponse(sessionID: Self.child, taskID: "child-task"))
@@ -77,7 +79,7 @@ struct ConversationBackendTests {
         let sent = try #require(fixture.host.requests(AgentPromptRequest.self).first)
         #expect(sent.sessionID == Self.child && sent.text == "Also the changelog")
         #expect(sent.approvalMode == nil && sent.provider == nil && sent.model == nil && sent.reasoningEffort == nil)
-        #expect(sent.serviceTier == nil)
+        #expect(sent.serviceTier == nil && sent.modelLimits == nil)
         #expect(sent.attachments == nil && sent.messageID == nil && sent.fromSessionID == nil, "the host writes the sender")
         #expect(response.done == "sent")
     }

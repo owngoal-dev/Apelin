@@ -24,6 +24,7 @@ enum EnabledModels {
 
     static func remove(for provider: AgentProvider) {
         forget(provider.rawValue)
+        ModelLimitsStore.remove(for: provider)
         NotificationCenter.default.post(name: .enabledModelsChanged, object: nil)
     }
 

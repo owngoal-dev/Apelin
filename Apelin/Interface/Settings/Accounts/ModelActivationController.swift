@@ -10,6 +10,9 @@ final class ModelActivationController: TableController, UISearchResultsUpdating 
     @objc private dynamic var models: [String]
     @objc private dynamic var custom: Set<String>
     @objc private dynamic var hidden: Set<String>
+    /// The limits each model has when the user sets none, as apelin-agent
+    /// read them with the list: what an empty field shows.
+    private var automaticLimits: [String: AgentModelLimits] = [:]
     private var loader: Task<Void, Never>?
     @objc private dynamic var saving = false
     private var verification: TaskHandle?
@@ -71,6 +74,8 @@ final class ModelActivationController: TableController, UISearchResultsUpdating 
     private struct ModelRow: Equatable {
         let id: String
         let selected: Bool
+        /// The user set its context window or largest reply.
+        let limited: Bool
     }
 
     private lazy var dataSource = TableDataSource<Int, String, ModelRow>(
@@ -84,7 +89,14 @@ final class ModelActivationController: TableController, UISearchResultsUpdating 
         dataSource.headerTitle = { [weak self] _ in self.map { $0.account.account ?? $0.account.provider.displayName } }
         dataSource.footerTitle = { _ in String(localized: "Choose the models to show in the chat model picker. You can change this later in Model Providers.") }
         dataSource.allowsEditing = usesAPIKey
-        dataSource.update([(0, shown.map { ModelRow(id: $0, selected: selected.contains($0)) })], reconfigure: true)
+        let rows = shown.map { model in
+            ModelRow(
+                id: model,
+                selected: selected.contains(model),
+                limited: usesAPIKey && ModelLimitsStore.limits(for: account.provider, model: model) != nil,
+            )
+        }
+        dataSource.update([(0, rows)], reconfigure: true)
     }
 
     @objc private dynamic var usesAPIKey: Bool {
@@ -99,9 +111,13 @@ final class ModelActivationController: TableController, UISearchResultsUpdating 
             guard let self else { return }
             do {
                 let fetched = try await ProviderProgress.run(title: "Fetching Models", from: self) {
-                    try await ApelinService.app.agentModelList(provider: self.account.provider).models
+                    try await ApelinService.app.agentModelList(
+                        provider: self.account.provider,
+                        limitsFor: self.custom.union(self.selected).sorted(),
+                    )
                 }
-                models = Array(Set(fetched).union(custom).union(selected).subtracting(hidden)).sorted()
+                automaticLimits = fetched.limits ?? [:]
+                models = Array(Set(fetched.models).union(custom).union(selected).subtracting(hidden)).sorted()
                 updateSearchResults(for: search)
             } catch {
                 presentNotice(title: "Unable to Fetch Models", message: error.readableMessage)
@@ -121,10 +137,43 @@ final class ModelActivationController: TableController, UISearchResultsUpdating 
         var content = cell.defaultContentConfiguration()
         content.text = model
         content.textProperties.numberOfLines = 0
-        cell.contentConfiguration = content
-        cell.accessoryType = row.selected ? .checkmark : .none
         cell.accessibilityTraits = row.selected ? [.button, .selected] : [.button]
+        guard usesAPIKey else {
+            cell.contentConfiguration = content
+            cell.accessoryType = row.selected ? .checkmark : .none
+            cell.accessoryView = nil
+            cell.accessibilityCustomActions = nil
+            return cell
+        }
+        // As Wi-Fi's list: the check leads, drawn clear on a row not
+        // picked so every name starts at one edge, and the trailing button
+        // opens the model's limits (#68).
+        content.image = UIImage(systemName: "checkmark", withConfiguration: UIImage.SymbolConfiguration(weight: .semibold))
+        content.imageProperties.tintColor = row.selected ? .tintColor : .clear
+        content.secondaryText = row.limited ? String(localized: "Custom token limits") : nil
+        content.secondaryTextProperties.color = .secondaryLabel
+        cell.contentConfiguration = content
+        cell.accessoryType = .none
+        let limits = UIButton(type: .detailDisclosure, primaryAction: UIAction { [weak self] _ in
+            self?.showLimits(of: model)
+        })
+        limits.accessibilityLabel = String(localized: "Token Limits")
+        cell.accessoryView = limits
+        cell.accessibilityCustomActions = [
+            UIAccessibilityCustomAction(name: String(localized: "Token Limits")) { [weak self] _ in
+                self?.showLimits(of: model)
+                return true
+            },
+        ]
         return cell
+    }
+
+    /// The page that sets `model`'s context window and largest reply.
+    @objc private dynamic func showLimits(of model: String) {
+        guard !saving else { return }
+        let page = ModelLimitsController(provider: account.provider, model: model, automatic: automaticLimits[model])
+        page.onSave = { [weak self] in self?.updateRows() }
+        navigationController?.pushViewController(page, animated: true)
     }
 
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {

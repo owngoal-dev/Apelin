@@ -103,6 +103,28 @@ enum ProviderModels {
         })
     }
 
+    /// The limits each of `models` has when the user sets none, as a session
+    /// resolves it: what the settings show beside a field left empty. The
+    /// registration is kwwk's, from the stored key, and asks the network
+    /// nothing. A model that does not resolve is left out.
+    static func automaticLimits(
+        _ provider: AgentProvider,
+        credentials: OAuthCredentials,
+        models: [String],
+    ) async -> [String: AgentModelLimits] {
+        let manager = OAuthManager(source: DeliveredCredentialSource([provider.storeID: credentials]))
+        var limits: [String: AgentModelLimits] = [:]
+        for model in models where limits[model] == nil && !model.isEmpty && model.count <= 256 {
+            guard let resolved = try? await ProviderRegistration.resolve(
+                storeID: provider.storeID,
+                manager: manager,
+                modelOverride: model,
+            ) else { continue }
+            limits[model] = AgentModelLimits.automatic(of: resolved.model)
+        }
+        return limits
+    }
+
     static func fetch(_ provider: AgentProvider, credentials: OAuthCredentials) async throws -> [String] {
         // Trae's roster and Raccoon's catalogue are the account's own, read
         // from its gate; kwwk's bundled rows are a seed for when the gate

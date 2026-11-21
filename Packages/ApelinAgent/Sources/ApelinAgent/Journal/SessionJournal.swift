@@ -37,6 +37,8 @@ public final class SessionJournal: @unchecked Sendable {
         case automatic
         /// The app's Compact….
         case requested
+        /// The agent's apelin_conversation_compact, at the step after it.
+        case tool
     }
 
     let sessionID: String
@@ -129,6 +131,7 @@ public final class SessionJournal: @unchecked Sendable {
             \(reopened ? "Reopened" : "Opened") session=\(journal.sessionID) \
             project="\(configuration.project.name.rawValue)" (\(configuration.project.id)) \
             provider=\(Self.provider(configuration.provider)) \(Self.describe(model)) \
+            \(Self.limits(model, userLimits: configuration.modelLimits?.sanitized != nil)) \
             mode=\(configuration.approval.mode.rawValue) thinking=\(configuration.thinking.rawValue) tier=\(tier) \
             history=\(historyMessages) messages
             """)
@@ -144,8 +147,8 @@ public final class SessionJournal: @unchecked Sendable {
         }
     }
 
-    func modelChanged(to model: Model) {
-        perform { $0.write(.session, "Model is now \(Self.describe(model))") }
+    func modelChanged(to model: Model, userLimits: Bool = false) {
+        perform { $0.write(.session, "Model is now \(Self.describe(model)) \(Self.limits(model, userLimits: userLimits))") }
     }
 
     func modeChanged(to mode: ApprovalMode) {
@@ -433,6 +436,16 @@ public final class SessionJournal: @unchecked Sendable {
 
     // MARK: - Compaction
 
+    /// A tool's result told the model how full the context is (`ContextNote`).
+    func contextNoted(percent: Int, usage: AgentContextUsage, call: String) {
+        perform { journal in
+            journal.write(.compaction, """
+            Suggested call=\(Self.token(call)) full=\(percent)% tokens≈\(JournalRedaction.grouped(usage.tokens)) \
+            window=\(JournalRedaction.grouped(usage.window))
+            """)
+        }
+    }
+
     func compactionStarted(_ trigger: CompactionTrigger, model: Model, messages: Int, usage: AgentContextUsage) {
         let now = Date()
         perform { journal in
@@ -562,6 +575,14 @@ public final class SessionJournal: @unchecked Sendable {
     static func describe(_ model: Model) -> String {
         let host = JournalRedaction.endpoint(URL(string: model.baseURL)?.host)
         return "model=\(token(model.id)) api=\(token(model.api)) host=\(token(host))"
+    }
+
+    /// The window the context is measured against and the largest reply
+    /// sent on its own (`-` for none), and whether the user set them.
+    static func limits(_ model: Model, userLimits: Bool) -> String {
+        let output = OutputTokenPolicy.automaticLimit(for: model).map(JournalRedaction.grouped) ?? "-"
+        let set = userLimits ? " limits=user" : ""
+        return "window=\(JournalRedaction.grouped(model.contextWindow)) output=\(output)\(set)"
     }
 
     private static func provider(_ provider: ProviderConfiguration) -> String {

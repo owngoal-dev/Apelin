@@ -1,5 +1,6 @@
 import struct ApelinCore.MemoryStore
 import enum ApelinCore.ProjectDisplayName
+import enum ApelinProtocol.AgentContextBudget
 import enum ApelinProtocol.AgentNoticeRules
 import enum ApelinProtocol.AgentToolName
 import enum ApelinProtocol.BuildBootstrap
@@ -65,11 +66,14 @@ public extension AgentToolName {
         // A notice is a few words to the user, which the host bounds. A
         // project's displayName is a label, outside every approval digest.
         // A remote is a name and an address in the repository's
-        // configuration; a push that uses one still asks.
+        // configuration; a push that uses one still asks. Compacting
+        // rewrites the conversation the model reads, nothing of the user's,
+        // and is no read the user could take off the presets.
         case .fileWrite, .fileEdit, .fileCreate, .memorySave, .memoryDelete, .projectCreate, .projectRename,
              .gitStage, .gitUnstage, .gitCommit, .gitInit, .gitFetch, .gitPull, .gitClone,
              .gitRemoteSet, .gitRemoteRemove,
-             .conversationCreate, .conversationSend, .conversationStop, .projectSetEnvironment, .notificationSend:
+             .conversationCreate, .conversationSend, .conversationStop, .projectSetEnvironment, .notificationSend,
+             .conversationCompact:
             .writeProject
         // file_show copies a project file into the workspace's Attachments
         // and shows it to the user on this device; nothing else changes.
@@ -180,6 +184,7 @@ public extension AgentToolName {
         case .conversationList: "List the conversations of this project, or of the one project names; in General Chat, without project, of every project you may reach. Each with its session id, link, title, its project when not this one, state (open, waitingForApproval or ended), the conversation that opened it, and when it was last active. An ended one can still be read, but takes no message until the user reopens it."
         case .conversationRead: "Read a conversation of this project, or of the one project names: its state (running, waitingForApproval, idle or ended), the assistant's messages after after_seq, the approvals it is waiting on, and last_seq to pass as after_seq next time. With wait_seconds, wait until it finishes a turn after after_seq, asks for approval, or ends."
         case .conversationStop: "Stop the turn a conversation you opened is running. With close: true, also end the conversation and free its place; the user can still reopen it from the sidebar."
+        case .conversationCompact: "Compact this conversation to free context space: the earlier messages become a summary you go on from, and the most recent stay as they are. It happens before your next step, after the calls you make with it; nothing of the user's changes, and it never asks. Call it at a good stopping point (a step finished, nothing half done) once the context is past half full, as a <\(ContextNote.tag)> note at the end of a tool's result suggests; at \(ContextNote.automaticPercent)% Apelin compacts on its own. Refused while the context is under \(AgentContextBudget.compactionFloor)% full or the conversation is too short to summarize."
         case .toolchainList: "List the toolchains set up on this device (id, Command Line Tools version, components, the newest SDK each reads, self-test results) and the releases Apelin can set up from Apple's catalog, each with its download size, requirements and why this device cannot take it, if so; and which toolchain this project binds."
         case .sdkList: "List the iPhoneOS SDKs registered on this device and the ones the enabled SDK sources offer, each with the registered toolchains that read it; and which SDK this project binds."
         case .toolchainSetup: "Set up a Command Line Tools release from apelin_toolchain_list on this device: Apple's package is downloaded, adapted, installed as a package and self-tested, importing a compatible SDK first if none is registered. Long; asks the user in Strict mode. Then bind it with apelin_project_set_environment."
@@ -247,6 +252,8 @@ public extension AgentToolName {
                 "session_id": Schema.string("Session id of a conversation you opened."),
                 "close": Schema.boolean("Also end the conversation, freeing its place."),
             ], required: ["session_id"])
+        case .conversationCompact:
+            Schema.object([:], required: [])
         case .gitSetAuthor:
             Schema.object([
                 "name": Schema.string("Author name; empty clears it."),
