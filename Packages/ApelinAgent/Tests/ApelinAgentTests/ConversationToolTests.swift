@@ -306,7 +306,7 @@ struct ConversationToolTests {
         never.answer()
     }
 
-    /// What the worker's stop watch reads (`WorkerState.abort`): whether
+    /// What the worker's stop watch reads (`WorkerState.stop`): whether
     /// the run a stop was stopping has ended, whatever started since.
     @Test
     func `a stop knows whether what it stopped has ended`() async throws {
