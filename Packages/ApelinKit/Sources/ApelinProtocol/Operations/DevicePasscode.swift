@@ -39,6 +39,21 @@ public enum DevicePasscode {
     }
 }
 
+/// How `press` `unlock` left the device unlocked (`UIActionResponse`
+/// ▸ `unlockedBy`), so the agent says what happened and never that it used
+/// a passcode it did not.
+public enum DeviceUnlockPath: String, Codable, Sendable {
+    /// Already unlocked with its screen on: nothing was pressed.
+    case nothing
+    /// Already unlocked with its screen off: it was only woken.
+    case wake
+    /// Locked with its keybag unlocked (no passcode, or one not asked for
+    /// yet): woken and taken past the Lock Screen, no passcode used.
+    case lockScreen
+    /// Locked with its keybag locked: the saved passcode unlocked it.
+    case passcode
+}
+
 /// The device as `icli device passcode status` reads it.
 public enum DevicePasscodeDevice: String, Codable, Sendable {
     /// The device has a passcode, and icli can unlock its keybag with one.

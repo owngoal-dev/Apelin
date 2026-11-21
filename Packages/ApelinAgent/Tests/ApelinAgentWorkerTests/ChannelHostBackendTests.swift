@@ -514,6 +514,26 @@ struct ChannelHostBackendTests {
         #expect(try await fixture.backend.uiAction(press).message.hasPrefix("The screen is still off. Press unlock once more"))
     }
 
+    /// The way the unlock went, as the model is to report it: a device
+    /// without a passcode was not unlocked with the saved one.
+    @Test
+    func `an unlock says the way it went, and the passcode only where it was used`() async throws {
+        let fixture = try Fixture()
+        let press = ApelinAgent.UIActionRequest(context: fixture.context(), targetID: nil, action: .pressButton("unlock"))
+        let messages: [(DeviceUnlockPath, String)] = [
+            (.nothing, "The device was already unlocked with its screen on; nothing was pressed."),
+            (.wake, "The device was already unlocked; its screen was off, so it was woken."),
+            (.lockScreen, "No passcode was needed: the device was woken, taken past its lock screen and to the Home Screen."),
+            (.passcode, "The device was unlocked with the passcode saved in Apelin's Settings, taken past its lock screen and to the Home Screen."),
+        ]
+        for (path, message) in messages {
+            fixture.host.on(.uiAction, reply: ApelinProtocol.UIActionResponse(locked: false, screenOff: false, unlockedBy: path))
+            let said = try await fixture.backend.uiAction(press).message
+            #expect(said == message)
+            #expect(path == .passcode || !said.contains("passcode saved"), "\(path)")
+        }
+    }
+
     @Test
     func `a swipe keeps its duration, and typed text answers what the fields hold`() async throws {
         let fixture = try Fixture()

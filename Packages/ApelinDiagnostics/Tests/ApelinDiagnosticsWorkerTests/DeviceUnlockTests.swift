@@ -530,6 +530,29 @@ final class DeviceUnlockTests: XCTestCase {
         XCTAssertEqual(screen.presses.last, "home")
     }
 
+    /// The way each unlock went, which the agent says: never the passcode
+    /// where none was used.
+    func testAnUnlockSaysTheWayItWent() throws {
+        XCTAssertEqual(try unlocker.unlockReporting().path, .nothing, "unlocked and lit")
+        screen.screenOff = true
+        XCTAssertEqual(try unlocker.unlockReporting().path, .wake, "unlocked and dark")
+        keybag.devicePasscode = nil
+        lockDevice()
+        XCTAssertEqual(
+            try unlocker.unlockReporting(),
+            DeviceUnlock.UnlockAnswer(state: LockState(locked: false, screenOff: false), path: .lockScreen),
+            "no passcode: woken and past the Lock Screen",
+        )
+        XCTAssertTrue(keybag.attempts.isEmpty)
+    }
+
+    func testAnUnlockWithTheSavedPasscodeSaysSo() throws {
+        _ = try unlocker.saveAndTest("1472")
+        lockDevice()
+        XCTAssertEqual(try unlocker.unlockReporting().path, .passcode)
+        XCTAssertEqual(keybag.attempts.last, "1472")
+    }
+
     func testALockScreenThatStaysIsAnsweredNotTypedInto() throws {
         _ = try unlocker.saveAndTest("1472")
         lockDevice()
@@ -575,7 +598,8 @@ final class DeviceUnlockTests: XCTestCase {
         )
         service.deviceUnlock = unlocker
         let left = try await service.uiAction(.init(action: .press(button: "unlock"), refusedBundleIDs: ["wiki.qaq.apelin"]))
-        XCTAssertEqual(left, ApelinProtocol.UIActionResponse(locked: false, screenOff: false))
+        // a device without a passcode: past the Lock Screen, and said so
+        XCTAssertEqual(left, ApelinProtocol.UIActionResponse(locked: false, screenOff: false, unlockedBy: .lockScreen))
         do {
             _ = try await service.uiAction(.init(targetID: "com.apple.Preferences", action: .press(button: "unlock")))
             XCTFail("a target was taken")

@@ -169,10 +169,26 @@ struct DeviceUnlock: Sendable {
     /// presses Home. A device already unlocked and lit is left as it is; one
     /// unlocked with its screen off is only woken. Answers what it left.
     func unlock() throws -> LockState {
+        try unlockReporting().state
+    }
+
+    /// What an unlock left, and the way it went.
+    struct UnlockAnswer: Sendable, Equatable {
+        var state: LockState
+        var path: DeviceUnlockPath
+    }
+
+    /// `unlock`, with the way it went: the agent says what happened, and a
+    /// device without a passcode is never said to have been unlocked with
+    /// one.
+    func unlockReporting() throws -> UnlockAnswer {
         try serial.withLock {
             let lock = diagnostics.lockState()
             guard lock.locked else {
-                return lock.screenOff ? try diagnostics.wake() : lock
+                if lock.screenOff {
+                    return try UnlockAnswer(state: diagnostics.wake(), path: .wake)
+                }
+                return UnlockAnswer(state: lock, path: .nothing)
             }
             let status: KeybagStatus
             do {
@@ -180,18 +196,19 @@ struct DeviceUnlock: Sendable {
             } catch let failure as KeybagFailure {
                 throw ApelinError(.unavailable, "The device could not be unlocked: \(failure.detail).")
             }
+            let path: DeviceUnlockPath = status.keybagUnlocked ? .lockScreen : .passcode
             if !status.keybagUnlocked {
                 try unlockKeybag(status)
             }
             try diagnostics.wake()
             let left = try diagnostics.passLockScreen(settle: settle)
-            guard !left.locked else { return left }
+            guard !left.locked else { return UnlockAnswer(state: left, path: path) }
             // The Lock Screen going is an app switch, and a Home press made
             // during it is lost (on the iOS 27 vphone the app beneath stayed
             // in front): Home only once the app in front has settled.
             _ = diagnostics.settledForegroundApp()
             try diagnostics.pressHome()
-            return diagnostics.lockState()
+            return UnlockAnswer(state: diagnostics.lockState(), path: path)
         }
     }
 

@@ -30,8 +30,12 @@ extension DiagnosticsService {
                 throw ApelinError(.badRequest, "An unlock acts on the whole device and takes no target.")
             }
             let passcodes = try requireDeviceUnlock()
-            let left = try await blocking { try mapped { try passcodes.unlock() } }
-            return ApelinProtocol.UIActionResponse(locked: left.locked, screenOff: left.screenOff)
+            let left = try await blocking { try mapped { try passcodes.unlockReporting() } }
+            return ApelinProtocol.UIActionResponse(
+                locked: left.state.locked,
+                screenOff: left.state.screenOff,
+                unlockedBy: left.path,
+            )
         }
         let mappedAction = try Self.action(action.action)
         let outcome = try await blocking {

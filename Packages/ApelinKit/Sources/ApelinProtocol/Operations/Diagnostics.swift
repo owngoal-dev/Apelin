@@ -197,17 +197,22 @@ public struct UIActionResponse: Codable, Sendable, Equatable {
     public var screenOff: Bool?
     public var typedTextMatches: Bool?
     public var fieldValues: [String]?
+    /// An unlock's way past the lock: absent for every other action, and
+    /// from a worker older than 0.4.8.
+    public var unlockedBy: DeviceUnlockPath?
 
     public init(
         locked: Bool? = nil,
         screenOff: Bool? = nil,
         typedTextMatches: Bool? = nil,
         fieldValues: [String]? = nil,
+        unlockedBy: DeviceUnlockPath? = nil,
     ) {
         self.locked = locked
         self.screenOff = screenOff
         self.typedTextMatches = typedTextMatches
         self.fieldValues = fieldValues
+        self.unlockedBy = unlockedBy
     }
 }
 

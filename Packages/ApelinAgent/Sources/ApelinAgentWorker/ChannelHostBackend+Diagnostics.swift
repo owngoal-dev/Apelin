@@ -168,7 +168,9 @@ public extension ChannelHostBackend {
         return ""
     }
 
-    /// What an unlock left. Its refusals come back as errors that say why.
+    /// What an unlock left, and the way it went, so the model reports what
+    /// happened: a device without a passcode was not unlocked with one. Its
+    /// refusals come back as errors that say why.
     internal static func afterUnlock(_ response: ApelinProtocol.UIActionResponse) -> String {
         if response.screenOff == true {
             return "The screen is still off. Press unlock once more; if it stays off, ask the user to wake the device."
@@ -176,7 +178,18 @@ public extension ChannelHostBackend {
         if response.locked == true {
             return "The device's keybag is unlocked, but its lock screen is still up. Ask the user to swipe up or unlock the device, and never ask for or type the passcode."
         }
-        return "The device is unlocked and its screen is on."
+        switch response.unlockedBy {
+        case .nothing?:
+            return "The device was already unlocked with its screen on; nothing was pressed."
+        case .wake?:
+            return "The device was already unlocked; its screen was off, so it was woken."
+        case .lockScreen?:
+            return "No passcode was needed: the device was woken, taken past its lock screen and to the Home Screen."
+        case .passcode?:
+            return "The device was unlocked with the passcode saved in Apelin's Settings, taken past its lock screen and to the Home Screen."
+        case nil:
+            return "The device is unlocked and its screen is on."
+        }
     }
 
     /// What to do when the text read back is not the text typed.
