@@ -25,4 +25,7 @@ public extension ApelinError.Reason {
     static let server = Self(rawValue: "server")
     /// The conversation no longer fits the model's context.
     static let contextOverflow = Self(rawValue: "contextOverflow")
+    /// Not a request's failure: a stopped run that had not ended in time,
+    /// which the worker ended itself (#67).
+    static let unstopped = Self(rawValue: "unstopped")
 }
