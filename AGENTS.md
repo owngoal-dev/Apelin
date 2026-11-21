@@ -2355,7 +2355,14 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   row, else its registration's default for an unknown ID (an
   OpenAI-compatible endpoint's 131,072 and 32,000 for every model), the
   output the reply kwwk sends on its own (none on OpenRouter); unknown, it
-  says Automatic. `ModelLimitsStore` keeps them in the app's defaults by
+  says Automatic. A window set with the output left automatic asks for the
+  automatic reply at most a quarter of that window
+  (`AgentModelLimits.automaticOutput`: the headroom kwwk's
+  `AgentRequestBudget` keeps for a model with no output limit), so three
+  quarters stay for the conversation; uncapped, DeepSeek's automatic 64,000
+  beside a 65,000 window asked for nearly all of it as the reply, which an
+  endpoint holding to its window refuses (2026-11-21). The output field's
+  placeholder follows the window as it is typed. `ModelLimitsStore` keeps them in the app's defaults by
   `AgentProvider.rawValue` and model ID beside `EnabledModels`, each
   model's entry read alone, non-secret, cleared on sign-out; a hidden model
   keeps its own. The composer reads them with the model
@@ -2659,7 +2666,10 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   the Lock Screen (Home, then one swipe up from the bottom edge; nothing
   types into it) and, once the app in front has settled (a Home pressed
   while the Lock Screen goes is lost), presses Home, answering what it
-  left. It takes no
+  left and the way it went (`UIActionResponse.unlockedBy`,
+  `DeviceUnlockPath`: nothing, a wake, past the Lock Screen with no
+  passcode, or the saved passcode), which the tool's result says, so a
+  device without a passcode is never reported unlocked with one. It takes no
   target, and an app on the refused list (Apelin) beneath the Lock Screen
   does not hold it back, since it leaves the Home Screen in front; every screen rule
   still holds — Strict asks, Ask Before Using the Screen asks every time.
@@ -2746,6 +2756,12 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   over the app's and the widget's `.stringsdata`, which refuses a key the
   compiler extracted that its catalog lacks (the Model Providers menu's
   "Edit", 2026-10-29). Put each one in by hand, with its translations.
+  No middle dot (`·`) sets words or phrases apart anywhere in the app's
+  copy, old copy included (owner, 2026-11-21): a line joins its parts in
+  words or with the language's own comma, as `%@, %@` and `%@, until %@`
+  do; copy is written by Argon. The one dot kept is the feedback footer's,
+  `Sent with Apelin … · iOS … · …`, which issues already filed are parsed
+  by (`FeedbackRules.split`).
 - **Licenses**: the reviewed discipline (`Licenses/README.md`). A dependency's
   notices land in `Licenses/` and `review.json` in the commit that adds it.
   GPL-family text fails the build except for an entry in `review.json` ▸
