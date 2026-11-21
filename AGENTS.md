@@ -2223,9 +2223,8 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   GitHub Copilot, Kimi For Coding (kimi.com and, from kwwk 0.1.108, Kimi
   For Coding Global on kimi.ai, each with its own device id) and Grok;
   Safari with kwwk's loopback
-  listener for Claude Pro or Max, ChatGPT Codex, Devin, OpenRouter,
-  from kwwk 0.1.110, Antigravity and, from kwwk 0.1.118, Trae CN, Trae
-  and Raccoon; a
+  listener for Claude Pro or Max, ChatGPT Codex, Devin, OpenRouter
+  and, from kwwk 0.1.118, Trae CN, Trae and Raccoon; a
   page kwwk polls for Cursor, Qoder, Qoder CN, WorkBuddy, WorkBuddy AI, Z.ai
   and BigModel; Kiro's own listener — and every API-key entry of KWWKCli's
   `loginProviders` (Anthropic, OpenAI, Google AI Studio, OpenRouter,
@@ -2246,23 +2245,15 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   only the cases, the key forms and model discovery at the plan's
   `<root>/v1/models`, which, like kwwk's routes, never reads a `baseUrl`
   an imported credential carries.
-  Antigravity (owner, 2026-11-04; kwwk 0.1.110 and 0.1.111,
-  `AntigravityOAuth`, `registerAntigravity`) is Google's: a Google sign-in
-  with Antigravity's own client, PKCE and its registered loopback, after
-  which kwwk finds the account's Code Assist project, onboarding a new
-  account and polling until Google has set it up, and keeps the project,
-  the tier and, when Google names it, the email as extras; it renews at Google (`upkeep: .refreshed`, in
-  `KimiIdentity.refreshers()` with the rest) and answers through Code
-  Assist's `streamGenerateContent`. A free Google account signs in too;
-  which models a plan serves is Google's. Apelin adds the case, after
-  Cursor in the order, and its mark (its official logo on a white plate):
-  the models are kwwk's bundled list for it (`antigravity`, from 0.1.111
-  Gemini 4 Argon, Gemini 3.8 Flash, Claude Opus 5.5 and Sonnet 5.5 among
-  them), enabled with no check like any subscription's, and a model the
-  account is not served fails its chat in Google's words. kwwk waits out
-  a 429 that says it is back within a minute and fails one that says the
-  quota is spent (its `ProviderFailures.md`); its quota reader
-  (`OAuthUsage`) is shown nowhere, as for every subscription.
+  Antigravity, Google's, was offered from 0.3.7 to 0.4.7 and went with
+  kwwk 0.1.122, which removed it (owner, 2026-11-21): its name and store
+  id stay in `AgentProvider.retired`, apelin-agent deletes the keychain
+  item its sign-in left the first time the accounts are listed
+  (`AccountDesk.forgetRetiredSignIns`, logging the store id alone), and
+  the app clears the models enabled for it and a composer choice of one
+  at each launch (`EnabledModels.forgetRetiredProviders`); a choice still
+  naming it reads as none, so the composer takes another account's model
+  or asks for one.
   Trae and Raccoon (owner, 2026-11-11; JanXiao's providers of PR #40,
   moved into kwwk as OpenCode Go was: kwwk 0.1.118, `TraeOAuth`,
   `TraeProvider`, `RaccoonOAuth`, `RaccoonProvider`) are signed in to as
@@ -2291,8 +2282,9 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   Display order is Apelin's `AgentProvider.signInOrder`, independent of
   kwwk's registration order;
   `AccountDeskTests` fails when kwwk gains a subscription or a stored
-  provider (`providerDirectory`) the table lacks, or when a provider here is
-  one neither kwwk nor Apelin can register for a session.
+  provider (`providerDirectory`) the table lacks, when a provider here is
+  one neither kwwk nor Apelin can register for a session, or when kwwk
+  signs in to a retired one again.
   Several OpenAI-compatible endpoints (#60: there was one, and adding
   another replaced it): the first is `openAICompatible` as before, and
   each further one is a provider of its own, `openAICompatibleEndpoint(n)`,
@@ -2355,10 +2347,9 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   refresh token or authorization code is exposed; the device code is the one
   thing the flow shows. A loopback redirect is the URI kwwk registered for
   that provider (Claude's `http://localhost:53692/callback`, Codex's port
-  1455, Devin's `127.0.0.1:59653`, OpenRouter's port 53693, Antigravity's
-  `http://localhost:51121/oauth-callback`), or, for Trae and Raccoon, whose
-  pages take any, whichever port is free (`127.0.0.1:<port>/authorize` and
-  `/auth/callback`): kwwk's NIO listener in
+  1455, Devin's `127.0.0.1:59653`, OpenRouter's port 53693), or, for
+  Trae and Raccoon, whose pages take any, whichever port is free
+  (`127.0.0.1:<port>/authorize` and `/auth/callback`): kwwk's NIO listener in
   the worker, through kwwk's `loopback` seam (`PasteableLoopback`), answers
   a browser on the same device, and is raced against the redirect address
   handed back as `callbackURL` for a browser that cannot reach it. The
@@ -2384,12 +2375,12 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   other device can finish it. Proven on the Mac by `AccountDeskTests` (fake flows and
   listener, an in-memory store, no secret in any event: a device code that
   is typed and one that is only checked, Kimi's device id, a loopback with
-  a paste, Antigravity's own kwwk login up to its Google page, a polled
-  page, every key form, OpenRouter both ways, kwwk's lists covered); on a
-  device by `Documents/Console/scripts/accounts.json` (start, read, refuse
-  and cancel a device code, four loopbacks, OpenRouter's, Antigravity's,
-  Trae CN's and Raccoon's, a polled page and two key forms; signs nothing
-  in) and, by name,
+  a paste, a polled page, every key form, OpenRouter both ways, a retired
+  provider's sign-in deleted, kwwk's lists covered); on a device by
+  `Documents/Console/scripts/accounts.json` (start, read, refuse and
+  cancel a device code, three loopbacks, OpenRouter's, Trae CN's and
+  Raccoon's, a polled page and two key forms; signs nothing in) and, by
+  name,
   `a2-api-key-sign-in.json` (a placeholder key in and out again, which
   replaces the device's openai-compatible sign-in); the real sign-ins by
   hand.

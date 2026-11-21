@@ -44,6 +44,8 @@ public actor AccountDesk {
     private let verifyKey: @Sendable (AgentProvider, OAuthCredentials, String?) async throws -> Void
     private var keyVerification: (run: SignInRun, task: Task<Void, Error>)?
     private var running: SignInRun?
+    /// The retired providers' sign-ins were looked for in this process.
+    private var retiredSignInsLookedFor = false
 
     public init(
         store: any CredentialSource,
@@ -74,6 +76,7 @@ public actor AccountDesk {
     // MARK: - Accounts
 
     public func list() async -> AgentAccountListResponse {
+        await forgetRetiredSignIns()
         let stored = await Set(store.providerIds())
         var accounts: [AgentAccount] = []
         for listed in AgentProvider.signInOrder {
@@ -99,6 +102,30 @@ public actor AccountDesk {
             }
         }
         return AgentAccountListResponse(accounts: accounts)
+    }
+
+    /// Deletes the sign-in a retired provider left (`AgentProvider.retired`):
+    /// nothing lists it, signs out of it or reads it any more, and what it
+    /// holds is a provider's token. Looked for once a process, before the
+    /// first list; a deletion that fails is tried again by the next. Only
+    /// the store id is logged, never what the item held.
+    func forgetRetiredSignIns() async {
+        guard !retiredSignInsLookedFor else { return }
+        retiredSignInsLookedFor = true
+        let stored = await Set(store.providerIds())
+        for retired in AgentProvider.retired where stored.contains(retired.storeID) {
+            do {
+                try await store.remove(retired.storeID)
+                NSLog("apelin-agent: removed the saved sign-in of %@, a provider Apelin no longer offers", retired.storeID)
+            } catch {
+                retiredSignInsLookedFor = false
+                NSLog(
+                    "apelin-agent: could not remove the saved sign-in of %@, a provider Apelin no longer offers: %@",
+                    retired.storeID,
+                    error.localizedDescription,
+                )
+            }
+        }
     }
 
     /// What the list shows for `provider`: itself, and for the
