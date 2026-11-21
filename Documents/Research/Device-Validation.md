@@ -198,6 +198,38 @@ console now goes on after a restart only past a successful respring.
 
 ## Still to run on the owner's devices
 
+- [ ] Why Irisin did not answer, and who holds the package database
+      (2026-11-21, issue #66, AGENTS.md ▸ Install bridge; only the Mac's
+      `InstallServiceChecks.swift` has run). The session host asks irisind
+      once per run, so before each case `Scripts/device.py kill-host`;
+      then an install (`make device-run SCRIPT=i1-smoke`, or Settings ▸
+      Toolchains ▸ a setup) fails with the case's sentence, in English;
+      then the device is put back and `make device-test` (smoke) passes.
+      On the iPhone vphone, as root, with the jbroot's paths:
+      1. irisind's job booted out (`launchctl bootout system
+         /Library/LaunchDaemons/wiki.qaq.irisind.plist`): "Irisin's
+         background service is not loaded…". With the plist also moved
+         aside: "Irisin's background service is missing <path>…". Put the
+         plist back and `launchctl bootstrap system` it.
+      2. `chmod 775 usr/libexec`: "Irisin rejected Apelin's background
+         service because the folder <jbroot>/usr/libexec has unsafe
+         permissions (owner 0, permissions 775)…". `chmod 755` it back at
+         once.
+      3. The real job booted out and a test job of the same Mach service
+         (`wiki.qaq.irisin.service`) whose program is `sleep 600`
+         bootstrapped: the install fails after about 20 s with "Irisin's
+         background service is not responding…", and nothing is left
+         waiting. Boot the test job out and the real one in.
+      4. A program holding `var/lib/dpkg/lock-frontend` (`perl -e 'use
+         Fcntl; open(F, "+<", shift) or die; my $l = pack("qqlss", 0, 0,
+         0, F_WRLCK, 0); fcntl(F, F_SETLK, $l) or die; sleep 120'
+         <path> &`, or python3's `fcntl.lockf`): the install fails at once
+         with "The package database is in use by perl… (process <pid>).
+         Wait for it to finish, then try again. Irisin reported: …"; once
+         it exits the install goes through.
+      The reporter's device (an iPhone with a background `dpkg-fill` after
+      every package run) is the real case.
+
 - [ ] A message that cannot be sent, and errors by their reason, with real
       accounts (2026-11-14, 0.4.6; the record below has what ran). With a
       provider whose sign-in is exchanged when a chat opens (GitHub
