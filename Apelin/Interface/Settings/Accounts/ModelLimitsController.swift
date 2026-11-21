@@ -148,17 +148,22 @@ final class ModelLimitsController: TableController {
             presentNotice(title: "Invalid Token Limit", message: Self.message(problem))
             return
         }
-        let warnings = limits.warnings(automaticWindow: automaticWindow)
-        guard !warnings.isEmpty else {
-            commit(limits)
+        confirm(limits.warnings(automaticWindow: automaticWindow)[...]) { [weak self] in
+            self?.commit(limits)
+        }
+    }
+
+    /// Asks about each warning in turn, then `save`s; Cancel on any saves
+    /// nothing. One alert a warning, so each message is a catalogue key
+    /// AlertController translates itself (a message it is given is looked
+    /// up again, never shown as it is).
+    private func confirm(_ warnings: ArraySlice<AgentModelLimits.Warning>, then save: @escaping () -> Void) {
+        guard let warning = warnings.first else {
+            save()
             return
         }
-        presentConfirmation(
-            title: "Save Token Limits?",
-            message: String.LocalizationValue(warnings.map(Self.message).joined(separator: "\n\n")),
-            confirmTitle: "Save",
-        ) { [weak self] in
-            self?.commit(limits)
+        presentConfirmation(title: "Save Token Limits?", message: Self.message(warning), confirmTitle: "Save") { [weak self] in
+            self?.confirm(warnings.dropFirst(), then: save)
         }
     }
 
@@ -168,31 +173,34 @@ final class ModelLimitsController: TableController {
         navigationController?.popViewController(animated: true)
     }
 
-    private static func message(_ problem: AgentModelLimits.Problem) -> String {
+    // The catalogue keys AlertController looks up, with the numbers as
+    // the locale writes them.
+
+    private static func message(_ problem: AgentModelLimits.Problem) -> String.LocalizationValue {
         switch problem {
         case .contextWindowOutOfRange:
             let lower = AgentModelLimits.contextWindowRange.lowerBound.formatted()
             let upper = AgentModelLimits.contextWindowRange.upperBound.formatted()
-            return String(localized: "Enter a context window between \(lower) and \(upper) tokens.")
+            return "Enter a context window between \(lower) and \(upper) tokens."
         case .maxOutputOutOfRange:
             let lower = AgentModelLimits.maxOutputRange.lowerBound.formatted()
             let upper = AgentModelLimits.maxOutputRange.upperBound.formatted()
-            return String(localized: "Enter a maximum output between \(lower) and \(upper) tokens.")
+            return "Enter a maximum output between \(lower) and \(upper) tokens."
         case .outputNotBelowWindow:
-            return String(localized: "Enter a maximum output smaller than the context window.")
+            return "Enter a maximum output smaller than the context window."
         }
     }
 
-    private static func message(_ warning: AgentModelLimits.Warning) -> String {
+    private static func message(_ warning: AgentModelLimits.Warning) -> String.LocalizationValue {
         switch warning {
         case .smallContextWindow:
             let small = AgentModelLimits.smallContextWindow.formatted()
-            return String(localized: "Apelin sends its instructions and tools with every request, so a context window under \(small) tokens leaves little room for the chat.")
+            return "Apelin sends its instructions and tools with every request, so a context window under \(small) tokens leaves little room for the chat."
         case .outputTakesMostOfWindow:
-            return String(localized: "A maximum output above half the context window leaves little room for the chat, and Apelin will compact the chat sooner.")
+            return "A maximum output above half the context window leaves little room for the chat, and Apelin will compact the chat sooner."
         case .smallMaxOutput:
             let small = AgentModelLimits.smallMaxOutput.formatted()
-            return String(localized: "A maximum output under \(small) tokens may cut off longer replies and the model’s thinking.")
+            return "A maximum output under \(small) tokens may cut off longer replies and the model’s thinking."
         }
     }
 }
