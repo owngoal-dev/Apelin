@@ -15,11 +15,18 @@ public extension AgentModelLimits {
     /// `max_output_tokens`, Anthropic's and Gemini's), never above the
     /// window, and on the OpenAI wires never above kwwk's 64,000. kwwk leaves
     /// an automatic limit off OpenRouter's wire; one the user set is sent,
-    /// so it is also what the budget reserves.
+    /// so it is also what the budget reserves. A window set with the output
+    /// left automatic caps the automatic reply at a quarter of it
+    /// (`automaticOutput`).
     func applied(to model: Model) -> Model {
         var model = model
         if let window = contextWindow {
             model.contextWindow = window
+            if maxOutputTokens == nil, model.maxTokens > 0,
+               let capped = Self.automaticOutput(model.maxTokens, window: window)
+            {
+                model.maxTokens = capped
+            }
         }
         if let output = maxOutputTokens {
             model.maxTokens = output

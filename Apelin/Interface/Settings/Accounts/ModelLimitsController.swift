@@ -56,6 +56,9 @@ final class ModelLimitsController: TableController {
         let saved = ModelLimitsStore.limits(for: provider, model: model)
         configure(windowField, title: Self.title(.window), value: saved?.contextWindow, automatic: automatic?.contextWindow)
         configure(outputField, title: Self.title(.output), value: saved?.maxOutputTokens, automatic: automatic?.maxOutputTokens)
+        // the automatic reply follows the window typed (at most a quarter of it)
+        windowField.addAction(UIAction { [weak self] _ in self?.updateOutputPlaceholder() }, for: .editingChanged)
+        updateOutputPlaceholder()
         dataSource.headerTitle = { Self.title($0) }
         dataSource.footerTitle = { section in
             switch section {
@@ -84,8 +87,22 @@ final class ModelLimitsController: TableController {
         field.accessibilityLabel = title
         // plain digits, which read back in every locale
         field.text = value.map(String.init)
-        field.placeholder = automatic.map { String(localized: "Automatic (\($0.formatted()))") }
-            ?? String(localized: "Automatic")
+        field.placeholder = Self.placeholder(automatic)
+    }
+
+    private static func placeholder(_ automatic: Int?) -> String {
+        automatic.map { String(localized: "Automatic (\($0.formatted()))") } ?? String(localized: "Automatic")
+    }
+
+    /// The automatic reply a session would ask for with the window as it is
+    /// typed: the model's own, at most a quarter of a window set
+    /// (`AgentModelLimits.automaticOutput`).
+    @objc private dynamic func updateOutputPlaceholder() {
+        let typed: Int? = switch Self.number(in: windowField) {
+        case let .success(window): window.flatMap { AgentModelLimits.contextWindowRange.contains($0) ? $0 : nil }
+        case .failure: nil
+        }
+        outputField.placeholder = Self.placeholder(AgentModelLimits.automaticOutput(automatic?.maxOutputTokens, window: typed))
     }
 
     @objc private dynamic func cell(containing input: UIView) -> UITableViewCell {

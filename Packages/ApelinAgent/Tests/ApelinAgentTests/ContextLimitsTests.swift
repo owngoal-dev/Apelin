@@ -27,11 +27,36 @@ struct ContextLimitsTests {
         #expect(limited.maxTokens == 4096)
         // what Chat Completions sends when the request names no limit of its own
         #expect(OutputTokenPolicy.automaticLimit(for: limited) == 4096)
-        // a field left out keeps the model's
+        // an output left out is the model's, at most a quarter of a window set
         let windowOnly = AgentModelLimits(contextWindow: 64000).applied(to: relay)
-        #expect(windowOnly.contextWindow == 64000 && windowOnly.maxTokens == 32000)
+        #expect(windowOnly.contextWindow == 64000 && windowOnly.maxTokens == 16000)
         #expect(windowOnly.compat?.omitsAutomaticOutputLimit == nil)
+        let largeWindow = AgentModelLimits(contextWindow: 1_000_000).applied(to: relay)
+        #expect(largeWindow.maxTokens == 32000, "a window with room for it keeps the model's reply")
         #expect(AgentModelLimits().applied(to: relay) == relay)
+    }
+
+    /// The device's case: deepseek-v4-pro on an OpenAI-compatible key, whose
+    /// automatic reply is kwwk's 64,000, under a 65,000 window the user set.
+    /// Uncapped, the request asked for 64,000 tokens of reply beside a
+    /// conversation of 26,000 or more, which a relay holding to its window
+    /// refuses; capped, three quarters of the window stay for the input.
+    @Test
+    func `a window set with the output automatic asks for at most a quarter of it`() {
+        let deepSeek = Model(
+            id: "deepseek-v4-pro",
+            api: "openai-completions",
+            provider: "openai-compatible",
+            baseURL: "https://api.deepseek.com",
+            contextWindow: 1_000_000,
+            maxTokens: 384_000,
+        )
+        #expect(OutputTokenPolicy.automaticLimit(for: deepSeek) == OutputTokenPolicy.openAIMaximumOutputTokens)
+        let small = AgentModelLimits(contextWindow: 65000).applied(to: deepSeek)
+        #expect(OutputTokenPolicy.automaticLimit(for: small) == 16250)
+        // an output the user set stays theirs
+        let both = AgentModelLimits(contextWindow: 65000, maxOutputTokens: 30000).applied(to: deepSeek)
+        #expect(OutputTokenPolicy.automaticLimit(for: both) == 30000)
     }
 
     @Test

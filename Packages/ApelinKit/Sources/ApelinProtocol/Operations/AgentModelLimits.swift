@@ -40,6 +40,25 @@ public struct AgentModelLimits: Codable, Sendable, Hashable {
         contextWindow == nil && maxOutputTokens == nil
     }
 
+    /// With the window set and the output left automatic, the automatic
+    /// reply is at most this share of the window: a quarter, the headroom
+    /// kwwk keeps for a model whose output it has no limit for
+    /// (`AgentRequestBudget.outputReserveTokens`), so three quarters stay
+    /// for the conversation. Left alone, a model's own automatic output
+    /// stays what it was for its own window: 64,000 for an
+    /// OpenAI-compatible model, which a 65,000 window cannot hold beside the
+    /// conversation, and which an endpoint that holds to its window refuses.
+    public static let automaticOutputShare = 4
+
+    /// The reply a model is asked for when the output is automatic at
+    /// `automatic` (nil where nothing goes on the wire) and the window is
+    /// the one the user set, `window` (nil when automatic too): `automatic`,
+    /// at most a quarter of a window the user set.
+    public static func automaticOutput(_ automatic: Int?, window: Int?) -> Int? {
+        guard let automatic, let window else { return automatic }
+        return min(automatic, max(1, window / automaticOutputShare))
+    }
+
     /// What can never be saved.
     public enum Problem: Sendable, Hashable {
         case contextWindowOutOfRange

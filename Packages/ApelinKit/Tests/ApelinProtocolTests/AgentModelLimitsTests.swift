@@ -61,6 +61,16 @@ final class AgentModelLimitsTests: XCTestCase {
         XCTAssertNil(list.limits)
     }
 
+    /// What the page shows as the automatic reply once a window is typed,
+    /// and what a session asks for: at most a quarter of the window set.
+    func testAnAutomaticReplyIsAtMostAQuarterOfAWindowSet() {
+        XCTAssertEqual(AgentModelLimits.automaticOutput(64000, window: 65000), 16250)
+        XCTAssertEqual(AgentModelLimits.automaticOutput(32000, window: 1_000_000), 32000)
+        XCTAssertEqual(AgentModelLimits.automaticOutput(32000, window: nil), 32000)
+        XCTAssertNil(AgentModelLimits.automaticOutput(nil, window: 65000), "none on the wire stays none")
+        XCTAssertEqual(AgentModelLimits.automaticOutput(64000, window: 1024), 256)
+    }
+
     func testTheBudgetIsTheOwners() {
         XCTAssertEqual(AgentContextBudget.automaticCompaction, 0.75)
         XCTAssertEqual(AgentContextBudget.suggestions, [50, 60, 70])
