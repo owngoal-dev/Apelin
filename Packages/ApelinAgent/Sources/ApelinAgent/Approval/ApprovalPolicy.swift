@@ -385,6 +385,12 @@ public struct ApprovalPolicy: Sendable, Hashable {
         case .notificationSend:
             return .allow(.notRequired)
 
+        // The conversation's own context, summarised for the model's next
+        // step: it reads, writes and runs nothing of the user's, and it
+        // asks no one, as automatic compaction asks no one.
+        case .conversationCompact:
+            return .allow(.notRequired)
+
         // Instructions every later conversation, in every project, lists
         // and may follow: each change asks, the card showing the whole
         // skill, and none is granted for the session.

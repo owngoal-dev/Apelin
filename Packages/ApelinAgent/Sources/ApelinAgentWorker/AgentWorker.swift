@@ -73,6 +73,7 @@ public enum AgentWorker {
                             provider: AgentWorker.provider(AgentOpenRequest(provider: provider, model: prompt.model)),
                             thinking: .init(rawValue: prompt.reasoningEffort?.rawValue ?? "off") ?? .off,
                             serviceTier: AgentWorker.serviceTier(prompt.serviceTier),
+                            modelLimits: prompt.modelLimits,
                             credentials: KeychainCredentialSource(accessGroup: keychainAccessGroup),
                         )
                     } catch let error as ProviderResolutionError {
@@ -83,6 +84,7 @@ public enum AgentWorker {
                         model: prompt.model,
                         reasoningEffort: prompt.reasoningEffort,
                         serviceTier: prompt.serviceTier,
+                        modelLimits: prompt.modelLimits,
                     )
                 }
                 guard (prompt.attachments?.count ?? 0) <= 8 else {
@@ -163,7 +165,7 @@ public enum AgentWorker {
             }
         case .agentModelList:
             await WorkerMain.serve(AgentModelListRequest.self, request) { query in
-                try await accounts.models(for: query.provider)
+                try await accounts.models(for: query.provider, limitsFor: query.limitsFor ?? [])
             }
         case .agentModelActivate:
             await WorkerMain.serve(AgentModelActivateRequest.self, request) { query in
@@ -327,6 +329,7 @@ actor WorkerState {
                     dataRoot: dataRoot,
                     thinking: .init(rawValue: open.reasoningEffort?.rawValue ?? "off") ?? .off,
                     serviceTier: AgentWorker.serviceTier(open.serviceTier),
+                    modelLimits: open.modelLimits,
                     installRoot: context.assignment.installRoot,
                     hostRestarted: open.hostRestarted == true,
                 ),
@@ -358,6 +361,7 @@ actor WorkerState {
             model: open.model,
             reasoningEffort: open.reasoningEffort,
             serviceTier: open.serviceTier,
+            modelLimits: open.modelLimits,
         )
 
         let events = try await session.events(afterSeq: 0)

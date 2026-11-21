@@ -1,3 +1,4 @@
+import struct ApelinProtocol.AgentModelLimits
 import struct ApelinToolCore.ToolManifestPolicy
 import Foundation
 import KWWKAgent
@@ -17,6 +18,9 @@ public struct AgentSessionConfiguration: Sendable {
     public var thinking: ThinkingLevel
     /// The processing tier its requests ask for; nil is the provider's default.
     public var serviceTier: ServiceTier?
+    /// The model's context window and largest reply as the user set them;
+    /// nil, or a field of it, is what the model resolves with.
+    public var modelLimits: AgentModelLimits?
     /// Hard cap on assistant turns per run; nil for none.
     public var maxTurns: Int?
     /// The install root the session host derived from its own path, which
@@ -48,6 +52,7 @@ public struct AgentSessionConfiguration: Sendable {
         mcpServers: [MCPServerConfiguration] = [],
         thinking: ThinkingLevel = .off,
         serviceTier: ServiceTier? = nil,
+        modelLimits: AgentModelLimits? = nil,
         maxTurns: Int? = nil,
         installRoot: String? = nil,
         systemState: SystemStateSource = .device,
@@ -64,6 +69,7 @@ public struct AgentSessionConfiguration: Sendable {
         self.mcpServers = mcpServers
         self.thinking = thinking
         self.serviceTier = serviceTier
+        self.modelLimits = modelLimits
         self.maxTurns = maxTurns
         self.installRoot = installRoot
         self.systemState = systemState

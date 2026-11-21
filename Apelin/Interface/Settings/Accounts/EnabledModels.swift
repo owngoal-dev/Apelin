@@ -26,6 +26,7 @@ enum EnabledModels {
         UserDefaults.standard.removeObject(forKey: key(provider))
         UserDefaults.standard.removeObject(forKey: "customModels.\(provider.rawValue)")
         UserDefaults.standard.removeObject(forKey: "hiddenModels.\(provider.rawValue)")
+        ModelLimitsStore.remove(for: provider)
         NotificationCenter.default.post(name: .enabledModelsChanged, object: nil)
     }
 

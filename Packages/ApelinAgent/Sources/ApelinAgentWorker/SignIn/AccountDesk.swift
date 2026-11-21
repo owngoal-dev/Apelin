@@ -261,11 +261,22 @@ public actor AccountDesk {
         }
     }
 
-    public func models(for provider: AgentProvider) async throws -> AgentModelListResponse {
+    /// The models the provider lists and, for an API-key account, the
+    /// limits each of them and of `limitsFor` has when the user sets none.
+    public func models(for provider: AgentProvider, limitsFor asked: [String] = []) async throws -> AgentModelListResponse {
         guard let credentials = try await store.credentials(for: provider.storeID) else {
             throw ApelinError(.notFound, "Sign in to the provider first.")
         }
-        return try await AgentModelListResponse(models: ProviderModels.fetch(provider, credentials: credentials))
+        let models = try await ProviderModels.fetch(provider, credentials: credentials)
+        guard ProviderModels.usesAPIKey(provider, credentials: credentials) else {
+            return AgentModelListResponse(models: models)
+        }
+        let limits = await ProviderModels.automaticLimits(
+            provider,
+            credentials: credentials,
+            models: models + asked.prefix(AgentModelListRequest.maximumLimitsAsked),
+        )
+        return AgentModelListResponse(models: models, limits: limits)
     }
 
     public func activateModels(

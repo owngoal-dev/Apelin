@@ -198,6 +198,43 @@ console now goes on after a restart only past a successful respring.
 
 ## Still to run on the owner's devices
 
+- [ ] Token limits and compaction (2026-11-21, issue #68, AGENTS.md ▸ Agent
+      sign-in ▸ Model limits and Agent sessions ▸ Compaction; only the Mac's
+      `ContextLimitsTests`, `AgentModelLimitsTests`, the session host's
+      checks and the transcript harness have run). After `make vphone` on
+      the iPhone vphone, with its DeepSeek sign-in (an OpenAI-compatible key
+      on api.deepseek.com, model deepseek-v4-pro): Settings ▸ Model
+      Providers ▸ the endpoint's `…` ▸ Models. Each row leads with its check
+      and ends with an (i), which VoiceOver reads "Token Limits" and the row
+      offers as an action. On deepseek-v4-pro's (i) the page is titled with
+      the model ID, and its empty fields read Automatic (1,000,000) and
+      Automatic (64,000): DeepSeek's catalog row, the reply capped at kwwk's
+      64,000 on its OpenAI wire (a relay's address shows 131,072 and
+      32,000). 1000 in Context Window: Save says Invalid Token Limit with
+      the 1,024 to 10,000,000 range; 20000 asks Save Token Limits? with the
+      small-window warning. Then set the window to 65,000 and leave the
+      output empty: the row says Custom token limits. Apelin's instructions
+      and tools alone are about 26,000 tokens on the Mac (a device's
+      environment adds a little), so a new chat starts near 40 % of that
+      window; a 20,000 window would leave no room at all. In that chat ask
+      for a few file reads and edits one at a time: Settings ▸ About ▸ Logs
+      ▸ Chats ▸ the chat shows `Compaction | Suggested call=… full=5x%`,
+      then 6x %, then 7x %, one line each, while the trace of those calls
+      shows only the tools' output; the model calls
+      apelin_conversation_compact at a stopping point (ask it to, past 50 %,
+      if it does not; its step reads "Compact the context"), the chat shows
+      a Compacted row inside the turn with a running summary under it, which
+      opens the summary, and the log has `Started trigger=tool` and `Ended
+      outcome=compacted trigger=tool`. Carry on without letting it compact
+      (say so in the message) until the log has `Started trigger=automatic`,
+      past 75 %. Back on the page, clear the window and set Maximum Output
+      to 300 (Save asks first, for the short replies), then ask for a
+      500-word story: the reply stops short, and the log's Session line says
+      `Model is now … output=300 limits=user`. Clear both fields afterwards
+      (do not sign out: that takes the vphone's DeepSeek key with it). On
+      the iPad vphone the same page in its form sheet, and on both the page
+      at the largest text size and right to left.
+
 - [ ] A message that cannot be sent, and errors by their reason, with real
       accounts (2026-11-14, 0.4.6; the record below has what ran). With a
       provider whose sign-in is exchanged when a chat opens (GitHub

@@ -632,7 +632,8 @@ do {
     let opener = await session("c-opener", mode: .confirm)
 
     // Open: always the opener's project and current mode, with a prompt;
-    // nothing of its own beyond prompt, title, provider, model, effort and tier.
+    // nothing of its own beyond prompt, title, provider, model, effort, tier
+    // and model limits.
     let asked = AgentOpenRequest(
         projectID: "p-other",
         projectName: "Other",
@@ -643,6 +644,7 @@ do {
         approvalMode: .relaxed,
         reasoningEffort: .high,
         serviceTier: .priority,
+        modelLimits: AgentModelLimits(contextWindow: 64000, maxOutputTokens: 8192),
         prompt: "Write the README",
         closeWhenFinished: true,
         title: "  Docs\nsecond line",
@@ -653,8 +655,9 @@ do {
     check(child.approvalMode == .confirm, "and runs under the opener's mode, never a laxer one it asked for")
     check(
         child.provider == .anthropic && child.model == "claude-sonnet-5-5" && child.reasoningEffort == .high
-            && child.serviceTier == .priority,
-        "provider, model, effort and tier go as sent",
+            && child.serviceTier == .priority
+            && child.modelLimits == AgentModelLimits(contextWindow: 64000, maxOutputTokens: 8192),
+        "provider, model, effort, tier and model limits go as sent",
     )
     check(child.prompt == "Write the README" && child.title == "Docs", "the prompt goes as sent, the title on one trimmed line")
     let relaxed = await session("c-relaxed", mode: .relaxed)
@@ -758,6 +761,7 @@ do {
         model: "gpt",
         reasoningEffort: .max,
         serviceTier: .ultrafast,
+        modelLimits: AgentModelLimits(contextWindow: 20000),
         approvalMode: .relaxed,
         fromSessionID: "c-forged",
     )
@@ -767,8 +771,8 @@ do {
     check(
         rewritten.approvalMode == nil && rewritten.provider == nil && rewritten.model == nil
             && rewritten.reasoningEffort == nil && rewritten.serviceTier == nil && rewritten.attachments == nil
-            && rewritten.messageID == nil,
-        "and carries no mode, provider, model, effort, tier, files or message id of the sender's",
+            && rewritten.messageID == nil && rewritten.modelLimits == nil,
+        "and carries no mode, provider, model, effort, tier, limits, files or message id of the sender's",
     )
     expectError("a message carries no descriptors", code: .badRequest) {
         _ = try AgentConversationRules.childPrompt(sent, sender: opener, target: target, descriptorCount: 1)

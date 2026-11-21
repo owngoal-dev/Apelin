@@ -28,7 +28,7 @@ enum AgentConversationRules {
     /// `target` — the opener's own project, or another one the request named
     /// — under the opener's current approval mode and Ask Before Using the
     /// Screen, with the prompt, title,
-    /// provider, model, effort and tier it asked for, and nothing else of its own:
+    /// provider, model, effort, tier and model limits it asked for, and nothing else of its own:
     /// no session to reopen, no temporary workspace, no headless close.
     static func childOpen(
         _ open: AgentOpenRequest,
@@ -56,6 +56,7 @@ enum AgentConversationRules {
             asksBeforeScreen: opener.asksBeforeScreen,
             reasoningEffort: open.reasoningEffort,
             serviceTier: open.serviceTier,
+            modelLimits: open.modelLimits,
             prompt: prompt,
             title: title(open.title),
         )

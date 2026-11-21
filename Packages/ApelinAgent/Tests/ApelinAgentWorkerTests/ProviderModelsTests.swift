@@ -37,6 +37,33 @@ struct ProviderModelsTests {
             == .stored(storeID: "antigravity", model: "gemini-4-argon"))
     }
 
+    /// What Settings shows beside an empty limit field (#68): each model as
+    /// a session resolves it, from the stored key, with no request.
+    @Test
+    func `the automatic limits are each model's as a session resolves it`() async {
+        let relay = OAuthCredentials(access: "key", refresh: "", expires: .max, extras: [
+            "baseUrl": .string("https://relay.example/v1"),
+            "defaultModel": .string("relay-model"),
+        ])
+        let relayed = await ProviderModels.automaticLimits(.openAICompatible, credentials: relay, models: ["relay-model", "other"])
+        // kwwk assumes one window and reply for every model behind an endpoint
+        #expect(relayed["relay-model"] == AgentModelLimits(contextWindow: 131_072, maxOutputTokens: 32000))
+        #expect(relayed["other"] == AgentModelLimits(contextWindow: 131_072, maxOutputTokens: 32000))
+        let official = OAuthCredentials(access: "key", refresh: "", expires: .max, extras: [
+            "baseUrl": .string("https://api.deepseek.com"),
+            "defaultModel": .string("deepseek-v4-pro"),
+        ])
+        let deepSeek = await ProviderModels.automaticLimits(.openAICompatible, credentials: official, models: ["deepseek-v4-pro"])
+        // DeepSeek's catalog row, the reply at kwwk's ceiling for an OpenAI wire
+        #expect(deepSeek["deepseek-v4-pro"] == AgentModelLimits(
+            contextWindow: 1_000_000,
+            maxOutputTokens: OutputTokenPolicy.openAIMaximumOutputTokens,
+        ))
+        let key = OAuthCredentials(access: "key", refresh: "", expires: .max)
+        #expect(await ProviderModels.automaticLimits(.anthropic, credentials: key, models: ["unknown-claude"])["unknown-claude"]
+            == AgentModelLimits(contextWindow: 200_000, maxOutputTokens: 128_000))
+    }
+
     @Test
     func `DeepSeek offers its own models and discovery with only an API key`() throws {
         let key = OAuthCredentials(access: "key", refresh: "", expires: .max)

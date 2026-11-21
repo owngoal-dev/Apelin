@@ -35,6 +35,12 @@ struct ComposerModelSelection: Codable, Equatable {
         ComposerModelPreferences.tier.flatMap { (supportedTiers ?? []).contains($0) ? $0 : nil }
     }
 
+    /// The context window and largest reply the reader set for this model
+    /// in Model Providers (#68); nil is automatic.
+    var limits: AgentModelLimits? {
+        ModelLimitsStore.limits(for: provider, model: model)
+    }
+
     static var current: Self? {
         get {
             guard let data = UserDefaults.standard.data(forKey: key) else { return nil }
