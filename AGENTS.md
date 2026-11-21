@@ -237,7 +237,7 @@ the same executable in session mode; the workers are its children.
   `Sources/KWWKCli/Theme.swift`; a checkout that no longer states exactly
   one where the rule says fails the build). The app shows a linked
   package's version only from this list (`LinkedPackage`): Model
-  Providers' footer ends "Currently using kwwk 0.1.121." (owner,
+  Providers' footer ends "Currently using kwwk 0.1.126." (owner,
   2026-11-14), which is the kwwk the workers of the same build link, with
   no number kept by hand.
 - **No absolute build path in a shipped binary.** `#file` is concise
@@ -4225,7 +4225,11 @@ extensions); every request carries the session ID as
 Copilot's GPT route), Codex's `session-id`/`thread-id`, OpenRouter's
 `x-session-id` and Grok's `x-grok-conv-id`; Anthropic (API key, Claude
 Pro/Max, Copilot's Claude route, Kimi For Coding) gets `cache_control` on
-the last tool, the system prompt and the last message block; DeepSeek,
+the last tool, the system prompt and the last message block, and so do
+OpenRouter's Claude models through Chat Completions, the last on the
+newest message, a tool result included (from kwwk 0.1.126: before it a
+tool loop kept that mark on the last message with text, and nothing the
+loop added after it was read from the cache); DeepSeek,
 Gemini and other OpenAI-compatible endpoints cache prefixes on their own.
 kwwk's request encoders sort JSON keys. `received` and `notice` are events,
 never messages: the transcript is kwwk's `messages` alone, changed only by a

@@ -1139,7 +1139,7 @@ console now goes on after a restart only past a successful respring.
       Settings ▸ Model Providers ▸ OpenCode Go (or Zen) takes the key,
       Fetch Models lists the plan's live models, and Save verifies the ones
       picked. A chat on one model of each wire the plan serves (Go:
-      `glm-5.2`, `grok-4.7`, `claude-haiku-5-5`, `gemini-4-argon`) reads a
+      `glm-5.3`, `grok-4.7`, `claude-haiku-5-5`, `gemini-4-argon`) reads a
       file with file_read and answers, and Compact… compacts it. A wrong
       key fails verification without the key in what the app shows. Kimi
       For Coding Global signs in with its code on kimi.ai, a chat answers,

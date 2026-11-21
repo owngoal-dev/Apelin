@@ -130,7 +130,7 @@ enum SignInKeyForms {
         ]),
         Form(provider: .openCodeGo, fields: [
             KeyField(field: .apiKey, required: true, placeholder: "oc_sk_…"),
-            KeyField(field: .defaultModel, required: false, placeholder: "glm-5.2"),
+            KeyField(field: .defaultModel, required: false, placeholder: "glm-5.3"),
         ]),
         Form(provider: .openCodeZen, fields: [
             KeyField(field: .apiKey, required: true, placeholder: "oc_sk_…"),
