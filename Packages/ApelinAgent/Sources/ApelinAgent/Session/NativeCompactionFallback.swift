@@ -13,7 +13,9 @@ import KWWKAI
 /// compaction failed". A route that cannot compact natively answers nil and
 /// kwwk summarises; this answers nil for a reply that brought nothing back
 /// too. A refusal, a status, a transport failure and a cancellation stay
-/// errors, and so does any failure kwwk would try again.
+/// errors, and so does any failure kwwk would try again, but for a spent
+/// allowance it would wait out as a rate limit (`SpentAllowance`), which
+/// fails the compaction at once.
 enum NativeCompactionFallback {
     static func compact(_ native: @escaping NativeCompactionFn = compactNative) -> NativeCompactionFn {
         { model, context, instructions, options in
@@ -21,6 +23,10 @@ enum NativeCompactionFallback {
                 return try await native(model, context, instructions, options)
             } catch let error where returnedNoSummary(error) {
                 return nil
+            } catch {
+                let failure = ProviderFailure.capture(error)
+                let settled = SpentAllowance.settled(failure)
+                throw settled == failure ? error : settled
             }
         }
     }

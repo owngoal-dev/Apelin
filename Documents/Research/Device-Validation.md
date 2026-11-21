@@ -198,6 +198,42 @@ console now goes on after a restart only past a successful respring.
 
 ## Still to run on the owner's devices
 
+- [ ] A spent allowance, and Stop wherever a turn waits (2026-11-21, #67,
+      AGENTS.md ▸ Agent sessions). On the Mac `SpentAllowanceTests`,
+      `StopTests` and `StopWatchTests` ran against a provider on the Mac.
+      On the iPhone vphone (jp-01, iOS 26.4, then 27.0.1), with this
+      round's roothide package: copy `Documents/Console/fixtures/
+      stand-in-endpoint.pl` to the host and run `perl stand-in-endpoint.pl
+      192.168.64.1 8099`; it answers as `/tmp/apelin-stand-in-mode` says
+      when each request comes and logs each request. In Settings ▸ Model
+      Providers ▸ OpenAI-Compatible API, any key and
+      `http://192.168.64.1:8099/v1`, Fetch Models, enable `stand-in`, Save
+      (mode `ok`). In a chat on `stand-in`, each mode written to the file
+      before the message:
+      1. `quota`: the turn ends within 2 s on "Usage Limit Reached" with
+         "You have exceeded your premium request allowance." under it,
+         never "Reconnecting…", and the host logs one request. On 0.4.7
+         the same read "Reconnecting…" for about 80 s over eight requests,
+         then "Too Many Requests".
+      2. `quota-late`: send a message, and a second while "Thinking…":
+         5 s later the turn ends on "Usage Limit Reached", the second
+         message is back in the composer under a passing "Message Not
+         Sent", "Back in the input box", and the host logs one request
+         (0.4.7: a second run, a second request).
+      3. `ratelimit`: "Reconnecting…"; Stop ends the turn within a second
+         and Stop goes; `ok`, and the next message is answered.
+      4. `silent`, then `stall` ("Hello " and nothing more): Stop ends each
+         turn within a second, and the next message (`ok`) is answered.
+      5. The quota row with the app in Simplified Chinese: 已达用量上限
+         over the provider's words, and read by VoiceOver.
+      Not on a vphone: iOS 16.5.1, the report's, where none of this has
+      run; a real provider's spent allowance (GitHub Copilot's premium
+      requests, the report's likely provider, is the one to try when an
+      account runs out); and the worker's 20 s bound, "Did Not Stop in
+      Time" over "Apelin ended this reply. Send a message to continue.",
+      which needs a request that does not hear its cancellation:
+      `StopWatchTests` alone shows it.
+
 - [ ] A message that cannot be sent, and errors by their reason, with real
       accounts (2026-11-14, 0.4.6; the record below has what ran). With a
       provider whose sign-in is exchanged when a chat opens (GitHub

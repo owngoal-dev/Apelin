@@ -1350,6 +1350,27 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   its message has settled. The wait for a route is said at once
   (`waitingForNetwork`), so the reader is told the device is offline the
   moment the first request fails, not after the retries run out.
+  A spent allowance ends the turn on its first answer (owner, 2026-11-21,
+  #67; `SpentAllowance`, inside `NetworkRecovery`): kwwk 0.1.126 reads some
+  for a rate limit and asks again eight times over a minute and a half —
+  GitHub Copilot's 429 `quota_exceeded` (a spent premium request
+  allowance or monthly limit), Z.ai's and BigModel's 429 for a spent
+  five-hour, weekly or monthly window (Chinese wording) or an expired
+  plan, a limit per day — so a chat read "Reconnecting…" for about 80 s,
+  then "Too Many Requests", and a message sent meanwhile started a run
+  that waited as long again. Such an attempt is marked not to be asked again
+  (`ProviderFailure.shouldRetry` false), live turns, compaction summaries
+  and a native compaction alike, and its `error` carries `quota`; what
+  kwwk already reads as spent (402, `insufficient_quota`, a credit balance
+  too low, Codex's `usage_limit_reached`, a Claude subscription's window,
+  Moonshot's, BigModel's 1113, Kimi's plan window) it ends at once itself.
+  A limit that names a window of seconds or minutes, or none, stays a rate
+  limit kwwk waits out, Retry-After up to 60 s an attempt, and Stop works
+  in the wait. A message queued behind a turn that ended on the quota is
+  handed back (`queueDropped`) rather than starting the next run, which the
+  same allowance would fail: the reader can choose another model first.
+  `SpentAllowanceTests` serves each shape from a provider on the Mac
+  through kwwk's own provider for its wire.
   A failure says why where the agent can tell (owner, 2026-11-14;
   `FailureReason`, the reasons of ApelinProtocol's `AgentFailure.swift`): kwwk's own
   reading of it (`ProviderFailure.category`) and whether there is a route
@@ -1499,8 +1520,10 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   goes, handed to the run as a steer and recorded as its `prompt` of the
   same id only when the run's loop takes it, after the tool call in
   progress or before the run would end; one a run that failed or had just
-  ended never took starts the next run, whose kwwk `continue` takes it),
-  `queueDropped` {ids} (queued messages a stopped run never took, cleared
+  ended never took starts the next run, whose kwwk `continue` takes it,
+  but for a run that ended on the quota, #67),
+  `queueDropped` {ids} (queued messages a stopped run, or one that ended
+  on the quota, never took, cleared
   from kwwk's steering queue too so no later run reads them; the app puts
   them back in the composer, text and files, ahead of what was typed
   since, and says "N Messages Not Sent" once the reader sees the
