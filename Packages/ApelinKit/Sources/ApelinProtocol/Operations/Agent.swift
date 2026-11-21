@@ -146,8 +146,6 @@ public enum AgentProvider: Hashable, Sendable {
     case devin
     /// Kiro, through AWS Builder ID, Google or GitHub (`kiro`).
     case kiro
-    /// Antigravity, Google's, through a Google sign-in (`antigravity`).
-    case antigravity
     /// Qoder, qoder.com (`qoder`).
     case qoder
     /// Qoder CN, qoder.cn (`qoder-cn`).
@@ -215,7 +213,6 @@ extension AgentProvider: RawRepresentable, Codable {
         case .cursor: "cursor"
         case .devin: "devin"
         case .kiro: "kiro"
-        case .antigravity: "antigravity"
         case .qoder: "qoder"
         case .qoderCN: "qoderCN"
         case .workBuddy: "workBuddy"
@@ -281,7 +278,6 @@ extension AgentProvider: CaseIterable {
         .cursor,
         .devin,
         .kiro,
-        .antigravity,
         .qoder,
         .qoderCN,
         .workBuddy,
@@ -303,7 +299,30 @@ extension AgentProvider: CaseIterable {
     ]
 }
 
+/// A provider Apelin offered and no longer does, because kwwk no longer
+/// signs in to it: the name it had on the wire, which a choice the app
+/// saved may still hold, and the kwwk store id its sign-in was kept under.
+/// No case of `AgentProvider` has either any more: the name no longer
+/// decodes as a provider, and nothing signs in under the store id.
+public struct RetiredAgentProvider: Sendable, Equatable {
+    public var name: String
+    public var storeID: String
+
+    public init(name: String, storeID: String) {
+        self.name = name
+        self.storeID = storeID
+    }
+}
+
 public extension AgentProvider {
+    /// Providers taken away, whose leftovers are cleared: apelin-agent
+    /// deletes the sign-in (`AccountDesk`), the app the models enabled for
+    /// it and a composer choice of one of them. Antigravity was offered from
+    /// 0.3.7 to 0.4.7; kwwk 0.1.122 removed it.
+    static let retired: [RetiredAgentProvider] = [
+        RetiredAgentProvider(name: "antigravity", storeID: "antigravity"),
+    ]
+
     /// The provider whose sign-in form, transport and name this one has:
     /// itself, and `openAICompatible` for a further endpoint.
     var kind: AgentProvider {
@@ -348,6 +367,9 @@ public struct AgentOpenRequest: OperationRequest {
     public var asksBeforeScreen: Bool?
     public var reasoningEffort: AgentReasoningEffort?
     public var serviceTier: AgentServiceTier?
+    /// The model's context window and largest reply as the user set them
+    /// (`AgentModelLimits`); absent, or a field of it, is automatic.
+    public var modelLimits: AgentModelLimits?
     /// A first prompt, submitted as soon as the session is open.
     public var prompt: String?
     /// End the session (its task) when the first run finishes: `succeeded`
@@ -377,6 +399,7 @@ public struct AgentOpenRequest: OperationRequest {
         asksBeforeScreen: Bool? = nil,
         reasoningEffort: AgentReasoningEffort? = nil,
         serviceTier: AgentServiceTier? = nil,
+        modelLimits: AgentModelLimits? = nil,
         prompt: String? = nil,
         closeWhenFinished: Bool? = nil,
         title: String? = nil,
@@ -392,6 +415,7 @@ public struct AgentOpenRequest: OperationRequest {
         self.asksBeforeScreen = asksBeforeScreen
         self.reasoningEffort = reasoningEffort
         self.serviceTier = serviceTier
+        self.modelLimits = modelLimits
         self.prompt = prompt
         self.closeWhenFinished = closeWhenFinished
         self.title = title
@@ -443,6 +467,9 @@ public struct AgentPromptRequest: OperationRequest {
     public var model: String?
     public var reasoningEffort: AgentReasoningEffort?
     public var serviceTier: AgentServiceTier?
+    /// The model's limits as the user set them, read with the provider and
+    /// model as effort and tier are; absent is automatic.
+    public var modelLimits: AgentModelLimits?
     public var attachments: [AgentInputAttachment]?
     public var approvalMode: ApprovalMode?
     /// Ask Before Using the Screen (`ScreenConsent`), as the app has it now;
@@ -463,6 +490,7 @@ public struct AgentPromptRequest: OperationRequest {
         model: String? = nil,
         reasoningEffort: AgentReasoningEffort? = nil,
         serviceTier: AgentServiceTier? = nil,
+        modelLimits: AgentModelLimits? = nil,
         approvalMode: ApprovalMode? = nil,
         asksBeforeScreen: Bool? = nil,
         fromSessionID: String? = nil,
@@ -474,6 +502,7 @@ public struct AgentPromptRequest: OperationRequest {
         self.model = model
         self.reasoningEffort = reasoningEffort
         self.serviceTier = serviceTier
+        self.modelLimits = modelLimits
         self.attachments = attachments
         self.approvalMode = approvalMode
         self.asksBeforeScreen = asksBeforeScreen

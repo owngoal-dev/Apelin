@@ -50,6 +50,9 @@ actor ToolRunner {
     /// is decided, for the session's diagnostic journal.
     let journal: SessionJournal?
     private var notices = UserNotices()
+    /// apelin_conversation_compact's: asks the session to compact at the
+    /// run's next step, and answers what the model is told.
+    private var compaction: (@Sendable () async throws -> String)?
 
     init(
         sessionID: String,
@@ -104,6 +107,11 @@ actor ToolRunner {
     /// A run ended: the next one may send its own notices.
     func turnEnded() {
         notices.turnEnded()
+    }
+
+    /// The session's answer to apelin_conversation_compact, set once it is open.
+    func setCompaction(_ handler: @escaping @Sendable () async throws -> String) {
+        compaction = handler
     }
 
     /// The session closes: the extensions it started go with it.
@@ -453,6 +461,12 @@ actor ToolRunner {
             let notice = try notices.take(arguments, now: Date())
             try await record(.notice(title: notice.title, body: notice.body))
             return text(notices.sentMessage)
+
+        case .conversationCompact:
+            // No host request: the session compacts its own conversation, at
+            // the run's next step (`AgentSession.compactIfAsked`).
+            guard let compaction else { throw ToolDeniedError(message: "Compaction is unavailable.") }
+            return try await text(compaction())
 
         case .webFetch:
             // No host request either: the worker fetches the page itself,

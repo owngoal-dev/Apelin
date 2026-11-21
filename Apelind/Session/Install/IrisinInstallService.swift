@@ -6,6 +6,12 @@ import Foundation
 final class IrisinInstallService: InstallService, @unchecked Sendable {
     private let client = IrisinExternalClient()
 
+    /// Cancelling the connection answers every reply still pending with an
+    /// error; the next call makes a new one.
+    @objc dynamic func reset() {
+        client.invalidate()
+    }
+
     func serviceInfo() async throws -> InstallServiceInfo {
         let info = try await map { try await self.client.serviceInfo() }
         return InstallServiceInfo(

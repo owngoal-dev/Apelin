@@ -516,7 +516,14 @@ precondition(failureRow(["message": .string(wholeError)])?.failure?.detail == "T
 precondition(noRoute?.failure?.spoken == "No Internet Connection\nConnect to the internet, then send your message again.")
 precondition(ChatTranscript(events: [event(1, "message", ["text": .string("Done.")])]) { _ in nil }.messages.allSatisfy { $0.failure == nil },
              "a reply is no failure")
-for reason in ["offline", "network", "timeout", "authentication", "quota", "rateLimit", "server", "contextOverflow"] {
+// #67: a stopped run the worker had to end itself
+let unstopped = failureRow([
+    "message": .string("This chat did not stop in time, so Apelin ended it. Send a message to continue."),
+    "reason": .string("unstopped"),
+])
+precondition(unstopped?.failure?.title == "Did Not Stop in Time")
+precondition(unstopped?.failure?.detail == "Apelin ended this reply. Send a message to continue.", "said in the reader's language")
+for reason in ["offline", "network", "timeout", "authentication", "quota", "rateLimit", "server", "contextOverflow", "unstopped"] {
     precondition(ChatFailure.title(for: ApelinError.Reason(rawValue: reason)) != nil, "\(reason) has a line of its own")
 }
 
@@ -966,6 +973,29 @@ let textAfter = ChatTranscript(events: [
     event(4, "text", ["text": .string("After")]),
 ]) { _ in nil }.messages
 precondition(textAfter.map(\.text) == ["Before", "S", "After"], "text after the row never lands above it")
+/// The agent's own compaction (apelin_conversation_compact) comes inside
+/// its turn: the row is where it happened, and the turn goes on under it
+/// at once, the next thought taking the place of the summary standing in.
+let midTurn = [
+    event(1, "prompt", ["id": .string(UUID().uuidString), "text": .string("Go on")]),
+    event(2, "messageStarted"),
+    event(3, "toolCall", [
+        "id": .string("c1"), "tool": .string("apelin_conversation_compact"), "arguments": .string(#"{"reason":"Save space"}"#),
+    ]),
+    event(4, "toolResult", ["id": .string("c1"), "output": .string("Apelin compacts this conversation before your next step.")]),
+    event(5, "compactionStarted"),
+    event(6, "compactionFinished", ["outcome": .string("compacted"), "summary": .string("S")]),
+]
+let compactingTurn = ChatTranscript(events: midTurn) { _ in nil }
+let midRows = compactingTurn.messages
+precondition(compactingTurn.isWorking && !compactingTurn.isCompacting, "the turn still runs once compacted")
+precondition(midRows.dropLast().last?.role == .compaction, "the row where it happened")
+precondition(midRows.last?.role == .thinking(seconds: nil, tools: 0), "and a running summary under it at once")
+let goneOn = ChatTranscript(events: midTurn + [event(7, "messageStarted")]) { _ in nil }.messages
+precondition(goneOn.last?.id == midRows.last?.id && goneOn.last?.role.isThinking == true,
+             "the next thought takes the stand-in's place")
+precondition(midRows.dropLast(2).last?.trace.map(\.text) == ["Compact the context"],
+             "the call is in the trace above it, by its title: \(midRows.map(\.trace))")
 let olderResult = try JSONValue.object(["outcome": .string("compacted"), "messagesCompacted": .number(6)])
     .decode(AgentCompactionResult.self)
 precondition(olderResult == AgentCompactionResult(outcome: .compacted, messagesCompacted: 6),

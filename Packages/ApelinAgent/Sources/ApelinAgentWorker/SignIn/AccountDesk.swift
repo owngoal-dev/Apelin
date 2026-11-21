@@ -44,6 +44,8 @@ public actor AccountDesk {
     private let verifyKey: @Sendable (AgentProvider, OAuthCredentials, String?) async throws -> Void
     private var keyVerification: (run: SignInRun, task: Task<Void, Error>)?
     private var running: SignInRun?
+    /// The retired providers' sign-ins were looked for in this process.
+    private var retiredSignInsLookedFor = false
 
     public init(
         store: any CredentialSource,
@@ -74,6 +76,7 @@ public actor AccountDesk {
     // MARK: - Accounts
 
     public func list() async -> AgentAccountListResponse {
+        await forgetRetiredSignIns()
         let stored = await Set(store.providerIds())
         var accounts: [AgentAccount] = []
         for listed in AgentProvider.signInOrder {
@@ -99,6 +102,30 @@ public actor AccountDesk {
             }
         }
         return AgentAccountListResponse(accounts: accounts)
+    }
+
+    /// Deletes the sign-in a retired provider left (`AgentProvider.retired`):
+    /// nothing lists it, signs out of it or reads it any more, and what it
+    /// holds is a provider's token. Looked for once a process, before the
+    /// first list; a deletion that fails is tried again by the next. Only
+    /// the store id is logged, never what the item held.
+    func forgetRetiredSignIns() async {
+        guard !retiredSignInsLookedFor else { return }
+        retiredSignInsLookedFor = true
+        let stored = await Set(store.providerIds())
+        for retired in AgentProvider.retired where stored.contains(retired.storeID) {
+            do {
+                try await store.remove(retired.storeID)
+                NSLog("apelin-agent: removed the saved sign-in of %@, a provider Apelin no longer offers", retired.storeID)
+            } catch {
+                retiredSignInsLookedFor = false
+                NSLog(
+                    "apelin-agent: could not remove the saved sign-in of %@, a provider Apelin no longer offers: %@",
+                    retired.storeID,
+                    error.localizedDescription,
+                )
+            }
+        }
     }
 
     /// What the list shows for `provider`: itself, and for the
@@ -261,11 +288,22 @@ public actor AccountDesk {
         }
     }
 
-    public func models(for provider: AgentProvider) async throws -> AgentModelListResponse {
+    /// The models the provider lists and, for an API-key account, the
+    /// limits each of them and of `limitsFor` has when the user sets none.
+    public func models(for provider: AgentProvider, limitsFor asked: [String] = []) async throws -> AgentModelListResponse {
         guard let credentials = try await store.credentials(for: provider.storeID) else {
             throw ApelinError(.notFound, "Sign in to the provider first.")
         }
-        return try await AgentModelListResponse(models: ProviderModels.fetch(provider, credentials: credentials))
+        let models = try await ProviderModels.fetch(provider, credentials: credentials)
+        guard ProviderModels.usesAPIKey(provider, credentials: credentials) else {
+            return AgentModelListResponse(models: models)
+        }
+        let limits = await ProviderModels.automaticLimits(
+            provider,
+            credentials: credentials,
+            models: models + asked.prefix(AgentModelListRequest.maximumLimitsAsked),
+        )
+        return AgentModelListResponse(models: models, limits: limits)
     }
 
     public func activateModels(

@@ -2,7 +2,10 @@ import ApelinProtocol
 
 /// Load confirmation and UI verification, served by apelin-diagnostics.
 /// A load check is a task the host owns, so the respring it may trigger —
-/// which takes the app down, not the host — cannot lose its answer.
+/// which takes the app down, not the host — cannot lose its answer. The
+/// device passcode's three operations are the app's alone (CallerPolicy
+/// lets no worker call them), and go to apelin-diagnostics, which alone
+/// keeps the passcode; the host reads none of it.
 enum DiagnosticsHandler: DomainHandler {
     static func handle(_ request: HostRequest, host: SessionHost) async -> HostReply {
         switch request.operation {
@@ -16,6 +19,8 @@ enum DiagnosticsHandler: DomainHandler {
             await forwardTreeRead(request, host: host)
         case .uiAction:
             await forwardAction(request, host: host)
+        case .devicePasscodeState, .devicePasscodeSave, .devicePasscodeRemove:
+            await host.forward(request, to: .diagnostics)
         default:
             request.fail(ApelinError(
                 .badRequest,

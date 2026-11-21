@@ -237,7 +237,7 @@ the same executable in session mode; the workers are its children.
   `Sources/KWWKCli/Theme.swift`; a checkout that no longer states exactly
   one where the rule says fails the build). The app shows a linked
   package's version only from this list (`LinkedPackage`): Model
-  Providers' footer ends "Currently using kwwk 0.1.121." (owner,
+  Providers' footer ends "Currently using kwwk 0.1.126." (owner,
   2026-11-14), which is the kwwk the workers of the same build link, with
   no number kept by hand.
 - **No absolute build path in a shipped binary.** `#file` is concise
@@ -321,7 +321,8 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   `fileRead`, `protectedEditOpen`, `protectedEditCommit`; `ptyOpen`,
   `ptyAttach`, `ptyResize`, `ptyClose`; `logStream`, `crashList`,
   `crashOpen`, `crashSymbolicate`; `confirmLoaded`, `confirmLoadedAttach`, `captureScreen`,
-  `readUITree`, `uiAction`; `agentOpen`, `agentPrompt`, `agentSteer`,
+  `readUITree`, `uiAction`, `devicePasscodeState`, `devicePasscodeSave`,
+  `devicePasscodeRemove`; `agentOpen`, `agentPrompt`, `agentSteer`,
   `agentAbort`, `agentCompact`, `agentApprove`, `agentAttach`, `agentList`, `agentClose`,
   `agentRunCode`, `agentCredentialImport`, `agentAccountList`, `agentSkillList`, `agentAPIConfiguration`, `agentModelList`, `agentModelActivate`, `agentSignIn`,
   `agentSignInRespond`, `agentSignInCancel`, `agentSignOut`; `toolHostOpen`, `toolHostClose`,
@@ -532,6 +533,40 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
     only when every entry is a folder or a `.jbroot` link, the links
     unlinked without being followed and the folders removed bottom up; a
     file or any other link keeps the whole tree. `respring` is irisind's.
+    Before the first install, removal or respring the host asks irisind
+    `serviceInfo`, retried for 10 s from the first miss (irisind is on
+    demand), each attempt bounded besides: a handshake nobody answers is
+    given up after 20 s (`noAnswer`; the pending call is cancelled), never
+    left to hold the setup. When it fails, the failure names the cause as
+    far as root can tell (issue #66; `InstallServiceDiagnosis`, nothing
+    asked of irisind, nothing run or changed): from `var/lib/dpkg/status`,
+    Irisin not installed, not completely installed (`half-installed`,
+    `unpacked`, `half-configured`) or older than 4.7.3 (a version of
+    digits and dots; any other spelling is not judged); then irisind or its
+    launchd plist missing; then, by launchd's and irisind's answer, no such
+    service (the job is not loaded), no answer, or the connection closed
+    every time — irisind says nothing to a program it refuses (Irisin's
+    `Documentation/ExternalClients.md`), so the host runs irisind's
+    admission rule on its own executable (Irisin's `ExecutableAdmission`:
+    the file root's, owner-executable, writable by nobody else; every
+    folder from the canonical install root down to it a real folder owned
+    by root or a system account below 500, writable by nobody else) and
+    reads its own three client entitlements by its audit token, naming the
+    folder or file with its owner and permissions, or the entitlement.
+    Only when nothing is found, or nothing could be read, does it keep
+    "Irisin is not responding…". A held dpkg lock is not a cause here:
+    `serviceInfo` never touches the database. It fails a transaction
+    instead, at once (Irisin's helper takes `lock-frontend` and `lock` with
+    a non-blocking `F_SETLK`, as "Installation stopped: Failure(errno:
+    35)"), so after an install or removal irisind ended without success
+    and, followed from its first event, never past `preparing` (later, its
+    helper held the locks itself), the host reads both locks under
+    `Library/dpkg` and `var/lib/dpkg` (canonical, each folder once) with
+    `F_GETLK`, which takes nothing, and puts "The package database is in
+    use by <name> (process <pid>)…" before Irisin's words
+    (`PackageDatabaseLock`). A resumed install or removal that cannot be
+    handed to irisind is named the same way as a failed handshake. Tested
+    by `Tests/SessionHost/InstallServiceChecks.swift`.
   - *Approvals* (`Session/Approval/`). The host keeps the Confirm-mode ledger:
     per project the template's build and packaging digests (recorded from
     `projectCreate`'s `descriptionDigests`) and every digest the user
@@ -731,7 +766,9 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   (`Tests/SessionHost/`): record persistence and resume (a build restarted
   over a real channel, the refusals, the cancel, the retry bound), CallerPolicy, the
   edit rules on a temporary root, the managed-package rules, the bridge
-  against a fake irisind, the folders a removed toolchain leaves, the
+  against a fake irisind, a handshake that fails or goes unanswered named
+  by its cause and a held package database named by its holder
+  (`InstallServiceChecks.swift`), the folders a removed toolchain leaves, the
   ledger, the control reader, the attachment
   copies, ordinary events leaving the record alone and its number and time
   read back from the log, one `agentOpen` of a session at a time, Ask
@@ -1350,6 +1387,27 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   its message has settled. The wait for a route is said at once
   (`waitingForNetwork`), so the reader is told the device is offline the
   moment the first request fails, not after the retries run out.
+  A spent allowance ends the turn on its first answer (owner, 2026-11-21,
+  #67; `SpentAllowance`, inside `NetworkRecovery`): kwwk 0.1.126 reads some
+  for a rate limit and asks again eight times over a minute and a half —
+  GitHub Copilot's 429 `quota_exceeded` (a spent premium request
+  allowance or monthly limit), Z.ai's and BigModel's 429 for a spent
+  five-hour, weekly or monthly window (Chinese wording) or an expired
+  plan, a limit per day — so a chat read "Reconnecting…" for about 80 s,
+  then "Too Many Requests", and a message sent meanwhile started a run
+  that waited as long again. Such an attempt is marked not to be asked again
+  (`ProviderFailure.shouldRetry` false), live turns, compaction summaries
+  and a native compaction alike, and its `error` carries `quota`; what
+  kwwk already reads as spent (402, `insufficient_quota`, a credit balance
+  too low, Codex's `usage_limit_reached`, a Claude subscription's window,
+  Moonshot's, BigModel's 1113, Kimi's plan window) it ends at once itself.
+  A limit that names a window of seconds or minutes, or none, stays a rate
+  limit kwwk waits out, Retry-After up to 60 s an attempt, and Stop works
+  in the wait. A message queued behind a turn that ended on the quota is
+  handed back (`queueDropped`) rather than starting the next run, which the
+  same allowance would fail: the reader can choose another model first.
+  `SpentAllowanceTests` serves each shape from a provider on the Mac
+  through kwwk's own provider for its wire.
   A failure says why where the agent can tell (owner, 2026-11-14;
   `FailureReason`, the reasons of ApelinProtocol's `AgentFailure.swift`): kwwk's own
   reading of it (`ProviderFailure.category`) and whether there is a route
@@ -1358,7 +1416,13 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   securely), `timeout`, `authentication`, `quota`, `rateLimit`, `server` or
   `contextOverflow`, which the `error` event carries as `reason` beside the
   provider's words; a refusal, a request the provider would not take and
-  anything that is not a model request carry none. It is an
+  anything that is not a model request carry none, but for `unstopped`, a
+  stopped run the worker ended itself (below), and `contextOverflow` for
+  kwwk's own refusal to send a conversation compaction could not bring
+  under the window, which it says in log words with no status ("context is
+  too large and compaction failed: compaction left 51590 tokens, above the
+  recovery target of 39000"; 2026-11-21, a 65,000-token window the user
+  set and one 100 KB tool result on a device). It is an
   `ApelinError.Reason`, as an error reply's is, open-ended on the wire and
   in the log, so one a peer does not know still reads.
   A sign-in is exchanged or renewed when a session opens and when a message
@@ -1385,10 +1449,21 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   finish; a build the call was reading is cancelled with it
   (`ChannelHostBackend.read`, `buildCancel`), while an install, a
   toolchain setup, an SDK import and a git transfer go on by themselves.
-  The worker then gives the stopped run 20 s to end (`WorkerState.abort`,
-  `AgentSession.StoppedWork`): one that has not, a model request or a
-  compaction that does not answer its cancellation, has its task ended
-  `cancelled` with an `error` saying so, and the process exits. And the
+  The worker then gives the stopped run 20 s to end (`WorkerState.stop`,
+  `AgentSession.StoppedWork`): one that has not, a model request, a
+  sign-in's renewal or a compaction that does not answer its
+  cancellation, has its task ended `cancelled` with an `error` saying so
+  (reason `unstopped`, which the app says as "Did Not Stop in Time" and
+  "Apelin ended this reply. Send a message to continue."), and the
+  process exits. Until 0.4.8 the app's Stop (`agentAbort`) stopped the
+  session past this watch, which only the host's task cancel reached, so
+  a run that did not hear its cancellation went on working however often
+  Stop was tapped (owner, 2026-11-21, #67; `StopWatchTests` sends
+  `agentAbort` over a real channel to a run that never ends, and
+  `StopTests` stops a turn in kwwk's wait to ask again, the wait for the
+  network, a reply cut off halfway, a request never answered, with a
+  message queued, in a compaction and in the title's request, each ended
+  within 3 s, all against a provider on the Mac). And the
   host gives the worker 10 s to take the stop at all
   (`AgentHandler.abort`, `Patience`): one that does not is ended
   (`WorkerSupervisor.end`: its channel closed, which ends its task, and
@@ -1487,8 +1562,10 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   goes, handed to the run as a steer and recorded as its `prompt` of the
   same id only when the run's loop takes it, after the tool call in
   progress or before the run would end; one a run that failed or had just
-  ended never took starts the next run, whose kwwk `continue` takes it),
-  `queueDropped` {ids} (queued messages a stopped run never took, cleared
+  ended never took starts the next run, whose kwwk `continue` takes it,
+  but for a run that ended on the quota, #67),
+  `queueDropped` {ids} (queued messages a stopped run, or one that ended
+  on the quota, never took, cleared
   from kwwk's steering queue too so no later run reads them; the app puts
   them back in the composer, text and files, ahead of what was typed
   since, and says "N Messages Not Sent" once the reader sees the
@@ -1517,9 +1594,10 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   {message, reason?} (`reason` one of `AgentFailure.swift`'s, absent when
   the agent names none), `finished` {reason}, `compactionStarted` and
   `compactionFinished` {outcome: compacted, tooShort, cancelled or failed,
-  messagesCompacted?, message?, summary?} (`AgentCompactionResult`; only
-  `agentCompact` records them — kwwk's own compaction as the context fills
-  is no event). `summary` (2026-10-28), when compacted, is what the
+  messagesCompacted?, message?, summary?} (`AgentCompactionResult`;
+  `agentCompact` and the agent's apelin_conversation_compact record them —
+  kwwk's own compaction as the context fills is no event). `summary`
+  (2026-10-28), when compacted, is what the
   conversation goes on from as the reader reads it: the history and
   current-turn sections of kwwk's recap, unescaped, without its markup or
   its file ledger (`CompactionRecap`; a recap of another shape whole),
@@ -1893,6 +1971,52 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   characters or empty, a title past 40, a fourth in one run — and one
   sent within 30 s of the session's last; the host cuts and counts again
   (`AgentNoticeRules`).
+  Compaction (owner, 2026-11-21; `Session/ModelLimits.swift`,
+  `AgentSession`, ApelinProtocol's `AgentContextBudget`): kwwk compacts
+  the conversation before any request that finds it past 75 % of the
+  model's window, as it measures it (`AgentContextCompactor.currentUsage`:
+  the system prompt, the tools and the messages, pending ones included);
+  the session passes the 75 % to `AgentAutoCompactOptions` itself
+  (`AgentContextBudget.automaticCompaction`) rather than leave it to kwwk's
+  default, and the window is the user's when they set one (Agent sign-in ▸
+  Model limits). The agent can compact sooner, at a stopping point of its
+  choosing: apelin_conversation_compact (in any chat, no arguments but the
+  reason) → no host request; a call inside a run cannot rewrite the
+  conversation it is part of, so the tool only asks, and the session
+  compacts at the run's next step, before its next request, through kwwk's
+  `betweenTurns` hook: `AgentContextCompactor.compactAgent` with the
+  session's compaction configuration (`NativeCompactionFallback`, native
+  where the provider can), as `agentCompact` does, recording
+  `compactionStarted` and `compactionFinished` (so the transcript shows its
+  Compacted row with the summary, inside the turn, a running summary
+  standing in under it at once: `ChatTranscript`), the journal's Compaction lines with
+  `trigger=tool`, and the compacted transcript for a reopened session.
+  Its answer says it happens before the next step; when it then compacts
+  nothing (too short, failed) a runtime aside tells the model so before
+  that step (kwwk's `aside`, a user message of source `runtime`, which the
+  session never takes for one of the user's queued messages). Refused,
+  before anything is asked, while the conversation is shorter than kwwk
+  compacts (four messages) or the context is under a quarter full
+  (`AgentContextBudget.compactionFloor`: it would lose detail and save
+  little). It never asks, in any mode, and is no preset the user could take
+  away (`ApprovalPolicy`, risk `writeProject`): it changes only the model's
+  working context, as automatic compaction does without asking. The nudge
+  (`ContextNote`): after each call, measured as kwwk measures it with the
+  call's result in, a context past 50 %, then 60 % and 70 %, ends that
+  result with one `<context-usage>` note — the context is N % full; at a
+  good stopping point consider apelin_conversation_compact; at 75 % Apelin
+  compacts it automatically —, each share once, forgotten when the context
+  falls below it again (a compaction, a larger window), and none past 75 %,
+  where the next request compacts anyway. It goes into the tool result the
+  model reads (kwwk's `afterToolCall`), so the transcript keeps it as sent
+  and no system prompt byte changes (Prompt caching). The app's
+  `toolResult` event and the journal's call line have the tool's output
+  alone, as the app's `prompt` has the text without `<system-state>`: the
+  note is Apelin's to the model, not the tool's answer, and the trace shows
+  what the tool did; the journal has a `Suggested call=… full=…%` line
+  instead. `# Working` says one line about the note and the tool, and that
+  the note is Apelin's though it comes in a tool's result. Tested by
+  `ContextLimitsTests`.
   Web pages (2026-10-29, `Tools/WebFetch.swift`, `HTMLText.swift`,
   `PublicHost.swift`), in any chat: apelin_web_fetch {url, offset?} → no
   host request: the worker fetches one public http or https page itself,
@@ -2132,7 +2256,8 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   Apelin keeps — its projects and templates, the packages it installs, the
   device, the screen, logs and crashes, toolchains and SDKs, other
   conversations, memory, skills, its git settings, a notification, the
-  feedback filed on Apelin — or reaches past the device (`apelin_web_fetch`,
+  feedback filed on Apelin, the conversation's own context
+  (`apelin_conversation_compact`) — or reaches past the device (`apelin_web_fetch`,
   `apelin_git_create_repository`, `apelin_git_create_issue`) is
   `apelin_<scope>_<verb>` (`apelin_project_build`, `apelin_package_install`,
   `apelin_device_respring`, `apelin_git_set_author`, `apelin_feedback_send`);
@@ -2211,7 +2336,57 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   Anthropic-compatible endpoint maps to the DeepSeek model family, not the
   Claude catalog; API-key discovery reads the endpoint's model-list API.
   `EnabledModels` owns only local, non-secret selections and custom IDs;
-  sign-out clears them. The chat picker is an uncached deferred context
+  sign-out clears them. Model limits (owner, 2026-11-21, issue #68:
+  relays, gateways and providers serve other windows than kwwk assumes):
+  an API-key account's rows in Models lead with the check, as Wi-Fi's do,
+  and end with a detail button (Token Limits, also the row's VoiceOver
+  action) that pushes `ModelLimitsController`, the model's context window
+  and maximum output tokens, each a whole number or empty (ApelinProtocol's
+  `AgentModelLimits`: a window of 1,024 to 10,000,000, an output of 1 to
+  1,000,000 and below the window, else nothing is saved; a window under
+  64,000, where Apelin's own instructions and tools, about 26,000 tokens,
+  start a chat at 40 % or more, an output over half the window or under
+  1,024 asks before Save). Empty is automatic, what a session resolves the
+  model with, which the
+  field shows as its placeholder: `agentModelList {limitsFor}` answers
+  `limits` for an API-key account's listed and asked models, each resolved
+  as a session does (`ProviderModels.automaticLimits`, through
+  `ProviderRegistration` from the stored key, no network): kwwk's catalog
+  row, else its registration's default for an unknown ID (an
+  OpenAI-compatible endpoint's 131,072 and 32,000 for every model), the
+  output the reply kwwk sends on its own (none on OpenRouter); unknown, it
+  says Automatic. A window set with the output left automatic asks for the
+  automatic reply at most a quarter of that window
+  (`AgentModelLimits.automaticOutput`: the headroom kwwk's
+  `AgentRequestBudget` keeps for a model with no output limit), so three
+  quarters stay for the conversation; uncapped, DeepSeek's automatic 64,000
+  beside a 65,000 window asked for nearly all of it as the reply, which an
+  endpoint holding to its window refuses (2026-11-21). The output field's
+  placeholder follows the window as it is typed. `ModelLimitsStore` keeps them in the app's defaults by
+  `AgentProvider.rawValue` and model ID beside `EnabledModels`, each
+  model's entry read alone, non-secret, cleared on sign-out; a hidden model
+  keeps its own. The composer reads them with the model
+  (`ComposerModelSelection.limits`) and sends them as `modelLimits` on
+  `agentOpen` and `agentPrompt` (absent: automatic, so the console and an
+  older caller change nothing; an agent's message carries none, and a
+  conversation an agent opens starts with its opener's,
+  `SessionModelChoice`). The session applies them to kwwk's `Model` when
+  it resolves it and with each message, between runs, as model, effort and
+  tier (`AgentModelLimits.applied`, a value out of range left automatic,
+  `sanitized`): `contextWindow` is what the request budget, automatic
+  compaction at 75 % and the context notes measure against (Agent sessions
+  ▸ Compaction); `maxTokens` caps one reply, which every wire's encoder
+  sends as its own field (`OutputTokenPolicy`: Chat Completions'
+  `max_tokens` or `max_completion_tokens`, Responses' `max_output_tokens`,
+  Anthropic's and Gemini's), never above the window and on the OpenAI
+  wires never above kwwk's 64,000, and the request budget reserves exactly
+  it; on OpenRouter, where kwwk sends none of its own, the user's goes
+  (`compat.omitsAutomaticOutputLimit` off). The journal's Session lines
+  name the window and output and `limits=user`. The footer says a value
+  cannot exceed what the server allows. Subscriptions get none: kwwk's
+  catalog knows their models, no relay stands between, and Codex's wire
+  takes no output limit at all (`OutputTokenPolicy.supportsExplicitLimit`).
+  The chat picker is an uncached deferred context
   menu reading enabled IDs only, and opens
   Model Providers when there are none. API-key model IDs need not occur in
   kwwk's static catalog; OAuth IDs remain restricted to that provider's list.
@@ -2223,9 +2398,8 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   GitHub Copilot, Kimi For Coding (kimi.com and, from kwwk 0.1.108, Kimi
   For Coding Global on kimi.ai, each with its own device id) and Grok;
   Safari with kwwk's loopback
-  listener for Claude Pro or Max, ChatGPT Codex, Devin, OpenRouter,
-  from kwwk 0.1.110, Antigravity and, from kwwk 0.1.118, Trae CN, Trae
-  and Raccoon; a
+  listener for Claude Pro or Max, ChatGPT Codex, Devin, OpenRouter
+  and, from kwwk 0.1.118, Trae CN, Trae and Raccoon; a
   page kwwk polls for Cursor, Qoder, Qoder CN, WorkBuddy, WorkBuddy AI, Z.ai
   and BigModel; Kiro's own listener — and every API-key entry of KWWKCli's
   `loginProviders` (Anthropic, OpenAI, Google AI Studio, OpenRouter,
@@ -2246,23 +2420,15 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   only the cases, the key forms and model discovery at the plan's
   `<root>/v1/models`, which, like kwwk's routes, never reads a `baseUrl`
   an imported credential carries.
-  Antigravity (owner, 2026-11-04; kwwk 0.1.110 and 0.1.111,
-  `AntigravityOAuth`, `registerAntigravity`) is Google's: a Google sign-in
-  with Antigravity's own client, PKCE and its registered loopback, after
-  which kwwk finds the account's Code Assist project, onboarding a new
-  account and polling until Google has set it up, and keeps the project,
-  the tier and, when Google names it, the email as extras; it renews at Google (`upkeep: .refreshed`, in
-  `KimiIdentity.refreshers()` with the rest) and answers through Code
-  Assist's `streamGenerateContent`. A free Google account signs in too;
-  which models a plan serves is Google's. Apelin adds the case, after
-  Cursor in the order, and its mark (its official logo on a white plate):
-  the models are kwwk's bundled list for it (`antigravity`, from 0.1.111
-  Gemini 4 Argon, Gemini 3.8 Flash, Claude Opus 5.5 and Sonnet 5.5 among
-  them), enabled with no check like any subscription's, and a model the
-  account is not served fails its chat in Google's words. kwwk waits out
-  a 429 that says it is back within a minute and fails one that says the
-  quota is spent (its `ProviderFailures.md`); its quota reader
-  (`OAuthUsage`) is shown nowhere, as for every subscription.
+  Antigravity, Google's, was offered from 0.3.7 to 0.4.7 and went with
+  kwwk 0.1.122, which removed it (owner, 2026-11-21): its name and store
+  id stay in `AgentProvider.retired`, apelin-agent deletes the keychain
+  item its sign-in left the first time the accounts are listed
+  (`AccountDesk.forgetRetiredSignIns`, logging the store id alone), and
+  the app clears the models enabled for it and a composer choice of one
+  at each launch (`EnabledModels.forgetRetiredProviders`); a choice still
+  naming it reads as none, so the composer takes another account's model
+  or asks for one.
   Trae and Raccoon (owner, 2026-11-11; JanXiao's providers of PR #40,
   moved into kwwk as OpenCode Go was: kwwk 0.1.118, `TraeOAuth`,
   `TraeProvider`, `RaccoonOAuth`, `RaccoonProvider`) are signed in to as
@@ -2291,8 +2457,9 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   Display order is Apelin's `AgentProvider.signInOrder`, independent of
   kwwk's registration order;
   `AccountDeskTests` fails when kwwk gains a subscription or a stored
-  provider (`providerDirectory`) the table lacks, or when a provider here is
-  one neither kwwk nor Apelin can register for a session.
+  provider (`providerDirectory`) the table lacks, when a provider here is
+  one neither kwwk nor Apelin can register for a session, or when kwwk
+  signs in to a retired one again.
   Several OpenAI-compatible endpoints (#60: there was one, and adding
   another replaced it): the first is `openAICompatible` as before, and
   each further one is a provider of its own, `openAICompatibleEndpoint(n)`,
@@ -2355,10 +2522,9 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   refresh token or authorization code is exposed; the device code is the one
   thing the flow shows. A loopback redirect is the URI kwwk registered for
   that provider (Claude's `http://localhost:53692/callback`, Codex's port
-  1455, Devin's `127.0.0.1:59653`, OpenRouter's port 53693, Antigravity's
-  `http://localhost:51121/oauth-callback`), or, for Trae and Raccoon, whose
-  pages take any, whichever port is free (`127.0.0.1:<port>/authorize` and
-  `/auth/callback`): kwwk's NIO listener in
+  1455, Devin's `127.0.0.1:59653`, OpenRouter's port 53693), or, for
+  Trae and Raccoon, whose pages take any, whichever port is free
+  (`127.0.0.1:<port>/authorize` and `/auth/callback`): kwwk's NIO listener in
   the worker, through kwwk's `loopback` seam (`PasteableLoopback`), answers
   a browser on the same device, and is raced against the redirect address
   handed back as `callbackURL` for a browser that cannot reach it. The
@@ -2384,12 +2550,12 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   other device can finish it. Proven on the Mac by `AccountDeskTests` (fake flows and
   listener, an in-memory store, no secret in any event: a device code that
   is typed and one that is only checked, Kimi's device id, a loopback with
-  a paste, Antigravity's own kwwk login up to its Google page, a polled
-  page, every key form, OpenRouter both ways, kwwk's lists covered); on a
-  device by `Documents/Console/scripts/accounts.json` (start, read, refuse
-  and cancel a device code, four loopbacks, OpenRouter's, Antigravity's,
-  Trae CN's and Raccoon's, a polled page and two key forms; signs nothing
-  in) and, by name,
+  a paste, a polled page, every key form, OpenRouter both ways, a retired
+  provider's sign-in deleted, kwwk's lists covered); on a device by
+  `Documents/Console/scripts/accounts.json` (start, read, refuse and
+  cancel a device code, three loopbacks, OpenRouter's, Trae CN's and
+  Raccoon's, a polled page and two key forms; signs nothing in) and, by
+  name,
   `a2-api-key-sign-in.json` (a placeholder key in and out again, which
   replaces the device's openai-compatible sign-in); the real sign-ins by
   hand.
@@ -2450,18 +2616,86 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   at icli's own 30 ms a character and answers `typedTextMatches` and
   `fieldValues`, the values the visible elements took on while it went in
   (icli names no text-field role), so lost characters show.
-  `press` is `wake`, `home` or `lock` (IcliKit's `pressButton`, `lock` its
-  `power`; 2026-10-29). While the device is locked or its screen is off,
-  the UI tree and every action but a wake answer `conflict`, saying which
-  and that a wake comes first. A wake runs on either and answers what it
-  left (`locked`, `screenOff`): a device without a passcode is past its
-  lock screen, one with a passcode stays on it for the user to unlock.
-  Nothing in Apelin asks for, keeps or types a passcode: not icli's
-  `unlockDevice` (0.11.0 and later), nor its `device passcode`, which the
-  `apelin-icli` skill tells the agent never to run. IcliKit 1.0.0
-  has the press and the wake with the same iOS code as 0.9.0; it carries
-  `unlockDevice` too, never called, so apelin-diagnostics has no
-  `com.apple.keystore.device`. An agent's
+  `press` is `wake`, `home`, `lock` (IcliKit's `pressButton`, `lock` its
+  `power`; 2026-10-29) or `unlock` (below). While the device is locked or
+  its screen is off, the UI tree and every action but a wake and an unlock
+  answer `conflict`, saying which and that a wake comes first. A wake runs
+  on either and answers what it left (`locked`, `screenOff`): a device
+  without a passcode is past its lock screen, one with a passcode stays on
+  it. IcliKit 1.0.0 has the press and the wake with the same iOS code as
+  0.9.0; it carries `unlockDevice` too, never called in process, so
+  apelin-diagnostics has no `com.apple.keystore.device`.
+  *The device passcode* (owner, 2026-11-21, reversing "nothing in Apelin
+  asks for, keeps or types a passcode": "设置里面要允许保存解锁密码，这样
+  agent 可以走 apelin 的接口去 unlock device（唤醒、解锁、进入主屏幕），方便自动化测试。
+  密码保存到 keychain，要求调用 icli 设备解锁的 command line 测试通过才允许使用。
+  注意避免多次调用错误密码导致设备被锁"; `Operations/DevicePasscode.swift`,
+  `ApelinDiagnosticsWorker/DevicePasscode/`, Settings ▸ Agent ▸ Device
+  Passcode, `Apelin/Interface/Settings/DevicePasscodeController.swift`).
+  The user saves this device's passcode in Settings so that an agent can
+  unlock the device for automated testing. apelin-diagnostics alone keeps
+  it, in the keychain (`KeychainDevicePasscodeStore`: service and access
+  group `wiki.qaq.apelin.device-passcode`, `keychain-access-groups` on
+  apelin-diagnostics only, after first unlock, this device only, never
+  synchronised), and it reaches the keybag only through icli's command
+  line, `<install root>/usr/bin/icli device passcode unlock
+  --passcode-stdin --max-failures 1` (`IcliPasscodeCommand`; the executable
+  a regular file, root's and writable by root alone, in a folder the same;
+  the passcode on standard input, never in argv, the environment, a file,
+  an event, a log, a journal or a reply), which carries
+  `com.apple.keystore.device`. `devicePasscodeState`,
+  `devicePasscodeSave {passcode}` and `devicePasscodeRemove` are the app's
+  alone (CallerPolicy lets no worker call them), and the console refuses
+  `devicePasscodeSave` before sending it. *Test and Save* (`DeviceUnlock`)
+  is one request: icli's `status` read first (no passcode on the device:
+  `noPasscode`, nothing saved; icli without `device passcode`, exit 64:
+  `icliOutdated`; the keybag locked, a failed attempt on record or
+  unreadable, a back-off, a block: nothing tried), icli's ledger of
+  rejected passcodes cleared with `forget --force` when it holds any (the
+  user typed this passcode now, on a device whose own count reads zero),
+  the side button, a wait of up to 15 s for the keybag to read locked
+  (else `didNotLock`, nothing tried), one attempt, and the passcode saved
+  only when icli answered exit 0 with `result: unlocked` and `attempted:
+  true`; then Home and one swipe up pass the Lock Screen back to Apelin.
+  The reply comes once the test is over; the app, behind the Lock Screen
+  meanwhile, reads `devicePasscodeState` again if it is lost. *The
+  agent's unlock* is `uiAction` `press` `unlock` (`DevicePasscode.unlockButton`):
+  on a device already unlocked and lit it does nothing, on one unlocked
+  and dark it only wakes it; locked, it reads icli's status, and only when
+  the keybag is locked does it use the saved passcode, then wakes, passes
+  the Lock Screen (Home, then one swipe up from the bottom edge; nothing
+  types into it) and, once the app in front has settled (a Home pressed
+  while the Lock Screen goes is lost), presses Home, answering what it
+  left and the way it went (`UIActionResponse.unlockedBy`,
+  `DeviceUnlockPath`: nothing, a wake, past the Lock Screen with no
+  passcode, or the saved passcode), which the tool's result says, so a
+  device without a passcode is never reported unlocked with one. It takes no
+  target, and an app on the refused list (Apelin) beneath the Lock Screen
+  does not hold it back, since it leaves the Home Screen in front; every screen rule
+  still holds — Strict asks, Ask Before Using the Screen asks every time.
+  Refusals: `conflict` with reason `devicePasscodeNotSaved` (locked, none
+  saved) or `devicePasscodeRefused` (a failed attempt on record, a
+  back-off, a rejected passcode in icli's ledger), nothing tried; `denied`
+  with `devicePasscodeRejected` once it tried and was rejected. *Never a
+  second wrong attempt*: an attempt is made only after icli's status read
+  zero failed attempts on the device's own counter (which only an unlock
+  clears), and icli checks it again under its ledger's lock with
+  `--max-failures 1`, so after one wrong passcode — anyone's, the user's
+  mistype on the Lock Screen included — nothing is tried, by this worker,
+  another or a script, until a person unlocks the device; at most one
+  attempt per press or test, never retried; the saved passcode is marked
+  `attempting` before each use and dropped unless the use is seen to
+  unlock or to try nothing (exit 0, or 5 with `attempted: false`; the
+  mark taken back only while it is still this use's), so a
+  rejection (3), one icli had rejected before (4), an uncounted keybag
+  error (6), any other status, a signal, no answer within 30 s (the run is
+  killed with its process group) or a crash mid-attempt leaves nothing to
+  try again; uses take turns in the worker. The agent is told (the screen
+  tool's description, `# This device`, the `apelin-icli` skill) to press
+  unlock, to ask the user when it is refused, and never to ask for, read
+  or type a passcode or run `icli device passcode`. A vphone cannot have a
+  passcode, so its keybag path has run on the Mac only (`DeviceUnlockTests`,
+  `IcliPasscodeCommandTests`); Device-Validation ▸ Still to run. An agent's
   action never reaches Apelin itself (`AgentUIActionRules`): the host sets
   its `refusedBundleIDs` to `wiki.qaq.apelin`, whatever the agent sent, and
   apelin-diagnostics answers `denied` for a target on that list, before
@@ -2522,6 +2756,12 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   over the app's and the widget's `.stringsdata`, which refuses a key the
   compiler extracted that its catalog lacks (the Model Providers menu's
   "Edit", 2026-10-29). Put each one in by hand, with its translations.
+  No middle dot (`·`) sets words or phrases apart anywhere in the app's
+  copy, old copy included (owner, 2026-11-21): a line joins its parts in
+  words or with the language's own comma, as `%@, %@` and `%@, until %@`
+  do; copy is written by Argon. The one dot kept is the feedback footer's,
+  `Sent with Apelin … · iOS … · …`, which issues already filed are parsed
+  by (`FeedbackRules.split`).
 - **Licenses**: the reviewed discipline (`Licenses/README.md`). A dependency's
   notices land in `Licenses/` and `review.json` in the commit that adds it.
   GPL-family text fails the build except for an entry in `review.json` ▸
@@ -3407,7 +3647,8 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
 - **Diagnostics** use `owngoal-dev/icli` for everything it can do — logs,
   crash reports, screenshots, the UI tree and actions, respring — and gaps are
   filled in icli, not beside it. The package depends on the icli CLI too
-  (`com.icli.icli (>= 0.10.0)`, from apt.owngoal.dev; owner, 2026-10-26),
+  (`com.icli.icli (>= 0.11.0)`, from apt.owngoal.dev; owner, 2026-10-26;
+  0.11.0, 2026-11-21, for the device passcode's `device passcode`),
   which the agent runs through shell_run as the `apelin-icli` skill says —
   dedicated tools first, mobile's commands only, `icli probe` (a
   JavaScriptCore script with Objective-C reflection, in process, read-only
@@ -3750,7 +3991,7 @@ adding a dated record beside it.
 - `ChatRuntime.transcript` brings a conversation's rows up to date only when they would differ (`ChatTranscriptCache`, kept for the followed conversations and the page's). `ChatTranscript` is a fold: new events (`ChatRecord.events` are only appended to) are read onto the rows the earlier ones made (`append`), and the rows shown are made afresh from those, as a build from every event at once at the same `now` makes them (`Tests/ChatTranscript/TranscriptFold.swift` compares the two over random logs). A change to the messages it is sending, or a `quietDeadline` passed since it was shown, shows the rows again, so the refresh `ChatQuietWatch` asks for at the deadline adds the stand-in; only a sender's new title builds it again from every event. A row equal to one shown before is that very value, so the page's comparison stops at its storage. The composer is told of its approval request and its Stop only when either changes, a long-poll that ran out with nothing writes nothing, and a conversation is written once at a time, then once more with what changed meanwhile.
 - Working state comes from the reader's Send and from session events, never a late send acknowledgement: `ChatRuntime.submit` makes the conversation work while its message is on its way (`summary.isWorking`), a turn or compaction of the followed session keeps it working, and a send that fails or is stopped leaves it working only if one of those still does (`works`). `stop` withdraws every message whose send has not answered (`PendingSend`): its row goes and its draft returns as a failed send's does, and whoever waits for the send hears it cancelled at once, so the composer takes the next Send without waiting for the host; the send itself runs to its own end, where the host is not handed a message it has not got, and the run of one it had taken is stopped once the send answers, since a stop before the run starts finds nothing to stop; a session that ended with the host answers `notFound`, which is no failure to stop. An approval card needs a turn of the session actually running (`runsTurn`), so a message on its way never brings back a request a stopped session left. Completed zero-second, zero-tool thought rows are omitted. A positive duration without tools shows only the duration; tools without a positive duration show only their count; “and” joins the clauses only when both values are positive. Thought headers use Litext numeric transitions, with reduced motion respected. User messages and reply text are selectable.
 - The conversation alternates a single thinking summary with response content. Consecutive thinking steps merge across tools and approvals. Tool calls and completed approvals stay out of the main transcript; tapping the summary opens their ordered trace in a form sheet, a list of the steps, provider-supplied thinking included, each opening its own plain text. Headers use body-size 50% primary text aligned to the body margin, with a sentence for duration and tool count. Pending approval still replaces the composer.
-- Every agent tool, MCP tools included, requires a short `reason` (`ToolReason`), stripped from the arguments before the approval gate, the fingerprint, the tool or the host sees them; the `toolCall` event keeps it. The file tools end their result's first line with `+a -b` lines added and removed. While a turn runs, its trailing summary stays unfinished across calls and approvals, the run's received tokens climbing at the trailing end of its title line (and of the summary above the reply while the reply streams). Once the summary has a call, `ToolCallBannerView` shows one line under it, at the reading width, between hairlines on a 5% grey ground drawn out to the row's edges: the newest call in its trace (`ToolCallBanner`), by its reason, or its title for a call made without one, and for a file tool (`ToolCallBanner.fileTools`) the file's name first, then the lines added in green and removed in red once its result is in, read from the result's first line (a failed call has none), so truncation takes the end of the reason, never the numbers. Thinking after a call leaves that call there; nothing of the thinking shows (owner, 2026-10-24: no thinking tail, typing or character fade). On the same summary, a new call, or its counts coming in, fades in over 0.2 s; the line's first call, a row taken over by another summary and everything under Reduce Motion show at once. VoiceOver reads the line after the title: the reason, then the file and its counts in words as its value. Only the running summary in the transcript has it; the trace sheet lists every call and opens each whole. The running summary reads “Waiting for Network…” after a `waitingForNetwork`, until the request is asked again, and “Reconnecting…” after a `reconnecting`, each until the request made again streams or the run moves on, else “Executing N tools…” only while N calls await a result, “Thinking…” otherwise, and its title changes at most once a second: the first change at once, the latest of the rest when the second is up. A running summary stands in under a prompt, or under images a tool returned, until the turn shows something, with the id its next thought takes, and `toolCallPreparing` starts one while the model writes a call's arguments, so a turn never shows a gap. One stands in under a message on its way too (owner, 2026-11-14): the first of `sending` when no turn runs starts the next one, and `ChatTranscript.show` puts the summary its echo will have under it, under the same id, so opening the session, a reopened session's replay and the host recording the message all pass with the turn already shown at work, and the echo and the first thought change nothing on screen; any other message on its way waits, faded, for that turn. One stands in under the turn's last reply (or error) too once the running turn has gone `ChatTranscript.quietInterval` (1.5 s) without an event — the model may be writing a call it has not announced, or the provider has stalled —, never under a running summary or a waiting approval. The transcript is given the time (`now`) and answers `quietDeadline`; the page builds its rows again once, then (`ChatQuietWatch`), and nothing polls. The reply's next thought, call or message start takes the stand-in's id, so it becomes that row with no flash, and more of the reply ends it. A `messageDiscarded` takes back the rows its message made, while it was still streaming, and leaves unanswered again what it answered, so the stand-in comes back under the same id and the retried reply is drawn once, never under the partial one. An `error` is a row of its own kind (owner, 2026-11-14; `ChatFailure`, `ChatFailureRow`), never drawn as a reply: one line in red naming what went wrong by the event's `reason` (“No Internet Connection”, “Unable to Reach Model Provider”, “Request Timed Out”, “Sign-In Not Accepted”, “Usage Limit Reached”, “Too Many Requests”, “Model Provider Error”, “Chat Too Long”, and “Something Went Wrong” for an error with no reason or one this version does not know), and under it, in the secondary colour, what to do where the reason says it (connect, check the network or proxy, send again, check the sign-in in Settings ▸ Model Providers, compact the context) and otherwise the provider's own words; plain selectable text, one VoiceOver element reading both lines. The row's `text` stays the recorded message, so following, unread and the journal read it as before. Transcript content is centred in at most 730 pt, the composer card's widest, so the two edges line up; the list itself spans the page's safe area side to side, so its margins scroll, and stops at a vertical bar's strip, which is the bar's (iPhone Duo at the 27.1 SDK tier: a trailing safe-area inset on one side only).
+- Every agent tool, MCP tools included, requires a short `reason` (`ToolReason`), stripped from the arguments before the approval gate, the fingerprint, the tool or the host sees them; the `toolCall` event keeps it. The file tools end their result's first line with `+a -b` lines added and removed. While a turn runs, its trailing summary stays unfinished across calls and approvals, the run's received tokens climbing at the trailing end of its title line (and of the summary above the reply while the reply streams). Once the summary has a call, `ToolCallBannerView` shows one line under it, at the reading width, between hairlines on a 5% grey ground drawn out to the row's edges: the newest call in its trace (`ToolCallBanner`), by its reason, or its title for a call made without one, and for a file tool (`ToolCallBanner.fileTools`) the file's name first, then the lines added in green and removed in red once its result is in, read from the result's first line (a failed call has none), so truncation takes the end of the reason, never the numbers. Thinking after a call leaves that call there; nothing of the thinking shows (owner, 2026-10-24: no thinking tail, typing or character fade). On the same summary, a new call, or its counts coming in, fades in over 0.2 s; the line's first call, a row taken over by another summary and everything under Reduce Motion show at once. VoiceOver reads the line after the title: the reason, then the file and its counts in words as its value. Only the running summary in the transcript has it; the trace sheet lists every call and opens each whole. The running summary reads “Waiting for Network…” after a `waitingForNetwork`, until the request is asked again, and “Reconnecting…” after a `reconnecting`, each until the request made again streams or the run moves on, else “Executing N tools…” only while N calls await a result, “Thinking…” otherwise, and its title changes at most once a second: the first change at once, the latest of the rest when the second is up. A running summary stands in under a prompt, or under images a tool returned, until the turn shows something, with the id its next thought takes, and `toolCallPreparing` starts one while the model writes a call's arguments, so a turn never shows a gap. One stands in under a message on its way too (owner, 2026-11-14): the first of `sending` when no turn runs starts the next one, and `ChatTranscript.show` puts the summary its echo will have under it, under the same id, so opening the session, a reopened session's replay and the host recording the message all pass with the turn already shown at work, and the echo and the first thought change nothing on screen; any other message on its way waits, faded, for that turn. One stands in under the turn's last reply (or error) too once the running turn has gone `ChatTranscript.quietInterval` (1.5 s) without an event — the model may be writing a call it has not announced, or the provider has stalled —, never under a running summary or a waiting approval. The transcript is given the time (`now`) and answers `quietDeadline`; the page builds its rows again once, then (`ChatQuietWatch`), and nothing polls. The reply's next thought, call or message start takes the stand-in's id, so it becomes that row with no flash, and more of the reply ends it. A `messageDiscarded` takes back the rows its message made, while it was still streaming, and leaves unanswered again what it answered, so the stand-in comes back under the same id and the retried reply is drawn once, never under the partial one. An `error` is a row of its own kind (owner, 2026-11-14; `ChatFailure`, `ChatFailureRow`), never drawn as a reply: one line in red naming what went wrong by the event's `reason` (“No Internet Connection”, “Unable to Reach Model Provider”, “Request Timed Out”, “Sign-In Not Accepted”, “Usage Limit Reached”, “Too Many Requests”, “Model Provider Error”, “Chat Too Long”, “Did Not Stop in Time” (#67: a stopped run the worker ended itself), and “Something Went Wrong” for an error with no reason or one this version does not know), and under it, in the secondary colour, what to do where the reason says it (connect, check the network or proxy, send again, check the sign-in in Settings ▸ Model Providers, compact the context, send a message to continue) and otherwise the provider's own words; plain selectable text, one VoiceOver element reading both lines. The row's `text` stays the recorded message, so following, unread and the journal read it as before. Transcript content is centred in at most 730 pt, the composer card's widest, so the two edges line up; the list itself spans the page's safe area side to side, so its margins scroll, and stops at a vertical bar's strip, which is the bar's (iPhone Duo at the 27.1 SDK tier: a trailing safe-area inset on one side only).
 - `ProjectPickerController` lists real projects; `NewProjectController` chooses a catalog template, using its default parameters and calls `projectCreate`. Settings includes a read-only Templates catalog with single-line names with source-file byte counts at the trailing edge, no subtitles and no disclosure navigation. The built-in `wiki.qaq.apelin.workspace/empty` template creates only a workspace identity manifest, atomically and without SDK/toolchain requirements. It supplies no build or install baseline; a build requires a real build description.
 
 - Templates are a single read-only release catalog, with additions and corrections submitted as repository pull requests. There is no create/delete action or separate user template library. `make template-archive` validates and reproducibly packs sources, support files and licenses as `Apelin_<version>_Templates.tar.zst`; CI records its checksum and Release publishes that exact artifact without rebuilding. The command-line tool templates' `Tool.entitlements` carry the app templates' GPU and IOSurface IOKit user-client list under both keys from `wiki.qaq.apelin.dev.cli` 0.1.1 (owner, 2026-10-29; `make check` holds the app's entitlements and every app and cli template's to `Scripts/check-gpu-entitlements.py`, while a tweak or preference bundle, a library, runs with its host process's), and a project keeps the entitlements its template wrote, so a cli project made from 0.1.0 has no list until one is added, a build description change Strict reviews. Every template writes its extension's package manager icon on Pages, `https://owngoal-dev.github.io/Apelin/icons/<extension id>.png`, as `package.icon` (owner, 2026-10-29; app and tweak 0.1.1, cli and preferences 0.1.2), which the build writes as the deb's `Icon`, so a package manager shows it beside the installed package and in the user's package repository; the user keeps it or names their own https image, a packaging description change Strict reviews. It is not an app's own icon, nor a Settings row's: the preference bundle template carries that one in its bundle from `wiki.qaq.apelin.dev.preferences` 0.1.3 (owner, 2026-10-30, issue #19), `Resources/icon.png` with its @2x and @3x at 29 points, the extension's plate scaled from the `ProjectIconPreferences` image set, named by the PreferenceLoader entry's `icon`, for the developer to replace. A project made before has none and keeps its digests.
@@ -4234,7 +4475,11 @@ extensions); every request carries the session ID as
 Copilot's GPT route), Codex's `session-id`/`thread-id`, OpenRouter's
 `x-session-id` and Grok's `x-grok-conv-id`; Anthropic (API key, Claude
 Pro/Max, Copilot's Claude route, Kimi For Coding) gets `cache_control` on
-the last tool, the system prompt and the last message block; DeepSeek,
+the last tool, the system prompt and the last message block, and so do
+OpenRouter's Claude models through Chat Completions, the last on the
+newest message, a tool result included (from kwwk 0.1.126: before it a
+tool loop kept that mark on the last message with text, and nothing the
+loop added after it was read from the cache); DeepSeek,
 Gemini and other OpenAI-compatible endpoints cache prefixes on their own.
 kwwk's request encoders sort JSON keys. `received` and `notice` are events,
 never messages: the transcript is kwwk's `messages` alone, changed only by a
@@ -4263,7 +4508,9 @@ untouched: the block only tells the model. Nothing that changes per message
 is in the system prompt (the project context is the first message's, the
 system state every message's, and the memory section carries no revision),
 so neither a Settings edit, a mode switch, midnight nor another chat's write
-costs a cache write. Anthropic's cache lives five minutes from the start of
+costs a cache write. Nor does the `<context-usage>` note: it ends a tool's
+result, which the transcript keeps as sent (Agent sessions ▸ Compaction).
+Anthropic's cache lives five minutes from the start of
 the request that last used it, OpenAI's five to ten of disuse (kwwk's loop
 pins `cacheRetention: nil`, so Anthropic's 1-hour TTL and OpenAI's 24-hour
 one are out of reach without wrapping `AgentOptions.streamFn`, an owner
@@ -4273,8 +4520,10 @@ called again rather than waiting ten minutes. Extra requests: a title
 completion (no tools, at most 3000 characters in and 160 tokens out) for the
 first message, for later ones until it names the chat (three that name
 nothing at most), and on every message while the project still has its
-generated name; compaction, automatic at 75 % of the window or
-`agentCompact`; nothing at reopen, where the transcript is read back (the
+generated name; compaction, automatic at 75 % of the window (the user's,
+when they set one), `agentCompact` or the agent's
+apelin_conversation_compact, which writes the prefix anew as any
+compaction does; nothing at reopen, where the transcript is read back (the
 tool-name migration is idempotent) and the next request finds the prefix the
 last one cached. Known in kwwk, not worked around:
 `ProviderImageBudget.clamp` drops the oldest image one at a time past a

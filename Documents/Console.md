@@ -389,7 +389,9 @@ error, or on `ok: false` where the exact refusal is the worker's to choose.
   `crashOpen` and `crashSymbolicate` of the newest report (allowed to fail
   on a device with none); an unknown report is refused.
 - `diagnostics.json` — a `uiAction` wake, which presses nothing on a
-  device already awake and leaves `screenOff` false, `captureScreen`,
+  device already awake and leaves `screenOff` false, a `press` `unlock`,
+  which does nothing on a device already unlocked and awake and leaves
+  `locked` false, `devicePasscodeState`, `captureScreen`,
   `readUITree`, one `uiAction` tap in
   the status bar at (200, 4) — not its corner, where iPadOS 26 puts a
   window's close control —, and a `confirmLoaded` for a build that does not
@@ -415,6 +417,11 @@ error, or on `ok: false` where the exact refusal is the worker's to choose.
   `openai-compatible` sign-in with a placeholder key through `agentSignIn`
   and `agentSignInRespond`, lists it under its host, `agentSignOut`, lists
   it gone.
+- `p1-device-passcode.json` — by name only: `devicePasscodeRemove`
+  takes away the device passcode a person saved and tested in Settings,
+  and `devicePasscodeState` then reads none saved. `devicePasscodeSave`
+  has no script: the console refuses it before sending, since the
+  passcode is a person's to type and its test locks the device.
 - `a3-endpoint-beside.json` — a further OpenAI-compatible endpoint
   (`openAICompatible.99`, a number no device uses) signed in to with a
   placeholder key beside whatever the device has: `agentModelList` is

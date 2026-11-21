@@ -33,6 +33,9 @@ actor InstallBridge {
     static let maximumPackageBytes: Int64 = 4 << 30
     /// irisind is on demand: a miss is retried this long before it is an answer.
     static let serviceGrace: TimeInterval = 10
+    /// A handshake sent and left unanswered this long is an answer too:
+    /// launchd holds irisind's job, and its program never replies.
+    static let handshakeLimit: TimeInterval = 20
 
     private let paths: Paths
     private let service: InstallService
@@ -43,7 +46,14 @@ actor InstallBridge {
     private let fileLists: PackageFileLists
     private let approvals: ApprovalLedger
     private let pollInterval: TimeInterval
+    private let grace: TimeInterval
+    private let handshakeWait: TimeInterval
+    /// What a handshake that failed, or a transaction that did, is put down to.
+    private let diagnosis: InstallServiceDiagnosis
     private var checkedService = false
+    /// Transactions followed past Irisin's `preparing` phase, after which its
+    /// helper holds the package database's locks itself.
+    private var pastDatabaseLocks: Set<UUID> = []
 
     init(
         paths: Paths,
@@ -55,6 +65,9 @@ actor InstallBridge {
         fileLists: PackageFileLists,
         approvals: ApprovalLedger,
         pollInterval: TimeInterval = 0.25,
+        grace: TimeInterval = InstallBridge.serviceGrace,
+        handshakeWait: TimeInterval = InstallBridge.handshakeLimit,
+        diagnosis: InstallServiceDiagnosis? = nil,
     ) {
         self.paths = paths
         self.service = service
@@ -65,6 +78,9 @@ actor InstallBridge {
         self.fileLists = fileLists
         self.approvals = approvals
         self.pollInterval = pollInterval
+        self.grace = grace
+        self.handshakeWait = handshakeWait
+        self.diagnosis = diagnosis ?? .live(installRoot: paths.installRoot)
     }
 
     // MARK: Install
@@ -300,6 +316,8 @@ actor InstallBridge {
                 taskID: taskID,
                 installationID: installationID,
             )
+            // A follow taken up past the first event missed the phases before it.
+            let lockedOut = pastDatabaseLocks.remove(transaction) == nil && record.followedSeq == 0
             let receipt = Self.receipt(final)
             if final.state == .succeeded {
                 record = try await installations.update(installationID) {
@@ -332,12 +350,19 @@ actor InstallBridge {
                 }
                 var message = final.failureText ?? Self.unfinished(final)
                     + ", and \(record.packageID) \(record.version) is not installed. Try again."
-                if let explanation = inTheWay.explanation {
+                if lockedOut, let busy = databaseBusy() {
+                    // Irisin's helper takes the database's locks, without
+                    // waiting, as its transaction starts: a failure before
+                    // it got further was most likely theirs.
+                    let reported: String = final.failureText ?? "\(Self.unfinished(final))."
+                    message = "\(busy) Irisin reported: \(reported)"
+                } else if let explanation = inTheWay.explanation {
                     message = final.failureText.map { "\(explanation) Irisin reported: \($0)" } ?? explanation
                 }
                 await registry.finish(taskID, .failed, message: message)
             }
         } catch {
+            let neverSubmitted = record.status == .staged
             if record.status == .staged {
                 record.status = .failed
                 _ = try? await installations.update(installationID) { $0.status = .failed }
@@ -360,7 +385,11 @@ actor InstallBridge {
                 await finishInstalled(record, expecting: expected, taskID: taskID)
                 return
             }
-            await registry.finish(taskID, .failed, message: Self.message(error))
+            await registry.finish(
+                taskID,
+                .failed,
+                message: neverSubmitted ? submissionFailure(error) : Self.message(error),
+            )
         }
     }
 
@@ -483,17 +512,21 @@ actor InstallBridge {
             await registry.finish(taskID, .failed, message: "This installation could not be found. Try again.")
             return
         }
+        var submitted = false
         do {
             // Submitting again under the same ID is safe: irisind answers `dup`.
             _ = try await withServiceGrace {
                 try await self.service.removePackage(transaction: transaction, packageID: record.packageID)
             }
+            submitted = true
             let final = try await follow(
                 transaction,
                 after: record.followedSeq,
                 taskID: taskID,
                 installationID: installationID,
             )
+            // A follow taken up past the first event missed the phases before it.
+            let lockedOut = pastDatabaseLocks.remove(transaction) == nil && record.followedSeq == 0
             let receipt = Self.receipt(final)
             if final.state == .succeeded {
                 try await installations.update(installationID) {
@@ -516,14 +549,14 @@ actor InstallBridge {
                     $0.status = .installed
                     $0.removalReceipt = receipt
                 }
-                await registry.finish(
-                    taskID,
-                    .failed,
-                    message: final.failureText ?? "Irisin could not remove the package. Try again.",
-                )
+                var message = final.failureText ?? "Irisin could not remove the package. Try again."
+                if lockedOut, let busy = databaseBusy() {
+                    message = final.failureText.map { "\(busy) Irisin reported: \($0)" } ?? busy
+                }
+                await registry.finish(taskID, .failed, message: message)
             }
         } catch {
-            await registry.finish(taskID, .failed, message: Self.message(error))
+            await registry.finish(taskID, .failed, message: submitted ? Self.message(error) : submissionFailure(error))
         }
     }
 
@@ -702,6 +735,9 @@ actor InstallBridge {
                 for event in batch.events where event.sequence > cursor {
                     await registry.append(taskID, kind: "irisin", payload: Self.payload(event))
                     cursor = event.sequence
+                    if let phase = event.phase, phase != "preparing" {
+                        pastDatabaseLocks.insert(transaction)
+                    }
                 }
                 if !batch.events.isEmpty {
                     _ = try? await installations.update(installationID) { $0.followedSeq = cursor }
@@ -732,9 +768,46 @@ actor InstallBridge {
             do {
                 return try await body()
             } catch let error as InstallServiceError
-                where error.isTransient && Date().timeIntervalSince(start) < Self.serviceGrace
+                where error.isTransient && Date().timeIntervalSince(start) < grace
             {
-                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                try? await Task.sleep(nanoseconds: retryNanoseconds)
+            }
+        }
+    }
+
+    /// Between two attempts within the grace: a second, or less for a grace
+    /// shorter than four.
+    private var retryNanoseconds: UInt64 {
+        UInt64(min(1, grace / 4) * 1_000_000_000)
+    }
+
+    /// irisind's handshake, retried through the grace like any call, and
+    /// each attempt bounded besides: an answer that never comes would hold
+    /// the install, and the setup waiting on it, for good.
+    private func handshake() async throws -> InstallServiceInfo {
+        let start = Date()
+        let service = service
+        while true {
+            let left = max(handshakeWait - Date().timeIntervalSince(start), 0.05)
+            let attempt = await Patience.answer(within: left) { () async -> Result<InstallServiceInfo, Error> in
+                do {
+                    return try await .success(service.serviceInfo())
+                } catch {
+                    return .failure(error)
+                }
+            }
+            switch attempt {
+            case nil:
+                // The call is still out; give it up so it does not stay so.
+                service.reset()
+                throw InstallServiceError(.noAnswer)
+            case let .success(info)?:
+                return info
+            case let .failure(error as InstallServiceError)?
+                where error.isTransient && Date().timeIntervalSince(start) < grace:
+                try? await Task.sleep(nanoseconds: retryNanoseconds)
+            case let .failure(error)?:
+                throw error
             }
         }
     }
@@ -743,14 +816,17 @@ actor InstallBridge {
         guard !checkedService else { return }
         let info: InstallServiceInfo
         do {
-            info = try await withServiceGrace { try await self.service.serviceInfo() }
+            info = try await handshake()
         } catch let error as InstallServiceError {
             switch error.code {
-            case .unavailable, .interrupted:
-                throw ApelinError(
-                    .unavailable,
-                    "Irisin is not responding. Make sure Irisin \(InstallServiceRequirement.minimumIrisin) or later is installed, then try again.",
+            case .unavailable, .interrupted, .noAnswer:
+                let problem = diagnosis.problem(after: error.code, packages: packages)
+                NSLog(
+                    "apelind-session: irisind did not answer the handshake (%@); found %@",
+                    error.description,
+                    String(describing: problem),
                 )
+                throw ApelinError(.unavailable, problem.message)
             default: throw ApelinError(.unavailable, Self.message(error))
             }
         }
@@ -769,6 +845,26 @@ actor InstallBridge {
             )
         }
         checkedService = true
+    }
+
+    /// Why a transaction could not be handed to irisind (a resumed one is
+    /// handed over with no handshake first): when irisind stayed away, the
+    /// cause as for a failed handshake; anything else in its own words.
+    private func submissionFailure(_ error: Error) -> String {
+        guard let failure = error as? InstallServiceError, failure.isTransient else {
+            return Self.message(error)
+        }
+        return diagnosis.problem(after: failure.code, packages: packages).message
+    }
+
+    /// After a transaction that never got past Irisin's `preparing` phase
+    /// failed: who holds the package database now, as the sentence that
+    /// goes before Irisin's own words; nil when nobody does.
+    private func databaseBusy() -> String? {
+        let holders = diagnosis.lockHolders()
+        guard let sentence = PackageDatabaseLock.sentence(holders) else { return nil }
+        NSLog("apelind-session: the package database is held by %@", String(describing: holders))
+        return sentence
     }
 
     private static func sameRoot(_ a: String, _ b: String) -> Bool {

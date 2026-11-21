@@ -326,6 +326,8 @@ public struct ApprovalPolicy: Sendable, Hashable {
         case let .pressButton(button):
             switch button {
             case "wake": "Presses wake, which turns the screen on"
+            case "unlock":
+                "Unlocks the device, with the passcode saved in Apelin's Settings when it is locked, and goes to the Home Screen"
             case "home": "Presses Home, which sends the app in front to the home screen"
             case "lock": "Presses the side button, which turns the screen off and locks the device"
             default: "Presses \(button)"
@@ -383,6 +385,12 @@ public struct ApprovalPolicy: Sendable, Hashable {
         // (`AgentNoticeRules`). Asking first would defeat it: the user it
         // is for is not looking.
         case .notificationSend:
+            return .allow(.notRequired)
+
+        // The conversation's own context, summarised for the model's next
+        // step: it reads, writes and runs nothing of the user's, and it
+        // asks no one, as automatic compaction asks no one.
+        case .conversationCompact:
             return .allow(.notRequired)
 
         // Instructions every later conversation, in every project, lists

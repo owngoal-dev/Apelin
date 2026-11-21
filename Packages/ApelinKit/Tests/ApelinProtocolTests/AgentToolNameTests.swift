@@ -26,4 +26,11 @@ final class AgentToolNameTests: XCTestCase {
         }
         XCTAssertNil(AgentToolName.canonical("mcp__server__tool"), "an MCP tool is no tool of Apelin's")
     }
+
+    /// The agent compacts its own conversation by this name (owner,
+    /// 2026-11-21), which the context notes and the prompt spell.
+    func testTheCompactionToolIsAConversationTool() {
+        XCTAssertEqual(AgentToolName(rawValue: "apelin_conversation_compact"), .conversationCompact)
+        XCTAssertNil(AgentToolName.legacyNames.first { $0.value == .conversationCompact }, "a new tool has no earlier name")
+    }
 }

@@ -160,6 +160,10 @@
             IcliLaunch.lockState()
         }
 
+        public func screenInfo() -> [String: Any] {
+            IcliKit.screenInfo()
+        }
+
         public func runningApps() throws -> [String: Any] {
             try mapped { try IcliKit.runningApps() }
         }

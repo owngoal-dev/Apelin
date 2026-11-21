@@ -1,5 +1,5 @@
 {
-  "originHash" : "2837713d477448787c7aabd5e39431b534a9db87ebf803a7c0d1ed93013530a2",
+  "originHash" : "ff1c01b228f5a807a7634b247a3d87d794f059e8ce86db87d82413213439d7ff",
   "pins" : [
     {
       "identity" : "cstb",
@@ -13,9 +13,9 @@
     {
       "identity" : "kwwk",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/EYHN/kwwk.git",
+      "location" : "https://github.com/yellowplushq/kwwk.git",
       "state" : {
-        "revision" : "997b8c58047c9bda25f95dce55390d5439bb02bd"
+        "revision" : "fabb3287ad4aea019bedbfa24e7148752f402720"
       }
     },
     {

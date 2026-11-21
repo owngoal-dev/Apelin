@@ -49,9 +49,9 @@
     {
       "identity" : "kwwk",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/EYHN/kwwk.git",
+      "location" : "https://github.com/yellowplushq/kwwk.git",
       "state" : {
-        "revision" : "997b8c58047c9bda25f95dce55390d5439bb02bd"
+        "revision" : "fabb3287ad4aea019bedbfa24e7148752f402720"
       }
     },
     {

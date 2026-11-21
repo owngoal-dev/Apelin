@@ -35,6 +35,12 @@ struct ComposerModelSelection: Codable, Equatable {
         ComposerModelPreferences.tier.flatMap { (supportedTiers ?? []).contains($0) ? $0 : nil }
     }
 
+    /// The context window and largest reply the reader set for this model
+    /// in Model Providers (#68); nil is automatic.
+    var limits: AgentModelLimits? {
+        ModelLimitsStore.limits(for: provider, model: model)
+    }
+
     static var current: Self? {
         get {
             guard let data = UserDefaults.standard.data(forKey: key) else { return nil }
@@ -45,6 +51,20 @@ struct ComposerModelSelection: Codable, Equatable {
             UserDefaults.standard.set(newValue.flatMap { try? JSONEncoder().encode($0) }, forKey: key)
             NotificationCenter.default.post(name: .composerModelSelectionChanged, object: nil)
         }
+    }
+
+    /// A choice of a retired provider's model (`AgentProvider.retired`) is
+    /// removed. It no longer decodes, so the composer already reads it as no
+    /// choice and takes another signed-in account's model, or asks for one.
+    static func forgetRetiredProvider() {
+        struct Named: Decodable {
+            var provider: String
+        }
+        guard let data = UserDefaults.standard.data(forKey: key),
+              let named = try? JSONDecoder().decode(Named.self, from: data),
+              AgentProvider.retired.contains(where: { $0.name == named.provider })
+        else { return }
+        UserDefaults.standard.removeObject(forKey: key)
     }
 
     fileprivate static let key = "composer.modelSelection"

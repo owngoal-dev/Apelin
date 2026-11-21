@@ -11,10 +11,12 @@ import Foundation
 /// `apelin-diagnostics`: logs, crash reports, load confirmation, the screen
 /// and the UI, every one through icli where icli can (the owner's rule), as
 /// mobile. The session host forwards `logStream` and `confirmLoaded` (both
-/// tasks), `crashList`, `crashSymbolicate`, `captureScreen`, `readUITree` and
-/// `uiAction`; the worker asks the host for two things only — a protected
-/// crash report by id (`crashOpen`) and the respring `confirmLoaded`
-/// triggers.
+/// tasks), `crashList`, `crashSymbolicate`, `captureScreen`, `readUITree`,
+/// `uiAction` and the app's device passcode (`devicePasscodeState`,
+/// `devicePasscodeSave`, `devicePasscodeRemove`, kept in this worker's own
+/// keychain group: `DeviceUnlock`); the worker asks the host for two things
+/// only — a protected crash report by id (`crashOpen`) and the respring
+/// `confirmLoaded` triggers.
 public enum DiagnosticsWorker {
     public static func main() -> Never {
         #if os(iOS) && canImport(IcliKit)
@@ -23,15 +25,23 @@ public enum DiagnosticsWorker {
             let diagnostics = Diagnostics(icli: UnavailableIcli())
         #endif
         let pump = LogStreamPump(source: diagnostics)
+        // One for the worker's life: the passcode's uses take turns.
+        let passcodeTurns = PthreadLock()
         WorkerMain.run(role: .diagnostics, onCancel: { taskID, _ in
             pump.cancel(taskID)
         }) { request, context in
-            let service = DiagnosticsService(
+            var service = DiagnosticsService(
                 diagnostics: diagnostics,
                 host: context.host,
                 home: context.assignment.home,
                 installRoot: context.assignment.installRoot,
                 emit: { taskID, kind, payload in context.emit(taskID, kind, payload) },
+            )
+            service.deviceUnlock = DeviceUnlock(
+                diagnostics: diagnostics,
+                keybag: IcliPasscodeCommand(installRoot: context.assignment.installRoot, home: context.assignment.home),
+                store: KeychainDevicePasscodeStore(),
+                serial: passcodeTurns,
             )
             if request.request.operation == .logStream {
                 return LogReaderWorker.serve(request, context: context, pump: pump)
@@ -50,6 +60,9 @@ public struct DiagnosticsService: Sendable {
     public let installRoot: String
     /// Appends an event to one of this worker's tasks; the host numbers it.
     public var emit: @Sendable (TaskID, String, JSONValue?) -> Void
+    /// The device passcode and the unlock that uses it; nil where nothing
+    /// set it up, which answers `unavailable`.
+    var deviceUnlock: DeviceUnlock?
 
     public init(
         diagnostics: Diagnostics,
@@ -98,12 +111,35 @@ public struct DiagnosticsService: Sendable {
             await WorkerMain.serve(ApelinProtocol.ReadUITreeRequest.self, request) { try await readUITree($0) }
         case .uiAction:
             await WorkerMain.serve(ApelinProtocol.UIActionRequest.self, request) { try await uiAction($0) }
+        case .devicePasscodeState:
+            await WorkerMain.serve(DevicePasscodeStateRequest.self, request) { _ in
+                let passcodes = try requireDeviceUnlock()
+                return try await blocking { try passcodes.state() }
+            }
+        case .devicePasscodeSave:
+            await WorkerMain.serve(DevicePasscodeSaveRequest.self, request) { save in
+                let passcodes = try requireDeviceUnlock()
+                return try await blocking { try mapped { try passcodes.saveAndTest(save.passcode) } }
+            }
+        case .devicePasscodeRemove:
+            await WorkerMain.serve(DevicePasscodeRemoveRequest.self, request) { _ in
+                let passcodes = try requireDeviceUnlock()
+                try await blocking { try passcodes.remove() }
+                return Acknowledged()
+            }
         default:
             WorkerMain.unimplemented(request)
         }
     }
 
     // MARK: Helpers
+
+    func requireDeviceUnlock() throws -> DeviceUnlock {
+        guard let deviceUnlock else {
+            throw ApelinError(.unavailable, "The device passcode is not available here.")
+        }
+        return deviceUnlock
+    }
 
     private func reply(
         _ request: ChannelRequest,

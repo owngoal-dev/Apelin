@@ -18,6 +18,7 @@ work="$(mktemp -d /private/tmp/apelin-session-host.XXXXXX)"
 trap 'rm -rf -- "${work:?}"' EXIT
 
 sources=(
+    "$root/Shared/Protocol/AppXPC.swift"
     "$root/Apelind/System.swift"
     "$root/Apelind/Spawn.swift"
     "$root/Apelind/Session/CallerPolicy.swift"
@@ -29,6 +30,7 @@ sources=(
     "$root/Apelind/Session/Install/InstallBridge.swift"
     "$root/Apelind/Session/Install/InstallConflicts.swift"
     "$root/Apelind/Session/Install/InstallService.swift"
+    "$root/Apelind/Session/Install/InstallServiceDiagnosis.swift"
     "$root/Apelind/Session/Install/InstallationStore.swift"
     "$root/Apelind/Session/Install/ManagedPackagePolicy.swift"
     "$root/Apelind/Session/Install/ToolchainTreePruner.swift"
@@ -65,6 +67,7 @@ sources=(
     "$root/Tests/SessionHost/AgentNoticeChecks.swift"
     "$root/Tests/SessionHost/AgentOpenChecks.swift"
     "$root/Tests/SessionHost/AgentHostRunChecks.swift"
+    "$root/Tests/SessionHost/InstallServiceChecks.swift"
     "$root/Tests/SessionHost/PatienceChecks.swift"
     "$root/Tests/SessionHost/RootRunChecks.swift"
     "$root/Tests/SessionHost/ScreenConsentChecks.swift"

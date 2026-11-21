@@ -21,20 +21,31 @@ struct ProviderModelsTests {
         #expect(try AgentWorker.provider(.init(provider: provider)) == .stored(storeID: plan.id, model: nil))
     }
 
-    /// Antigravity's models are kwwk's list for it, as every subscription's
-    /// are: nothing to discover, and its session is kwwk's stored provider.
+    /// What Settings shows beside an empty limit field (#68): each model as
+    /// a session resolves it, from the stored key, with no request.
     @Test
-    func `Antigravity lists kwwk's catalog for it and is kwwk's stored provider`() throws {
-        let subscription = OAuthCredentials(access: "token", refresh: "refresh", expires: 1)
-        let models = ProviderModels.list(.antigravity, credentials: subscription)
-        #expect(models.contains("gemini-4-argon"))
-        #expect(models.contains("claude-opus-5-5"))
-        #expect(ProviderModels.reasoningEfforts(.antigravity, credentials: subscription)["gemini-4-argon"]?.isEmpty == false)
-        #expect(!ProviderModels.usesAPIKey(.antigravity, credentials: subscription))
-        #expect(ProviderModels.modelRequest(.antigravity, credentials: subscription) == nil)
-        #expect(try AgentWorker.provider(.init(provider: .antigravity)) == .stored(storeID: "antigravity", model: nil))
-        #expect(try AgentWorker.provider(.init(provider: .antigravity, model: "gemini-4-argon"))
-            == .stored(storeID: "antigravity", model: "gemini-4-argon"))
+    func `the automatic limits are each model's as a session resolves it`() async {
+        let relay = OAuthCredentials(access: "key", refresh: "", expires: .max, extras: [
+            "baseUrl": .string("https://relay.example/v1"),
+            "defaultModel": .string("relay-model"),
+        ])
+        let relayed = await ProviderModels.automaticLimits(.openAICompatible, credentials: relay, models: ["relay-model", "other"])
+        // kwwk assumes one window and reply for every model behind an endpoint
+        #expect(relayed["relay-model"] == AgentModelLimits(contextWindow: 131_072, maxOutputTokens: 32000))
+        #expect(relayed["other"] == AgentModelLimits(contextWindow: 131_072, maxOutputTokens: 32000))
+        let official = OAuthCredentials(access: "key", refresh: "", expires: .max, extras: [
+            "baseUrl": .string("https://api.deepseek.com"),
+            "defaultModel": .string("deepseek-v4-pro"),
+        ])
+        let deepSeek = await ProviderModels.automaticLimits(.openAICompatible, credentials: official, models: ["deepseek-v4-pro"])
+        // DeepSeek's catalog row, the reply at kwwk's ceiling for an OpenAI wire
+        #expect(deepSeek["deepseek-v4-pro"] == AgentModelLimits(
+            contextWindow: 1_000_000,
+            maxOutputTokens: OutputTokenPolicy.openAIMaximumOutputTokens,
+        ))
+        let key = OAuthCredentials(access: "key", refresh: "", expires: .max)
+        #expect(await ProviderModels.automaticLimits(.anthropic, credentials: key, models: ["unknown-claude"])["unknown-claude"]
+            == AgentModelLimits(contextWindow: 200_000, maxOutputTokens: 128_000))
     }
 
     @Test

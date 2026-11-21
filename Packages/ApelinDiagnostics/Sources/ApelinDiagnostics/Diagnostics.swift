@@ -9,7 +9,7 @@ import Foundation
 /// Calls are synchronous and may block for their window; run them off the
 /// main thread.
 public struct Diagnostics: LogEvidenceSource, LiveLogSource {
-    private let icli: any IcliSurface
+    let icli: any IcliSurface
     /// How long a UI read or element tap waits for the foreground to settle
     /// (`settledForegroundApp`), and how often it asks.
     public var settleTimeout: TimeInterval = 3

@@ -156,15 +156,30 @@ public struct AgentModelListRequest: OperationRequest {
     public typealias Response = AgentModelListResponse
     public static let operation = AppOperation.agentModelList
     public var provider: AgentProvider
-    public init(provider: AgentProvider) {
+    /// Models besides those the provider lists whose automatic limits to
+    /// answer: the ones the user added by hand or enabled. At most
+    /// `maximumLimitsAsked` are read.
+    public var limitsFor: [String]?
+    public static let maximumLimitsAsked = 256
+
+    public init(provider: AgentProvider, limitsFor: [String]? = nil) {
         self.provider = provider
+        self.limitsFor = limitsFor
     }
 }
 
 public struct AgentModelListResponse: Codable, Sendable {
     public var models: [String]
-    public init(models: [String]) {
+    /// For an API-key account, the limits each listed or asked model has
+    /// when the user sets none (`AgentModelLimits`, every field automatic):
+    /// its window, and the largest reply kwwk sends on its own, absent
+    /// where it sends none. A model whose limits could not be read is left
+    /// out; absent for a subscription.
+    public var limits: [String: AgentModelLimits]?
+
+    public init(models: [String], limits: [String: AgentModelLimits]? = nil) {
         self.models = models
+        self.limits = limits
     }
 }
 
@@ -262,8 +277,8 @@ public extension ApelinService {
         try await send(AgentAPIConfigurationRequest(provider: provider))
     }
 
-    func agentModelList(provider: AgentProvider) async throws -> AgentModelListResponse {
-        try await send(AgentModelListRequest(provider: provider))
+    func agentModelList(provider: AgentProvider, limitsFor: [String]? = nil) async throws -> AgentModelListResponse {
+        try await send(AgentModelListRequest(provider: provider, limitsFor: limitsFor))
     }
 
     func agentModelActivate(provider: AgentProvider, models: [String]) async throws -> TaskHandle {

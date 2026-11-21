@@ -23,10 +23,17 @@ enum EnabledModels {
     }
 
     static func remove(for provider: AgentProvider) {
-        UserDefaults.standard.removeObject(forKey: key(provider))
-        UserDefaults.standard.removeObject(forKey: "customModels.\(provider.rawValue)")
-        UserDefaults.standard.removeObject(forKey: "hiddenModels.\(provider.rawValue)")
+        forget(provider.rawValue)
+        ModelLimitsStore.remove(for: provider)
         NotificationCenter.default.post(name: .enabledModelsChanged, object: nil)
+    }
+
+    /// The enabled, custom and hidden models kept for the provider of this
+    /// wire name.
+    private static func forget(_ name: String) {
+        UserDefaults.standard.removeObject(forKey: "enabledModels.\(name)")
+        UserDefaults.standard.removeObject(forKey: "customModels.\(name)")
+        UserDefaults.standard.removeObject(forKey: "hiddenModels.\(name)")
     }
 
     static func customIDs(for provider: AgentProvider) -> [String] {
@@ -35,6 +42,17 @@ enum EnabledModels {
 
     static func hiddenIDs(for provider: AgentProvider) -> Set<String> {
         Set(UserDefaults.standard.stringArray(forKey: "hiddenModels.\(provider.rawValue)") ?? [])
+    }
+
+    /// What a provider Apelin no longer offers left here
+    /// (`AgentProvider.retired`): its enabled, custom and hidden models,
+    /// which nothing reads or signs out of any more, and a composer choice of
+    /// one of them. At each launch; once they are gone it changes nothing.
+    static func forgetRetiredProviders() {
+        for retired in AgentProvider.retired {
+            forget(retired.name)
+        }
+        ComposerModelSelection.forgetRetiredProvider()
     }
 
     static func accounts(from accounts: [AgentAccount]) -> [AgentAccount] {

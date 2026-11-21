@@ -20,7 +20,8 @@ swift test --scratch-path /private/tmp/apelin-spm-w7
 Two more products are the workers themselves, so `make harness` tests what
 runs: `ApelinDiagnosticsWorker` (apelin-diagnostics: `crashList`,
 `crashSymbolicate`, `confirmLoaded` as a task, `captureScreen`,
-`readUITree`, `uiAction` and, through the shared pump, `logStream`) and
+`readUITree`, `uiAction`, the device passcode and its unlock (`DeviceUnlock`,
+below) and, through the shared pump, `logStream`) and
 `ApelinLogReaderWorker` (apelin-log-reader: `logStream` over
 `SystemLogReader`; system code only, checked by
 `Scripts/check-system-only.py`). Both depend on `../ApelinKit` for the wire.
@@ -53,6 +54,26 @@ Nothing takes a command, a predicate or a free path:
   action nil. Binding the action to a verified
   target is the host's job (`settledForegroundApp(expecting:)`).
 - `foregroundApp()`, `runningApps()`, `respring()`.
+- `lockState()`, `wake()`, `pressLock()`, `pressHome()`, `passLockScreen()`
+  — the screen's half of an unlock, which runs while locked: Home, then one
+  swipe up from the bottom edge, each followed by a short wait for the lock
+  to go. Nothing here types or reads a passcode.
+
+### The device passcode (owner, 2026-11-21)
+
+`DeviceUnlock` in `ApelinDiagnosticsWorker` keeps the passcode the user
+saves in Settings (`devicePasscodeSave`) in this worker's keychain group
+(`KeychainDevicePasscodeStore`), and uses it for `uiAction` `press`
+`unlock`. It reaches the keybag only through icli's command line
+(`IcliPasscodeCommand`: `<install root>/usr/bin/icli device passcode
+unlock --passcode-stdin --max-failures 1`, the passcode on standard input,
+the executable root's and writable by root alone), which carries
+`com.apple.keystore.device`; this worker does not. A passcode is kept only
+once the test unlocked the locked device with it; an attempt runs only
+while icli's status reads zero failed attempts, no back-off and no block;
+each use is marked `attempting` first and the passcode dropped unless the
+use is seen to unlock or to try nothing. `DeviceUnlockTests` and
+`IcliPasscodeCommandTests` (a script standing in for icli) hold all of it.
 
 `IcliSurface` is the seam: `IcliKitSurface` calls IcliKit (iOS only); the
 tests pass a fake that answers with dictionaries in icli's own shapes.
@@ -121,8 +142,9 @@ and checked again against
 [1.0.0's](https://github.com/owngoal-dev/icli/blob/1.0.0/docs/entitlements.md):
 the keys 0.9.1 through 1.0.0 added (`com.apple.private.xpc.service-attach`,
 `IOHIDResourceDeviceUserClient`, `com.apple.keystore.device`) belong to
-calls Apelin does not make — kickstart, the virtual pointer and the keybag
-unlock — so no row changed.
+calls Apelin does not make in process — kickstart, the virtual pointer and
+the keybag unlock, which goes through the icli executable — so no row
+changed.
 icli has verified its complete profile together, never one key at a time;
 its acceptance runs are the signed CLI on the rootless vphone.
 **No row has been run from an Apelin process on a device.** "Verified"
@@ -143,6 +165,7 @@ as stated.
 | Respring fallback | `respring` | root for the launchd half | FrontBoard relaunch: `com.apple.frontboard.shutdown` (with the `launchapplications` keys); launchd stop: `com.apple.private.xpc.service-configure`, and launchd's own caller checks | Unverified in Apelin; icli acceptance `springboard_restart` passes. The normal respring is apelind's closed operation |
 | Root log read | `SystemLogReader` | root | diagnosticd may still want `com.apple.private.logging.stream` / `com.apple.diagnosticd.stream` from root | Unverified on iOS. On macOS 27 an unentitled user process receives its own lines (test passes) |
 | Filter match, symbolication, blame | pure | any | none — reads the project's own dSYMs | Verified by tests |
+| Device passcode | keychain item, then the `icli` executable's `device passcode` | mobile | `keychain-access-groups` `wiki.qaq.apelin.device-passcode`; the keybag's `com.apple.keystore.device` is icli's own | Status, a no-passcode unlock and the keychain on the iOS 27.0.1 vphone, which cannot have a passcode; the passcode path by tests only |
 
 `OSLogStore` is not an option on iOS: its only scope there is
 `.currentProcessIdentifier` (`.local()` and `.system` are macOS-only). Both

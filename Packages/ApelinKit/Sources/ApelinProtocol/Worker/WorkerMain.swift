@@ -7,6 +7,13 @@ public struct WorkerContext: Sendable {
     public let assignment: WorkerAssignment
     public let channel: WorkerChannel
 
+    /// A worker's context over `channel`; `WorkerMain` makes the real one,
+    /// and a test serves a worker's requests over a channel pair.
+    public init(assignment: WorkerAssignment, channel: WorkerChannel) {
+        self.assignment = assignment
+        self.channel = channel
+    }
+
     /// The session host, through the same typed facade the app uses. What a
     /// worker may call is decided by the host from the role it registered.
     public var host: ApelinService {

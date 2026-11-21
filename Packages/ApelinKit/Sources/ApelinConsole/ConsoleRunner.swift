@@ -235,6 +235,11 @@ public actor ConsoleRunner {
         guard operation != .gitCredentialSet else {
             throw ApelinError(.denied, "A git credential is saved only in Settings ▸ Git.")
         }
+        // The same for the device passcode, which also locks the device to
+        // test it: a person types it in Settings, and nothing else sends it.
+        guard operation != .devicePasscodeSave else {
+            throw ApelinError(.denied, "The device passcode is saved and tested only in Apelin's Settings.")
+        }
         // A star is the reader's, given on their GitHub account by a tap in
         // the app; a script never gives one for them.
         guard operation != .feedbackStar else {
