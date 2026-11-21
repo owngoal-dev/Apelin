@@ -3520,6 +3520,17 @@ past, did not come again, so its new wording is held by
 `FailureReasonTests` alone. The window cleared again; `suite smoke`: 7
 pass.
 
+With CI's package of the last fixes (build 166): on the iOS 26.4 iPhone,
+Model Providers' DeepSeek row read "api.deepseek.com, until Jan 1, 2100 at
+9:00 AM" (no middle dot); deepseek-v4-pro's Token Limits read Automatic
+(1,000,000) and Automatic (64,000), and with 65000 typed in Context Window,
+nothing saved, Maximum Output's placeholder read Automatic (16,250), a
+quarter of it (left without Save: no `modelLimits` key); Add Toolchain ▸
+From Apple… listed its releases in columns, no dot; a short chat was
+answered; `suite smoke` 7 pass. On the iOS 26.4 iPad, signed out of the
+stand-in endpoint (no credential left), `suite smoke` 6 pass, 1 skip; it
+has no project, so the distribution page's package line was not seen.
+
 Not run: the #67 stand-in modes on an iPhone (the iPad ran them), a real
 provider's spent allowance, the worker's own 20 s bound on a stopped run,
 right to left, the rootless package on a device, and a device with a
