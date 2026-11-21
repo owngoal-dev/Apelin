@@ -8,7 +8,8 @@ import Foundation
 // restart, builds and environment tasks started again after one, the
 // caller policy, the protected-edit rules on a temporary
 // install root, the managed-package rules, the install bridge against a
-// fake irisind, the folders a removed toolchain leaves, the approval
+// fake irisind, why irisind did not answer and who holds the package
+// database, the folders a removed toolchain leaves, the approval
 // ledger, the deb control reader, the copies a tool call's attachments
 // travel as, one agentOpen of a session at a time, the note that the host
 // restarted, and a real PTY.
@@ -1423,6 +1424,8 @@ final class FakeIrisin: InstallService, @unchecked Sendable {
     var failNext = false
     /// What the next failure says, instead of a digest mismatch.
     var failNextText: String?
+    /// The phase the next failure comes in, when it comes in one.
+    var failNextPhase: String?
     /// The next install ends `interrupted` with nothing said.
     var loseNext: Lost?
     /// When each package's file list was last written.
@@ -1476,17 +1479,23 @@ final class FakeIrisin: InstallService, @unchecked Sendable {
             if actual != "sha256:" + sha256 || failNext || !unpacked {
                 let text = failNextText ?? "the digest did not match"
                 failureText = text
+                if let phase = failNextPhase {
+                    events.append(InstallTransactionEvent(sequence: 2, kind: "phase", text: phase, phase: phase))
+                }
                 events.append(
                     InstallTransactionEvent(
-                        sequence: 2,
+                        sequence: UInt64(events.count + 1),
                         kind: "failure",
                         text: text,
                         problem: "installationStopped",
                     ),
                 )
-                events.append(InstallTransactionEvent(sequence: 3, kind: "exit", text: "exit 1", exitStatus: 1))
+                events.append(
+                    InstallTransactionEvent(sequence: UInt64(events.count + 1), kind: "exit", text: "exit 1", exitStatus: 1),
+                )
                 failNext = false
                 failNextText = nil
+                failNextPhase = nil
             } else {
                 events.append(
                     InstallTransactionEvent(sequence: 2, kind: "phase", text: "verifying", phase: "verifying"),
@@ -2200,6 +2209,10 @@ do {
 // MARK: - Removed toolchains leave no folders behind (ToolchainPruneChecks.swift)
 
 try await toolchainPruneChecks()
+
+// MARK: - irisind not answering, the package database held (InstallServiceChecks.swift)
+
+try await installServiceChecks(scratchPath: scratchPath)
 
 // MARK: - Toolchain setup end to end
 

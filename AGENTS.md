@@ -532,6 +532,40 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
     only when every entry is a folder or a `.jbroot` link, the links
     unlinked without being followed and the folders removed bottom up; a
     file or any other link keeps the whole tree. `respring` is irisind's.
+    Before the first install, removal or respring the host asks irisind
+    `serviceInfo`, retried for 10 s from the first miss (irisind is on
+    demand), each attempt bounded besides: a handshake nobody answers is
+    given up after 20 s (`noAnswer`; the pending call is cancelled), never
+    left to hold the setup. When it fails, the failure names the cause as
+    far as root can tell (issue #66; `InstallServiceDiagnosis`, nothing
+    asked of irisind, nothing run or changed): from `var/lib/dpkg/status`,
+    Irisin not installed, not completely installed (`half-installed`,
+    `unpacked`, `half-configured`) or older than 4.7.3 (a version of
+    digits and dots; any other spelling is not judged); then irisind or its
+    launchd plist missing; then, by launchd's and irisind's answer, no such
+    service (the job is not loaded), no answer, or the connection closed
+    every time — irisind says nothing to a program it refuses (Irisin's
+    `Documentation/ExternalClients.md`), so the host runs irisind's
+    admission rule on its own executable (Irisin's `ExecutableAdmission`:
+    the file root's, owner-executable, writable by nobody else; every
+    folder from the canonical install root down to it a real folder owned
+    by root or a system account below 500, writable by nobody else) and
+    reads its own three client entitlements by its audit token, naming the
+    folder or file with its owner and permissions, or the entitlement.
+    Only when nothing is found, or nothing could be read, does it keep
+    "Irisin is not responding…". A held dpkg lock is not a cause here:
+    `serviceInfo` never touches the database. It fails a transaction
+    instead, at once (Irisin's helper takes `lock-frontend` and `lock` with
+    a non-blocking `F_SETLK`, as "Installation stopped: Failure(errno:
+    35)"), so after an install or removal irisind ended without success
+    and, followed from its first event, never past `preparing` (later, its
+    helper held the locks itself), the host reads both locks under
+    `Library/dpkg` and `var/lib/dpkg` (canonical, each folder once) with
+    `F_GETLK`, which takes nothing, and puts "The package database is in
+    use by <name> (process <pid>)…" before Irisin's words
+    (`PackageDatabaseLock`). A resumed install or removal that cannot be
+    handed to irisind is named the same way as a failed handshake. Tested
+    by `Tests/SessionHost/InstallServiceChecks.swift`.
   - *Approvals* (`Session/Approval/`). The host keeps the Confirm-mode ledger:
     per project the template's build and packaging digests (recorded from
     `projectCreate`'s `descriptionDigests`) and every digest the user
@@ -731,7 +765,9 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   (`Tests/SessionHost/`): record persistence and resume (a build restarted
   over a real channel, the refusals, the cancel, the retry bound), CallerPolicy, the
   edit rules on a temporary root, the managed-package rules, the bridge
-  against a fake irisind, the folders a removed toolchain leaves, the
+  against a fake irisind, a handshake that fails or goes unanswered named
+  by its cause and a held package database named by its holder
+  (`InstallServiceChecks.swift`), the folders a removed toolchain leaves, the
   ledger, the control reader, the attachment
   copies, ordinary events leaving the record alone and its number and time
   read back from the log, one `agentOpen` of a session at a time, Ask
