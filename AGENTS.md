@@ -1417,7 +1417,12 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   `contextOverflow`, which the `error` event carries as `reason` beside the
   provider's words; a refusal, a request the provider would not take and
   anything that is not a model request carry none, but for `unstopped`, a
-  stopped run the worker ended itself (below). It is an
+  stopped run the worker ended itself (below), and `contextOverflow` for
+  kwwk's own refusal to send a conversation compaction could not bring
+  under the window, which it says in log words with no status ("context is
+  too large and compaction failed: compaction left 51590 tokens, above the
+  recovery target of 39000"; 2026-11-21, a 65,000-token window the user
+  set and one 100 KB tool result on a device). It is an
   `ApelinError.Reason`, as an error reply's is, open-ended on the wire and
   in the log, so one a peer does not know still reads.
   A sign-in is exchanged or renewed when a session opens and when a message
