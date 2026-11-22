@@ -708,6 +708,52 @@ console now goes on after a restart only past a successful respring.
       the agent names Settings ▸ Git ▸ Publishing; signed out: Sign In with
       GitHub. In Relaxed, no card, and still no publication the user did
       not ask for. Remove the test packages afterwards.
+- [ ] Release builds published as a GitHub Release (2026-11-22, issue #77,
+      AGENTS.md ▸ Distribution repository ▸ A GitHub Release, Agent
+      sessions ▸ A GitHub Release; none of it has run on a device, and it
+      writes releases and tags on a real repository, so by hand only, on a
+      throwaway public repository of a test account, which is deleted
+      afterwards). `make device-run SCRIPT=distribution` refuses a release
+      to `no-owner` before anything reaches GitHub. With a project pushed
+      there (its `origin` the test repository) and release builds of
+      1.0.0 for roothide and rootless:
+      1. Distribute… ▸ Packages ▸ Publish to GitHub Release names `v1.0.0`,
+         the repository, the 7-digit commit and both packages; the progress
+         card goes through Downloading, Checking Packages, Uploading
+         Packages and Publishing Release; Open Release shows a release
+         `v1.0.0` on GitHub, not a pre-release and marked Latest, with both
+         `.deb` files and `SHA256SUMS`, whose lines `shasum -a 256 -c`
+         accepts against the downloaded files, and the tag `v1.0.0` at that
+         commit. Each downloaded `.deb` is byte for byte the one in
+         `Builds/`.
+      2. The same again: "already had these packages", nothing new on
+         GitHub (its release page's files keep their dates).
+      3. A local commit not pushed: refused, saying to push first, and
+         nothing on GitHub changes; pushed, it goes. A tag `v1.0.0` made by
+         hand on GitHub at another commit: refused naming both commits,
+         nothing uploaded, the tag where it was.
+      4. A draft `v1.1.0` made on GitHub by hand with notes and no files:
+         Publish to GitHub Release for 1.1.0 fills that draft (no second
+         release), keeps its notes and publishes it; with `v1.0.0` already
+         latest, `v1.1.0` becomes latest, and a later release of `v1.0.1`
+         leaves `v1.1.0` latest.
+      5. A project with no GitHub remote asks for owner/name; signed out of
+         GitHub, the button opens Settings ▸ Git; Cancel on the progress
+         card stops the task and leaves at most a draft, which the next
+         publish fills in.
+      6. The build page's Distribute ▸ Publish to GitHub Release publishes
+         that one package; the other target's, published later from its
+         own build page, joins the same release and `SHA256SUMS` is
+         written again with both.
+      7. The agent, in the project's chat, asked to release both builds:
+         apelin_package_release under Strict shows one card naming the
+         repository, `v1.0.0`, the commit and both packages with their
+         digests and no "for this session", and answers the release's
+         link; General Chat does not offer the tool. In Chinese the labels
+         read 发布到 GitHub 发行版 and 正在发布到 GitHub…, and VoiceOver
+         reads the Packages row as a button.
+      A repository with immutable releases turned on (Settings ▸ General
+      on GitHub) publishes the draft once, then refuses new files on it.
 - [ ] A GitHub repository made by the agent (2026-10-29, AGENTS.md ▸ The
       environment worker ▸ Git and Agent sessions; none of it has run on a
       device, and it makes repositories on a real account, so by hand

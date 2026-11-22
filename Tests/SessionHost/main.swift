@@ -3622,6 +3622,133 @@ do {
     check(noSession?.code == .denied, "a worker with no session publishes nothing")
 }
 
+// MARK: - A GitHub Release goes under Strict only as the user approved exactly it
+
+do {
+    check(CallerPolicy.allows(.worker(.agent, instance: "s"), .distributionRelease), "the agent may release its builds")
+    check(!CallerPolicy.allows(.worker(.build, instance: nil), .distributionRelease), "the build worker may not")
+    check(!CallerPolicy.allows(.worker(.environment, instance: nil), .distributionRelease), "nor the environment worker")
+    let registry = TaskRegistry(directory: scratch.appendingPathComponent("agent-release-tasks"))
+    await registry.load()
+    let artifacts = ArtifactRegistry(file: scratch.appendingPathComponent("agent-release-artifacts.json"))
+    let sessions = AgentSessionTable.shared
+    func session(_ id: String, mode: ApprovalMode) async -> AgentSessionTable.Entry {
+        let entry = await AgentSessionTable.Entry(
+            sessionID: id,
+            task: registry.create(kind: .agent, owner: .agent, ownerKey: id),
+            project: ResolvedProject(id: "p-release", name: "Release", path: scratchPath),
+            mode: mode,
+            createdAt: Date(),
+        )
+        await sessions.add(entry)
+        return entry
+    }
+    // Two release builds of one version, as apelin-build reports them, and
+    // one of another project.
+    let builds = [("r-hide", "iphoneos-arm64e", "a", "p-release"), ("r-less", "iphoneos-arm64", "b", "p-release"),
+                  ("r-other", "iphoneos-arm64", "c", "p-other")]
+    let files = builds.map { build, architecture, _, project in "/data/Builds/\(project)/\(build)/com.example.clock_1.0_\(architecture).deb" }
+    let digests = builds.map { _, _, digit, _ in "sha256:" + String(repeating: digit, count: 64) }
+    for (index, build) in builds.enumerated() {
+        await artifacts.record(event: .object([
+            "artifactID": .string(build.0), "path": .string(files[index]), "digest": .string(digests[index]),
+            "packageID": .string("com.example.clock"), "version": .string("1.0"), "projectID": .string(build.3),
+        ]), buildID: TaskID(build.0))
+    }
+    let commit = String(repeating: "d", count: 40)
+    func release(
+        _ indices: [Int] = [0, 1],
+        project: String = "p-release",
+        repository: String = "someone/clock",
+        tag: String? = "v1.0",
+        commit sent: String? = String(repeating: "d", count: 40),
+        notes: String? = nil,
+        digests override: [String]? = nil,
+    ) -> DistributionReleaseRequest {
+        DistributionReleaseRequest(
+            projectID: project,
+            repository: repository,
+            files: indices.map { files[$0] },
+            digests: override ?? indices.map { digests[$0] },
+            tag: tag,
+            commit: sent,
+            notes: notes,
+        )
+    }
+    let strict = await session("release-strict", mode: .confirm)
+    // What apelin-agent writes into apelin_package_release's
+    // approvalRequested (ApelinAgentWorker's tests hold that shape).
+    func ask(_ approvalID: String, _ asked: DistributionReleaseRequest) async {
+        let packages: [JSONValue] = zip(asked.files, asked.digests).map { file, digest in
+            .object(["file": .string(file), "digest": .string(digest), "packageID": .string("com.example.clock")])
+        }
+        var detail: [String: JSONValue] = [
+            "projectID": .string(asked.projectID), "repository": .string(asked.repository),
+            "tag": .string(asked.tag ?? ""), "commit": .string(asked.commit ?? ""), "packages": .array(packages),
+        ]
+        detail["notes"] = asked.notes.map { .string($0) }
+        await registry.append(strict.task.taskID, kind: "approvalRequested", payload: .object([
+            "approvalID": .string(approvalID), "tool": .string("apelin_package_release"),
+            "detail": .object([AgentReleaseRules.detailKey: .object(detail)]),
+        ]))
+    }
+    func authorized(_ entry: AgentSessionTable.Entry?, _ request: DistributionReleaseRequest) async -> ApelinError? {
+        await AgentReleaseRules.authorize(request, session: entry?.sessionID, registry: registry, artifacts: artifacts)
+    }
+    let unasked = await authorized(strict, release())
+    check(unasked?.code == .denied, "Strict releases only as the user approved it")
+    // each approval names something else than the release sent
+    let others: [(String, DistributionReleaseRequest, String)] = [
+        ("release-1", release([0]), "an approval of one package is no approval of two"),
+        ("release-2", release(repository: "someone/elsewhere"), "nor of another repository"),
+        ("release-3", release(tag: "v1.1"), "nor of another tag"),
+        ("release-4", release(commit: String(repeating: "e", count: 40)), "nor of another commit"),
+        ("release-5", release(notes: "Other notes."), "nor with other notes"),
+        ("release-6", release(digests: Array(digests.prefix(2).reversed())), "nor of the same files with other digests"),
+    ]
+    for (approvalID, asked, note) in others {
+        await ask(approvalID, asked)
+        await sessions.record(strict.sessionID, approvalID: approvalID, decision: .approve)
+        let refused = await authorized(strict, release())
+        check(refused != nil, note)
+    }
+    await ask("release-7", release())
+    let asked = await authorized(strict, release())
+    check(asked != nil, "asking is not approving")
+    await sessions.record(strict.sessionID, approvalID: "release-7", decision: .approve)
+    let approved = await authorized(strict, release())
+    check(approved == nil, "the approved release goes through")
+    let again = await authorized(strict, release())
+    check(again != nil, "once: the next one asks again, never for the session")
+    let left = await sessions.approvedIDs(strict.sessionID)
+    check(left == (1 ... 6).map { "release-\($0)" }, "only the approval that covered it was spent (\(left))")
+
+    let relaxed = await session("release-relaxed", mode: .relaxed)
+    let full = await session("release-full", mode: .full)
+    let relaxedReleases = await authorized(relaxed, release())
+    let fullReleases = await authorized(full, release())
+    check(relaxedReleases == nil && fullReleases == nil, "Relaxed and Full release as they push")
+    // In every mode: only this project's builds, as they were built, named
+    // with the tag and the commit.
+    let handMade = DistributionReleaseRequest(
+        projectID: "p-release", repository: "someone/clock", files: ["/data/Builds/p-release/made-by-hand.deb"],
+        digests: [digests[0]], tag: "v1.0", commit: commit,
+    )
+    let notBuilt = await authorized(relaxed, handMade)
+    check(notBuilt?.code == .denied, "a .deb no build reported is refused, even in Relaxed")
+    let otherBytes = await authorized(full, release([0], digests: [digests[1]]))
+    check(otherBytes?.code == .denied, "and a build's file under another digest, even in Full")
+    let otherProjectsBuild = await authorized(full, release([2]))
+    check(otherProjectsBuild?.code == .denied, "and another project's build, even in Full")
+    let otherProject = await authorized(full, release(project: "p-other"))
+    check(otherProject?.code == .denied, "an agent releases its own project's builds only")
+    let untagged = await authorized(relaxed, release(tag: nil))
+    let uncommitted = await authorized(relaxed, release(commit: nil))
+    check(untagged?.code == .badRequest && uncommitted?.code == .badRequest, "an agent's release names the tag and the commit")
+    let noSession = await authorized(nil, release())
+    check(noSession?.code == .denied, "a worker with no session releases nothing")
+}
+
 // MARK: - Another project's conversations are reached only as the user approved
 
 do {

@@ -49,7 +49,10 @@ import Foundation
 /// apelin_git_create_repository → `gitRepositoryCreate`;
 /// apelin_git_create_issue → `gitIssueCreate`;
 /// apelin_package_publish → `distributionPublish` with each file's digest
-/// and the repository, read to its end (ChannelHostBackend+Publish). An
+/// and the repository, read to its end (ChannelHostBackend+Publish);
+/// apelin_package_release → `gitStatus` and `gitRemoteList` before asking,
+/// then `distributionRelease` with the card's repository, tag, commit and
+/// digests, read to its end (ChannelHostBackend+Release). An
 /// agent tool extension's tools → `toolHostOpen`, `toolHostCall` and
 /// `toolHostClose`: ChannelHostBackend+ToolExtensions.
 public struct ChannelHostBackend: AgentHostBackend {

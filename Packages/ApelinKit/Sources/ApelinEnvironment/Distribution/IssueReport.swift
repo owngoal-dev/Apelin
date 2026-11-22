@@ -29,6 +29,13 @@ struct IssueReport: Sendable {
         FeedbackRules.editProblem(title: title, body: body, paths: privatePaths, names: names)
     }
 
+    /// The kind of private data other public text holds — a release's
+    /// notes —, by the same shapes and this device's own paths and name;
+    /// nil for none.
+    func privateData(in text: String) -> String? {
+        FeedbackRules.privateData(in: text, paths: privatePaths, names: names)
+    }
+
     func footer() -> String {
         let version = appVersion()
         return FeedbackRules.footer(

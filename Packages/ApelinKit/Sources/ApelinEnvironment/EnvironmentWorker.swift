@@ -5,7 +5,8 @@ import Foundation
 /// apelin-environment's request handling, everything `Workers/Environment`
 /// hands it: the toolchain and SDK operations, the git service and its
 /// settings, a repository made on GitHub and an issue opened on one, the
-/// package repository, the feedback filed, read and edited on Apelin's own
+/// package repository, a project's release builds published as a GitHub
+/// Release, the feedback filed, read and edited on Apelin's own
 /// repository and the star the reader gives it, and the cancellation of the
 /// tasks it runs.
 ///
@@ -203,6 +204,14 @@ public final class EnvironmentWorker: @unchecked Sendable {
                         staging: staging,
                         reporter: reporter,
                     )
+                    reporter.emit("result", result)
+                }
+            }
+        case .distributionRelease:
+            await startTask(DistributionReleaseRequest.self, request, resultInState: true) { [self] typed, _ in
+                let prepared = try distribution.prepareRelease(typed)
+                return { reporter, staging in
+                    let result = try await self.distribution.release(prepared, staging: staging, reporter: reporter)
                     reporter.emit("result", result)
                 }
             }

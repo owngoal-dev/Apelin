@@ -447,8 +447,9 @@ error, or on `ok: false` where the exact refusal is the worker's to choose.
   an `.apetc` (a GB or more, minutes; RootHide's runtime brand undone),
   inspects it (already set up here) and is refused an import of it.
 - `distribution.json` — nothing written to GitHub: `distributionRepositoryList`
-  without GitHub, a bad repository name, a bad `owner/name` and a package
-  outside `Builds/` each refused `badRequest` before a task starts, an
+  without GitHub, a bad repository name, a bad `owner/name`, a package
+  outside `Builds/` and a GitHub Release to a repository named without its
+  owner each refused `badRequest` before a task starts, an
   empty feedback title, a `feedbackRead` of issue 0 and a `feedbackEdit`
   to an empty title each refused before anything reaches GitHub,
   `feedbackStarState` (a read: `denied` without a GitHub sign-in),

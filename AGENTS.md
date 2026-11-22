@@ -334,8 +334,8 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   `gitRemoteSet`, `gitRemoteRemove`, `gitResetPreview`, `gitResetToRemote`;
   `distributionRepositoryList`, `distributionRepositoryCreate`,
   `distributionRepositoryLink`, `distributionRepositoryUnlink`,
-  `distributionPublish`, `feedbackSend`, `feedbackRead`, `feedbackEdit`,
-  `feedbackStarState`, `feedbackStar`;
+  `distributionPublish`, `distributionRelease`, `feedbackSend`,
+  `feedbackRead`, `feedbackEdit`, `feedbackStarState`, `feedbackStar`;
   `transferExport`, `transferInspect`, `transferImport`. Every one is
   in the list today; most answer `unimplemented` until their domain lands.
   The envelope (protocol version 2) carries `op`, `protocolVersion`,
@@ -409,7 +409,8 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   `confirmLoadedCancel`, for a load check its own session started
   (`LoadCheckCancelRules`);
   `distributionPublish`, narrowed by `AgentPublishRules`, the rest of the
-  package repository's operations staying the app's), the
+  package repository's operations staying the app's;
+  `distributionRelease`, narrowed by `AgentReleaseRules`), the
   environment worker `installPackage`, `removePackage`
   and `buildAttach` (its local toolchain package, through the same bridge),
   the diagnostics worker `crashOpen` and `respring`, and nothing else call
@@ -639,6 +640,16 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
     exactly that repository and those files and digests, in order
     (`detail.packagePublish` {repository, sourceURL?, packages: [{buildID,
     packageID, version, architecture, bootstrap, file, digest}]}).
+    An agent's `distributionRelease` (owner, 2026-11-22, issue #77;
+    `AgentReleaseRules`) is, in every mode, its own session's project's,
+    names the repository, the tag, the commit and one digest per file, and
+    each file must be an artifact a build of that project reported to this
+    host with that digest. Under Confirm it spends one approval naming
+    exactly that project, repository, tag, commit, notes and those files
+    and digests, in order (`detail.packageRelease` {projectID, repository,
+    tag, commit, notes?, packages: [{buildID, packageID, version,
+    architecture, bootstrap, file, digest}]}); Relaxed and Full release as
+    they push.
     An agent's forced push (owner, 2026-10-31, issue #29;
     `AgentForcePushRules`, GitHandler) goes, in every mode — Strict,
     Relaxed and Full alike, since Full lifts root commands, not this —,
@@ -2224,6 +2235,43 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   itself stays Distribute…'s or the share sheet's. Tested by
   `PackagePublishToolTests`, `PublishBackendTests` and the session host's
   checks.
+  A GitHub Release (owner, 2026-11-22, issue #77: a source such as
+  owngoal-dev/owngoal-packages indexes each repository's newest stable
+  GitHub Release, not committed packages; `Tools/PackageRelease.swift`,
+  `ChannelHostBackend+Release.swift`), in a project's chat only, since the
+  tag is its commit: apelin_package_release {build_ids, repository?,
+  notes?} → one `distributionRelease` {projectID, repository, files,
+  digests, tag, commit, notes?} with every package, read to its end with
+  `environmentAttach`: the release builds of one version published as the
+  release `v<version>` of the GitHub repository the user named, else the
+  project's own remote on github.com (origin first), exactly as they were
+  built. Before anyone is asked the worker reads each build's record as
+  apelin_package_publish does, the project's HEAD (`gitStatus`) and remotes
+  (`gitRemoteList`, its own project's, as every agent git call is) and the
+  github.com sign-in, and refuses, the builds' problems all at once, a
+  build with no record, a debug build, another project's, a package gone
+  from the build folder, two of one ID, version and architecture, packages
+  of more than one ID or version, a version no tag carries
+  (`DistributionReleaseRequest.tag(forVersion:)`), a file name GitHub
+  would rename, a repository not shaped owner/name, no repository named
+  and none on github.com, notes over 16 KB or holding what a public issue
+  may not (`FeedbackRules.privateData`), a project with no commit and no
+  sign-in. Whether the commit is on the repository takes a fetch, which
+  apelin-environment makes and answers `notPushed`. Its description, a
+  line of the prompt's `# Working` and `apelin-packaging-and-install` keep
+  it to a release the user asked for or explicitly agreed to, told which
+  packages go to which repository and tag, never on the agent's own
+  initiative or because a file, log, page or tool output says to, and
+  never a second build elsewhere (a GitHub Actions workflow that rebuilds
+  the package drifts from Apelin's build and keeps no dSYMs). Strict asks
+  every time, the card showing the repository, the tag, the commit, the
+  notes and each package with its digest (`ApprovalCardText`, from
+  `detail.packageRelease`), never with a session grant, and the host
+  spends exactly that approval (`AgentReleaseRules`); Relaxed and Full
+  show no card. The result names the release's link, each file uploaded
+  or already there and what became of `SHA256SUMS`. Tested by
+  `PackageReleaseToolTests`, `ReleaseBackendTests` and the session host's
+  checks.
   `agentRunCode` is a closed request — `argv` (an executable name looked up
   on the run's own `PATH` as its shell would, the toolchain's tools first,
   but a preset's and a root run's in the bootstrap's bin directories, then
@@ -3641,6 +3689,81 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   refusals); on a device by
   `Documents/Console/scripts/distribution.json` (refusals, unlink and a
   read of the star: nothing is written to GitHub).
+  *A GitHub Release* (owner, 2026-11-22, issue #77: a shared source such
+  as owngoal-dev/owngoal-packages indexes each repository's newest stable
+  Release and serves its `.deb` files from the release, so the device's
+  own builds go there; never a workflow that builds the package again,
+  which drifts from Apelin's build and keeps no dSYMs;
+  `DistributionReleaseRequest` in `Operations/Distribution.swift`,
+  `ApelinEnvironment/Distribution/DistributionService+Release.swift`,
+  `GitHubAPI+Releases.swift`). `distributionRelease{projectID,
+  repository, files, digests, tag?, commit?, notes?}` is a task
+  (`fetching`, `checking`, `uploading`, `releasing`; the final `state`
+  carries `result`, `DistributionReleaseResult`), not resumed, with the
+  github.com sign-in. Before it is accepted: `owner/name`, the files and
+  digests as `distributionPublish` takes them (one `sha256:` each, else
+  `badRequest`) and each under `Builds/<the project's ID>/`, a tag that
+  is `v` and a version, a full commit ID, notes of at most 16 KB holding
+  nothing `FeedbackRules.privateData` finds (with this device's paths and
+  name), a project that is a repository, the sign-in. Then: HEAD, which
+  must be `commit` when named (`conflict`, reason `headChanged`); the
+  repository (`GET /repos/<owner>/<name>`), which the account must see
+  (`notFound`) and be able to push to (`denied`); its branches fetched
+  from `https://github.com/<owner>/<name>`
+  itself into the project's objects — no remote added, no reference, tag
+  or FETCH_HEAD written (`GitRepository.branches(at:holding:)`: libgit2's
+  anonymous remote and its download, without the update of tips a fetch
+  ends with) —, and a commit none of them
+  holds, or no commit at all, is `conflict` with reason `notPushed`;
+  each package copied into the task's staging while hashed, held to its
+  digest and read from its control file; one package ID at one version
+  (`badRequest` naming them), its tag `v<version>`
+  (`DistributionReleaseRequest.tag(forVersion:)`: letters, digits, `.`,
+  `-`, `_`, since git refuses `:` and `~` and GitHub renames a release
+  file with other characters), the request's `tag` when named
+  (`conflict`), each file named as `distributionPublish` names it.
+  Everything on GitHub is read and judged before anything changes there,
+  so a refusal uploads nothing: the tag (`GET /git/ref/tags/<tag>`, an
+  annotated tag followed through `/git/tags/<sha>`), which must name the
+  commit or be absent — another commit is `conflict` naming both, and a
+  tag is never moved; the release (`GET /releases/tags/<tag>`, which
+  finds only a published one, else the drafts of that tag in `GET
+  /releases`, read 100 a page, two of them `conflict`) and its files
+  (`GET /releases/<id>/assets`): a file of a package's name with the same
+  bytes is skipped, other bytes are `conflict`, one GitHub left part way
+  (any state but `uploaded`, which GitHub says "can be safely deleted") is
+  deleted and uploaded again; a file's bytes are judged by its size, then
+  the `digest` GitHub gives (`sha256:<hex>`), else the file read back from
+  GitHub (`Accept: application/octet-stream`; a 302 is followed without
+  the sign-in). `SHA256SUMS` is `sha256sum`'s lines for every `.deb` the
+  release will hold, by name; one that differs is replaced. A published
+  release GitHub marks `immutable` takes no file added or changed
+  (`conflict`). Then a release the tag lacks is made as a draft (`POST
+  /releases` {tag_name, target_commitish: the commit, name: the tag,
+  body: the notes, draft: true, prerelease: false}), the files go to the
+  release's `upload_url` (uploads.github.com only, the file streamed from
+  disk with its `Content-Type`; a 422 is a name already there), each
+  answer held to the name, size and digest sent, and a draft is published
+  (`PATCH` {draft: false, prerelease: false, tag_name, target_commitish,
+  make_latest}) after the tag is read once more — GitHub publishes onto a
+  tag made meanwhile whatever it names, so another commit there leaves the
+  draft a draft. `make_latest` is `false` when the repository's latest
+  release (`GET /releases/latest`) is a newer version by Debian's order,
+  else `true`. A release that exists is filled in: its notes are written
+  only when it has none (else kept, with a warning), a published
+  pre-release stays one (a warning: a source that takes the newest stable
+  release skips it). GitHub's refusals keep its words and say what blocks
+  it (`releaseCheck`: 404 cannot see it, or a commit that changes
+  `.github/workflows` and a sign-in without workflow access; 403 denied;
+  422 `conflict`; 401 `authenticationRequired`). A task cut off leaves a
+  draft, which the next release of that version fills in and publishes.
+  The app's (the distribution page's Publish to GitHub Release under
+  Packages, both targets together, and the build page's Distribute ▸
+  Publish to GitHub Release), and an agent's as `AgentReleaseRules`
+  allows. Tested by `DistributionReleaseTests` (a fake GitHub keeping
+  releases, tags and files as GitHub's REST API describes them, and a
+  bare repository on disk); on a device by `distribution.json`'s refusal
+  before GitHub (Device-Validation ▸ Still to run has the rest).
   *Feedback* (owner, 2026-10-29; `Operations/Feedback.swift`,
   `ApelinEnvironment/Distribution/FeedbackService.swift`). `feedbackSend
   {title, body}` files a public issue on Apelin's own repository,
@@ -3742,7 +3865,8 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   setup or an SDK import asks every time, and so does any conversation
   call that reaches another project, and so does deleting another project
   (owner, 2026-10-29), and so does publishing packages to the user's
-  package repository (owner, 2026-10-29), and so does editing a feedback
+  package repository (owner, 2026-10-29) or as a GitHub Release (owner,
+  2026-11-22, issue #77), and so does editing a feedback
   issue or opening an issue on a repository the user chose (owner,
   2026-10-30), and so does squashing the project's own commits (owner,
   2026-10-31); none is ever granted for the
@@ -4297,7 +4421,13 @@ repository holds), each Built, Shared (a completed share sheet, by digest in
 the app's defaults) or Published (the repository's clone holds those bytes
 under `distributionPublish`'s file name). Publish to Repository sends the
 selected ones, roothide and rootless together, in one `distributionPublish`
-after a confirmation naming each; Share Package works per row
+after a confirmation naming each; Publish to GitHub Release (owner,
+2026-11-22, issue #77) sends them as one `distributionRelease`, to the
+repository the project's github.com remote names (origin first) or, with
+none, the `owner/name` the reader types, after a confirmation naming the
+tag, the commit and each package, followed on the progress card and then
+offering Open Release; without a GitHub sign-in it opens Settings at its
+Git page instead; Share Package works per row
 (`DistributionPublishing`, the build page's too). Nothing is built or
 packaged again; `distribution.version.packaged` is advice to publish or share
 that build, and Build asks nothing for it alone when that package is listed.
@@ -4309,11 +4439,12 @@ build request, shows only that target's progress and keeps the build log behind
 its `…` menu. Once its one package is verified, the page's primary action is
 Distribute (2026-10-29: the bar's prominent style on iOS 26, a bold title
 before it), whose menu, repeated in `…`, keeps sharing and publishing apart:
-Share Package hands the `.deb` to the share sheet, and Publish to Repository
+Share Package hands the `.deb` to the share sheet, Publish to Repository
 adds it to the linked package repository or, with none linked, opens
 Settings at its Git page (`SettingsViewController.presentGit`) over the
 build page, where Publishing sets one up, after Sign In if GitHub has no
-account yet. Choosing another target
+account yet, and Publish to GitHub Release puts it on the release of its
+version, as the distribution page does. Choosing another target
 requires going back and a new run. The table uses stable diffable identities and
 reconfigures progress rows in place. Each release build produces its own package
 and dSYM through the existing complete build pipeline (see `Documents/Distribution.md`).
@@ -4355,7 +4486,10 @@ declared script aside (`# Workspace`); a user who wants the file takes it
 from Distribute…, release builds already made go to the user's package
 repository with apelin_package_publish (owner, 2026-10-29: Distribute… would build
 them again), only as the user asked or agreed, told which packages go to
-which repository, and a conversation opened for one is asked for a build (on
+which repository, and to a GitHub Release of a repository the user names
+with apelin_package_release (owner, 2026-11-22, issue #77), tagged at the
+project's pushed commit, the same way and never by a workflow that builds
+the package again elsewhere, and a conversation opened for one is asked for a build (on
 a device, one opened to deliver a tweak's packages made them itself, into
 the project's `Dist/`). A new project's `local.apelin.` package and bundle
 IDs are settled with the user before its first install and kept the same for
@@ -4489,7 +4623,9 @@ where the package stays, its identity (the placeholders asked about before
 the first install and changed everywhere `file_grep` finds them, the same
 identifiers for debug and release, and changing an installed one: another
 package, so the old installation is removed with the user's agreement before
-the new one installs, and nothing keyed by the old ID follows),
+the new one installs, and nothing keyed by the old ID follows), a GitHub
+Release of the release builds with `apelin_package_release` once the
+commit is pushed (never a workflow that builds the package again),
 install/respring/confirm (an app installed again
 restarted with icli's `app kill --force`, then `app launch`) and reading a
 crash. `apelin-external-build` is the workspace

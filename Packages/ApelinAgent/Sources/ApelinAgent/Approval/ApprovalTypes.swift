@@ -133,6 +133,10 @@ public enum ApprovalDetail: Sendable, Hashable, Codable {
     /// repository and each package with its digest. The host lets through
     /// only the publication it names, once.
     case packagePublish(PackagePublishApproval)
+    /// Builds' packages published as a GitHub Release: the repository, the
+    /// tag, the commit it names, the notes and each package with its
+    /// digest. The host lets through only the release it names, once.
+    case packageRelease(PackageReleaseApproval)
     /// A use of the screen while Ask Before Using the Screen is on: the UI
     /// tree read, the action, or the command that runs icli. Asked in every
     /// mode, never granted for the session; the host lets through only the
@@ -198,6 +202,36 @@ public struct PackagePublishApproval: Sendable, Hashable, Codable {
     public init(repository: String, sourceURL: String?, packages: [Package]) {
         self.repository = repository
         self.sourceURL = sourceURL
+        self.packages = packages
+    }
+}
+
+/// What an apelin_package_release card names, and the host matches its
+/// request to (AgentReleaseRules): the session's project, the GitHub
+/// repository, the tag `v<version>` and the commit it names, the notes,
+/// then each package as a publication names it, in the order they are sent.
+public struct PackageReleaseApproval: Sendable, Hashable, Codable {
+    public var projectID: String
+    /// `owner/name`.
+    public var repository: String
+    public var tag: String
+    /// The project's commit, 40 hex digits.
+    public var commit: String
+    public var notes: String?
+    public var packages: [PackagePublishApproval.Package]
+    public init(
+        projectID: String,
+        repository: String,
+        tag: String,
+        commit: String,
+        notes: String?,
+        packages: [PackagePublishApproval.Package],
+    ) {
+        self.projectID = projectID
+        self.repository = repository
+        self.tag = tag
+        self.commit = commit
+        self.notes = notes
         self.packages = packages
     }
 }

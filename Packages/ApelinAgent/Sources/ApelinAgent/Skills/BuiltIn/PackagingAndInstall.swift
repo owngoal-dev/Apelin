@@ -1,7 +1,7 @@
 extension BuiltInSkills {
     static let packagingAndInstall = SkillDocument(
         name: "apelin-packaging-and-install",
-        description: "From a successful build to a confirmed load: the package artifact, the package and bundle identifiers to settle before the first install and how to change one after it, install through the system installer and what to do when another package is in its way, maintainer scripts, respring, apelin_package_confirm_loaded, and removal.",
+        description: "From a successful build to a confirmed load: the package artifact and the GitHub Release of release builds, the package and bundle identifiers to settle before the first install and how to change one after it, install through the system installer and what to do when another package is in its way, maintainer scripts, respring, apelin_package_confirm_loaded, and removal.",
         body: """
         # Packaging and install
 
@@ -22,6 +22,27 @@ extension BuiltInSkills {
           you already made go to the user's package repository with
           `apelin_package_publish`, as they are, when the user asks for it
           (apelin-package-repository).
+
+        ## A GitHub Release
+        - A source that indexes each repository's newest stable GitHub
+          Release, such as owngoal-dev/owngoal-packages, takes a project's
+          packages from a release of its repository, not from committed
+          files. `apelin_package_release`, in the project's chat, publishes
+          the release builds of one version as the release `v<version>` of
+          the GitHub repository the user names (the project's own origin
+          when they name none), with a `SHA256SUMS`, exactly as the builds
+          made them.
+        - Its tag names the project's current commit, which must already be
+          on that repository: commit, then `git_push`, then release. A tag
+          GitHub has at another commit is never moved; release a new version.
+        - A release the tag has already is filled in, a file of the same
+          bytes left as it is; one with other bytes is refused, so raise the
+          version and build again.
+        - Only when the user asked for the release, or agreed when you
+          asked, after telling them which packages go to which repository and
+          tag. Never write a workflow that builds the package again on GitHub
+          Actions to release it: that is a second build that drifts from
+          Apelin's and keeps no dSYM for `apelin_crash_symbolicate`.
 
         ## Package identity
         - A new project's `package.id` in apelin-project.json, and an app's

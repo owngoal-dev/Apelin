@@ -9,9 +9,10 @@ Verifying (a workspace: Preparing, Running Build Script and Verifying); its
 stays open with its outcome, and Retry starts a new build for the same
 target. Once it succeeds, **Distribute** is the page's primary action. Its
 menu, repeated in the `…` menu, has **Share Package**, which opens the
-system share sheet with the build's one `.deb` file, and **Publish to
-Repository** (below). Go back, choose the other target and tap Build to make a
-separate package. Neither installs the package.
+system share sheet with the build's one `.deb` file, **Publish to
+Repository** and **Publish to GitHub Release** (below). Go back, choose the
+other target and tap Build to make a separate package. None of them installs
+the package.
 
 A package already built does not need building again. The first page's
 **Packages** section lists, for each target, the newest release build of the
@@ -20,8 +21,9 @@ project's current version (a workspace's newest release build), as long as its
 whether it is **Built**, **Shared** (a share sheet completed with it) or
 **Published** (the linked repository already holds those bytes). Select the
 packages and tap **Publish to Repository** to publish roothide and rootless
-together in one commit, or share one from its row; either takes the file as
-the build made it.
+together in one commit, **Publish to GitHub Release** to put them on one
+release, or share one from its row; each takes the file as the build made
+it.
 
 ## Publishing to a package repository
 
@@ -53,6 +55,48 @@ commit —, each held to the digest its build recorded, and none goes in if
 one has changed. In Strict mode it asks first, naming the repository and
 every package with its digest; in every mode it publishes only what the user
 asked for or agreed to.
+
+## Publishing to a GitHub Release
+
+Some package sources do not take committed packages: owngoal-dev's shared
+source, owngoal-dev/owngoal-packages, names GitHub repositories and indexes
+each one's newest stable **GitHub Release**, serving the `.deb` files from
+it. **Publish to GitHub Release**, under the first page's Packages or in the
+build page's Distribute menu, publishes the selected release packages there,
+exactly as their builds made them, so the release carries the device's own
+packages, whose dSYMs Apelin keeps to symbolicate their crashes. Never build
+the package a second way for a release, such as a GitHub Actions workflow
+that rebuilds it: that build drifts from Apelin's and keeps no dSYM.
+
+- The release goes to the repository the project's GitHub remote names
+  (`origin` first); a project with none asks for `owner/name`.
+- Its tag is `v` and the version (`v1.0.2`), at the project's current
+  commit, which must already be pushed there: commit, push, then publish. A
+  version holding anything but letters, digits, periods, hyphens and
+  underscores cannot name a release. All the selected packages must be one
+  version.
+- The confirmation names the tag, the repository, the commit and every
+  package. Apelin then makes the release as a draft, uploads each package
+  and a `SHA256SUMS` of every package on the release, and publishes it, not
+  as a pre-release, so a source that takes the newest stable release picks
+  it up. Open Release shows it on GitHub.
+- A release of that tag that exists already is filled in: a package of the
+  same name and bytes is left as it is, `SHA256SUMS` is written again when
+  it changes, and notes it has are kept. A package already there with other
+  bytes is refused before anything is uploaded; raise the version and build
+  again.
+- A tag GitHub has at another commit is never moved: release a new version
+  from this commit instead. A release GitHub keeps immutable takes no new
+  file once published.
+- Without a GitHub sign-in it opens Settings ▸ Git, where Sign In with GitHub
+  is. A release cut off part way stays a draft on GitHub; publishing the same
+  version again fills it in and publishes it.
+
+A conversation does the same with `apelin_package_release`, in the project's
+own chat: the release builds of one version, to the repository the user
+names or the project's own on GitHub. In Strict mode it asks first, naming
+the repository, the tag, the commit and every package with its digest; in
+every mode it releases only what the user asked for or agreed to.
 
 ## Before distributing
 

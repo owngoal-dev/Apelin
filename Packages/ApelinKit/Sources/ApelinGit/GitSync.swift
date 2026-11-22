@@ -129,6 +129,63 @@ public extension GitRepository {
         return result
     }
 
+    /// The branches of the repository at `url` that hold `commit` — at
+    /// their tip or further back —, `first` before the rest when it is one
+    /// of them, the rest by name: empty when none does, so the commit is
+    /// not there. Their history is downloaded into this repository's
+    /// objects, and nothing else changes: no remote is added, no reference,
+    /// tag or FETCH_HEAD written (libgit2's download alone, without the
+    /// update of tips a fetch ends with).
+    func branches(
+        at url: String,
+        holding commit: String,
+        first: String? = nil,
+        credentials: GitCredentialLookup? = nil,
+        progress: @escaping (GitCloneProgress) -> Bool = { _ in true },
+    ) throws -> [String] {
+        guard Self.isCommitID(commit) else { throw GitError(.invalid, "\(commit.debugDescription) is not a commit ID") }
+        var target = git_oid()
+        try GitError.check(git_oid_fromstr(&target, commit), "read \(commit)")
+        var anonymous: OpaquePointer?
+        try GitError.check(git_remote_create_anonymous(&anonymous, pointer, url), "reach \(url)")
+        guard let remote = anonymous else { throw GitError(.failed, "reach \(url)") }
+        defer { git_remote_free(remote) }
+        let callbacks = RemoteCallbacks(credentials: credentials)
+        callbacks.fetchProgress = progress
+        var options = git_fetch_options()
+        git_fetch_options_init(&options, UInt32(GIT_FETCH_OPTIONS_VERSION))
+        callbacks.install(&options.callbacks)
+        options.update_fetchhead = 0
+        options.download_tags = GIT_REMOTE_DOWNLOAD_TAGS_NONE
+        // the refspec names what to ask for; its destination is never
+        // written, since the tips are not updated after the download
+        let code = withExtendedLifetime(callbacks) {
+            Self.withStrings(["+refs/heads/*:refs/apelin/unwritten/*"]) { refspecs in
+                var refspecs = refspecs
+                return git_remote_download(remote, &refspecs, &options)
+            }
+        }
+        defer { git_remote_disconnect(remote) }
+        guard code == 0 else { throw callbacks.failure(code, "fetch \(url)") }
+        var heads: UnsafeMutablePointer<UnsafePointer<git_remote_head>?>?
+        var count = 0
+        try GitError.check(git_remote_ls(&heads, &count, remote), "read what the remote has")
+        var holding: [String] = []
+        for index in 0 ..< count {
+            guard let head = heads?[index] else { continue }
+            let ref = String(cString: head.pointee.name)
+            guard ref.hasPrefix("refs/heads/") else { continue }
+            var tip = head.pointee.oid
+            // 1 is "is a descendant"; an error (a tip never fetched) holds nothing
+            if git_oid_cmp(&tip, &target) == 0 || git_graph_descendant_of(pointer, &tip, &target) == 1 {
+                holding.append(String(ref.dropFirst("refs/heads/".count)))
+            }
+        }
+        return holding.sorted { left, right in
+            left == first || (right != first && left < right)
+        }
+    }
+
     /// The commit of the local `branch`, or nil when it has none.
     @objc dynamic func commit(ofBranch branch: String) -> String? {
         var commit = git_oid()

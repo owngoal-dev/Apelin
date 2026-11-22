@@ -59,6 +59,28 @@
       }
     },
     {
+      "op": "distributionRelease",
+      "request": {
+        "projectID": "no-such-project",
+        "repository": "no-owner",
+        "files": [
+          "/etc/hosts"
+        ],
+        "digests": [
+          "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        ]
+      },
+      "label": "release-no-owner",
+      "allowError": true
+    },
+    {
+      "op": "expect",
+      "request": {
+        "step": "release-no-owner",
+        "errorCode": "badRequest"
+      }
+    },
+    {
       "op": "feedbackSend",
       "request": {
         "title": "",
