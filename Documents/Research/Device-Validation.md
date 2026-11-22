@@ -208,13 +208,18 @@ console now goes on after a restart only past a successful respring.
       27.2, each starting from the 0.4.9 package with its scheme 2
       toolchain set up and a project bound to it:
       1. Install this round's package. The scheme 2 toolchain is still
-         listed, the project bound to it builds and installs
+         listed, its row says "From an earlier setup. Set it up again to
+         add otool and ar." under its name (after "Default" when it is the
+         default; a 27.0 one names 27.2 instead) and VoiceOver reads it
+         with the row, its detail page says it in full under the first
+         section, the project bound to it builds and installs
          (`make device-run SCRIPT=i1-smoke`), Self-Tests ▸ Run Again
          passes the cases it had, and in a chat `apelin_toolchain_list`
          shows it with `outdated` and `# Environment` names what it lacks.
       2. Settings ▸ Toolchains ▸ +: the release is no longer ticked. Set
          it up again: a second toolchain of that release is listed, under
-         another ID, and is now the Default; its self-test passes every
+         another ID and with no such line, and is now the Default; its
+         self-test passes every
          case, the last two `ar arm64` and `otool arm64` (15.3 with Swift:
          16 cases). On a device with no toolchain,
          `make device-run SCRIPT=t1-toolchain-setup` checks the two cases

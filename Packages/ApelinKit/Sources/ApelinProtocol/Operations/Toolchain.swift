@@ -137,6 +137,11 @@ public struct ToolchainRecord: Codable, Sendable, Equatable {
         (retargetScheme ?? 2) < Self.currentRetargetScheme
     }
 
+    /// Releases Apple no longer serves, so a toolchain of one cannot be set
+    /// up again, each with the reviewed release to set up in its place
+    /// (ApelinToolchain's withdrawn packages, which a test holds this to).
+    public static let replacedReleases = ["27.0": "27.2"]
+
     /// Whether this record, set up under a later scheme, takes the place of
     /// `other`: the same release, made by an earlier scheme, with no
     /// component this one lacks.

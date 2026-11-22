@@ -1157,8 +1157,15 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   transfer file is the one way to bring it to another device). The record
   keeps the scheme (`ToolchainRecord.retargetScheme`, absent for scheme 2:
   `predatesCurrentRetarget`, held to `ToolchainSetup.schemeVersion` by
-  `RetargetSchemeTests`). The app's catalog does not tick such a release
-  and apelin_toolchain_setup does not refuse it, so it can be set up again;
+  `RetargetSchemeTests`). Settings ▸ Toolchains says so on the toolchain's
+  row, under the name (after Default; VoiceOver reads it with the row), and
+  in full under its detail page's first section: from an earlier setup,
+  set it up again to add otool and ar, or, for a release Apple no longer
+  serves, the one that replaced it (`ToolchainRecord.replacedReleases`,
+  27.0 → 27.2, held to the withdrawn packages by `RetargetSchemeTests`;
+  `ToolchainDetailController.earlierSetupNote`, Argon's words). The app's
+  catalog does not tick such a release and apelin_toolchain_setup does not
+  refuse it, so it can be set up again;
   the new toolchain takes over as the default from the one it supersedes
   (`supersedes`: the same release, no fewer components), and every project
   keeps the toolchain it binds until it is bound to the new one
