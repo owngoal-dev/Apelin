@@ -406,6 +406,8 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   `gitIssueCreate`, narrowed by `AgentIssueCreateRules`;
   `gitResetToRemote`, narrowed in every mode by `AgentResetToRemoteRules`,
   with `gitResetPreview`;
+  `confirmLoadedCancel`, for a load check its own session started
+  (`LoadCheckCancelRules`);
   `distributionPublish`, narrowed by `AgentPublishRules`, the rest of the
   package repository's operations staying the app's), the
   environment worker `installPackage`, `removePackage`
