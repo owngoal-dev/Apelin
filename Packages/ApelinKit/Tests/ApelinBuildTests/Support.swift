@@ -41,8 +41,22 @@ func runTool(_ tool: String, _ arguments: [String], in directory: URL? = nil) th
 }
 
 /// Xcode's tools and iPhoneOS SDK as a registry; nil when this Mac has no
-/// iPhoneOS SDK, and the pipeline tests skip.
+/// iPhoneOS SDK, and the pipeline tests skip. `APELIN_TEST_TOOLCHAIN` (an
+/// extracted Command Line Tools package, the folder holding `Library`) with
+/// `APELIN_TEST_SDK` (an iPhoneOS SDK that release reads) put a reviewed
+/// release's own clang and ld in Xcode's place.
 func macRegistry() -> StaticEnvironmentRegistry? {
+    let environment = ProcessInfo.processInfo.environment
+    if let toolchain = environment["APELIN_TEST_TOOLCHAIN"], let sdk = environment["APELIN_TEST_SDK"] {
+        guard let settings = try? Data(contentsOf: URL(fileURLWithPath: sdk).appendingPathComponent("SDKSettings.json")),
+              let object = try? JSONSerialization.jsonObject(with: settings) as? [String: Any],
+              let sdkVersion = object["Version"] as? String
+        else { return nil }
+        return StaticEnvironmentRegistry(
+            toolchains: [RegisteredToolchain(id: "clt-under-review", digest: "sha256:" + String(repeating: "a", count: 64), version: "review", path: toolchain, components: ["c-family"])],
+            sdks: [RegisteredSDK(id: "iPhoneOS\(sdkVersion)-review", digest: "sha256:" + String(repeating: "b", count: 64), version: sdkVersion, path: sdk)],
+        )
+    }
     guard let clang = try? runTool("/usr/bin/xcrun", ["--sdk", "iphoneos", "--find", "clang"]), clang.status == 0,
           let sdk = try? runTool("/usr/bin/xcrun", ["--sdk", "iphoneos", "--show-sdk-path"]), sdk.status == 0,
           let version = try? runTool("/usr/bin/xcrun", ["--sdk", "iphoneos", "--show-sdk-version"]), version.status == 0

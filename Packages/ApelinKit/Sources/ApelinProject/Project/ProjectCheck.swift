@@ -17,6 +17,11 @@ public struct ProjectCheck: Sendable {
     /// Nil checks the project alone.
     public var installRoot: String?
 
+    /// The oldest iOS a Swift project builds for. The schema lets a project
+    /// name 15.0, the oldest iOS a rootless or roothide bootstrap runs on;
+    /// C and Objective-C build there, Swift does not (issue #71).
+    public static let swiftDeploymentTarget = "16.0"
+
     /// Below this much free space a build fails; below `lowSpace` it warns.
     public var minimumSpace: UInt64 = 64 << 20
     public var lowSpace: UInt64 = 512 << 20
@@ -289,6 +294,24 @@ public struct ProjectCheck: Sendable {
             if let refusal {
                 add("environment.device.swift", .error, refusal, field: "/language")
             }
+        }
+        // Below iOS 16 the Swift frontend force-loads a back-deployment
+        // library (swiftCompatibility56, named by every frontend from CLT 15.0
+        // on) that only Xcode carries for iOS; a retargeted Command Line Tools
+        // tree has none, so the link fails.
+        if project.language == .swift,
+           project.deploymentTarget.compare(Self.swiftDeploymentTarget, options: .numeric) == .orderedAscending
+        {
+            let major = project.deploymentTarget.split(separator: ".").first.map(String.init) ?? project.deploymentTarget
+            add(
+                "project.swift.deploymentTarget",
+                .error,
+                "Swift projects need a deployment target of \(Self.swiftDeploymentTarget) or later (currently "
+                    + "\(project.deploymentTarget)): the Command Line Tools lack the Xcode libraries Swift needs on "
+                    + "iOS \(major); raise the deployment target to \(Self.swiftDeploymentTarget), or use Objective-C "
+                    + "or C for iOS \(major)",
+                field: "/deploymentTarget",
+            )
         }
         let modules = [project.configurations.Debug, project.configurations.Release].contains { configuration in
             (configuration.cFlags ?? []).contains { $0.hasPrefix("-fmodules") || $0.hasPrefix("-fcxx-modules") }

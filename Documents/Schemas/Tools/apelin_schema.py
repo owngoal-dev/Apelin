@@ -375,7 +375,7 @@ _TYPE_PATTERNS = {
     "bundleID": r"^[A-Za-z0-9][A-Za-z0-9-]*(\.[A-Za-z0-9][A-Za-z0-9-]*)+\Z",
     "packageID": r"^[a-z0-9][a-z0-9+.-]+\Z",
     "version": r"^[0-9][0-9A-Za-z.+~-]{0,63}\Z",
-    "deploymentTarget": r"^(1[6-9]|[2-9][0-9])\.[0-9]{1,2}(\.[0-9]{1,2})?\Z",
+    "deploymentTarget": r"^(1[5-9]|[2-9][0-9])\.[0-9]{1,2}(\.[0-9]{1,2})?\Z",
     "uuid": r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\Z",
     "digest": r"^sha256:[0-9a-f]{64}\Z",
     "registrationID": r"^[A-Za-z0-9][A-Za-z0-9._+-]{0,127}\Z",

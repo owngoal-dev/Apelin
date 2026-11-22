@@ -180,6 +180,68 @@ final class ExtensionAndProjectTests: XCTestCase {
         XCTAssertEqual(leftovers, ["Hello"])
     }
 
+    /// A project may target iOS 15.0, the oldest iOS a rootless or roothide
+    /// bootstrap runs on, and nothing older (issue #71); a new one still
+    /// targets 16.0. Both implementations take the same values.
+    func testTheDeploymentTargetGoesDownTo15() throws {
+        let scratch = try scratchDirectory()
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        try FileManager.default.createDirectory(at: scratch.appendingPathComponent("Documents/wiki.qaq.apelin"), withIntermediateDirectories: true)
+        let store = ProjectStore(dataFolder: DataFolder(home: scratch.path))
+        let catalog = ExtensionCatalog(directory: Repository.extensions)
+        let template = "wiki.qaq.apelin.dev.tweak/objc-hook"
+        func target(_ name: String, _ values: [String: JSONDocument]) throws -> String {
+            let created = try store.create(templateID: template, name: name, values: values, catalog: catalog, registry: sampleRegistry())
+            return try store.locate(created.projectID).project.deploymentTarget
+        }
+        XCTAssertEqual(try target("Default", [:]), "16.0")
+        XCTAssertEqual(try target("Oldest", ["deploymentTarget": .string("15.0")]), "15.0")
+        XCTAssertEqual(try target("Patch", ["deploymentTarget": .string("15.4.1")]), "15.4.1")
+        for refused in ["14.8", "9.0", "15"] {
+            XCTAssertThrowsError(try store.create(templateID: template, name: "Refused", values: ["deploymentTarget": .string(refused)], catalog: catalog, registry: sampleRegistry()), refused)
+        }
+
+        let answers = try runReference("""
+        import json, apelin_schema as s
+        p = {"name": "deploymentTarget", "type": "deploymentTarget"}
+        def takes(v):
+            try:
+                s.validate_value("deploymentTarget", p, v)
+                return True
+            except s.TemplateError:
+                return False
+        print(json.dumps([takes(v) for v in json.loads(sys.argv[2])]))
+        """, arguments: [#"["16.0", "15.0", "15.4.1", "14.8", "9.0", "15"]"#])
+        XCTAssertEqual(answers.trimmingCharacters(in: .whitespacesAndNewlines), "[true, true, true, false, false, false]")
+    }
+
+    /// Swift needs back-deployment libraries below iOS 16 that the Command
+    /// Line Tools do not carry for iOS: a Swift project below 16.0 fails its
+    /// check on the deployment target, an Objective-C one there does not.
+    func testSwiftProjectsTargetIOS16OrLater() throws {
+        let scratch = try scratchDirectory()
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        try FileManager.default.createDirectory(at: scratch.appendingPathComponent("Documents/wiki.qaq.apelin"), withIntermediateDirectories: true)
+        let store = ProjectStore(dataFolder: DataFolder(home: scratch.path))
+        let catalog = ExtensionCatalog(directory: Repository.extensions)
+        let check = ProjectCheck(store: store, catalog: catalog, registry: sampleRegistry())
+        func floorDiagnostics(_ template: String, _ name: String, _ target: String) throws -> [ProjectDiagnostic] {
+            let created = try store.create(templateID: template, name: name, values: ["deploymentTarget": .string(target)], catalog: catalog, registry: sampleRegistry())
+            return check.run(projectID: created.projectID).diagnostics.filter { $0.code == "project.swift.deploymentTarget" }
+        }
+        let below = try floorDiagnostics("wiki.qaq.apelin.dev.app/uikit-swift", "Swift Fifteen", "15.4")
+        XCTAssertEqual(below.map(\.severity), [.error])
+        XCTAssertEqual(below.first?.field, "/deploymentTarget")
+        XCTAssertEqual(
+            below.first?.message,
+            "Swift projects need a deployment target of 16.0 or later (currently 15.4): the Command Line Tools lack "
+                + "the Xcode libraries Swift needs on iOS 15; raise the deployment target to 16.0, or use Objective-C "
+                + "or C for iOS 15",
+        )
+        XCTAssertEqual(try floorDiagnostics("wiki.qaq.apelin.dev.app/uikit-swift", "Swift Sixteen", "16.0"), [])
+        XCTAssertEqual(try floorDiagnostics("wiki.qaq.apelin.dev.app/uikit-objc", "ObjC Fifteen", "15.0"), [])
+    }
+
     /// Two tweak projects made with the template's defaults installed the
     /// same `ApelinTweak.dylib`, and irisind refused the second (iOS 26.4
     /// vphone, 2026-10-17): the product is named after the project unless the
