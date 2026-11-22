@@ -4660,8 +4660,10 @@ that a listed project's `.deb` files are never committed there.
 repository, when the user asks for one: the packages to ship are the
 ones Apelin builds on the device (a rebuild on a runner is a second
 build that drifts from Apelin's and whose crashes cannot be symbolicated
-here, issue #77; it is never offered as the way to release, and a later
-line can name a tool that publishes the device's release builds), a
+here, issue #77; it is never offered as the way to release: a release
+of the device's builds for a source that indexes GitHub Releases is
+`apelin_package_release`, which the apelin-package-repository skill's
+shared-source section names too), a
 script the file tools wrote (0644) made executable with `chmod +x`
 before `git_commit` (which records the bit: `GitServiceTests`) or run
 with `bash`, a YAML value with `: ` quoted, `codesign --version` and
