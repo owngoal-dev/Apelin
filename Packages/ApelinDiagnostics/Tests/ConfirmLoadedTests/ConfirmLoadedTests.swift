@@ -106,6 +106,8 @@ private final class FakeProcesses: ProcessListSource, @unchecked Sendable {
     private var answers: [[ProcessRow]]
     private(set) var looks = 0
     var failure: DiagnosticsError?
+    /// Looks that answer before `failure` is thrown.
+    var answeredLooks = 0
 
     init(_ answers: [[ProcessRow]]) {
         self.answers = answers
@@ -114,7 +116,7 @@ private final class FakeProcesses: ProcessListSource, @unchecked Sendable {
     func processes() throws -> [ProcessRow] {
         lock.lock()
         defer { lock.unlock() }
-        if let failure {
+        if let failure, looks >= answeredLooks {
             throw failure
         }
         looks += 1
@@ -255,6 +257,17 @@ final class ConfirmLoadedTests: XCTestCase {
         XCTAssertEqual(result.process?.status, .unavailable)
         XCTAssertEqual(result.process?.detail, "The process list could not be read: sysctl refused")
         XCTAssertTrue(result.isLoaded)
+
+        // Read when the check began, not later: a target never seen says
+        // how many looks saw nothing at all.
+        let later = FakeProcesses([[row(55, "SpringBoard")]])
+        later.failure = .unavailable("sysctl refused")
+        later.answeredLooks = 1
+        var daemon = request(window: 0.5)
+        daemon.targetExecutable = "dtremotedisplayd"
+        let missed = ConfirmLoaded(logs: FakeLogs(entries: []), processes: later, lookInterval: 0.05).run(daemon).process
+        XCTAssertEqual(missed?.status, .absent)
+        XCTAssertTrue(missed?.detail.contains("of those looks could not read the list.") == true, missed?.detail ?? "")
     }
 
     /// A check stopped before it triggers does not respring, and its listen,

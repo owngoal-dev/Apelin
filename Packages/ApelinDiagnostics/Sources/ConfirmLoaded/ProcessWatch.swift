@@ -9,14 +9,16 @@ import Foundation
 ///
 /// A list that cannot be read when the check begins is not read again: what
 /// fails then fails every time, and the evidence says it could not look.
-/// A later look that fails is skipped. A process that starts and exits
-/// between two looks is not seen, unless it logged the marker (`saw`).
+/// A later look that fails is counted, and a target never seen says how
+/// many did. A process that starts and exits between two looks is not
+/// seen, unless it logged the marker (`saw`).
 struct ProcessWatch {
     private let source: any ProcessListSource
     private let target: String
     private let interval: TimeInterval
     private let began = Date()
     private var failure: String?
+    private var failedLooks = 0
     private var runningAtStart: [Int32] = []
     private var startedDuring: [Int32] = []
 
@@ -35,7 +37,11 @@ struct ProcessWatch {
 
     /// Looks again; a pid not seen before started meanwhile.
     mutating func look() {
-        guard failure == nil, let rows = try? source.processes() else { return }
+        guard failure == nil else { return }
+        guard let rows = try? source.processes() else {
+            failedLooks += 1
+            return
+        }
         saw(Self.pids(of: target, in: rows))
     }
 
@@ -76,9 +82,10 @@ struct ProcessWatch {
                 "\(target) was not running when the check began and started during it (\(Self.pids(startedDuring))).",
             )
         case (true, true):
+            let missed = failedLooks == 0 ? "" : " \(failedLooks) of those looks could not read the list."
             return evidence(
                 .absent,
-                "No process named \(target) ran while the check looked: none when it began, and none in \(Int(watched.rounded())) s of looks every \(String(format: "%g", interval)) s after it. A process that starts and exits between two looks without logging the marker is not seen.",
+                "No process named \(target) ran while the check looked: none when it began, and none in \(Int(watched.rounded())) s of looks every \(String(format: "%g", interval)) s after it.\(missed) A process that starts and exits between two looks without logging the marker is not seen.",
             )
         }
     }
