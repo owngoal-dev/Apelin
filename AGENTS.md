@@ -320,7 +320,7 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   `installationList`, `respring`, `approvalDigestState`;
   `fileRead`, `protectedEditOpen`, `protectedEditCommit`; `ptyOpen`,
   `ptyAttach`, `ptyResize`, `ptyClose`; `logStream`, `crashList`,
-  `crashOpen`, `crashSymbolicate`; `confirmLoaded`, `confirmLoadedAttach`, `captureScreen`,
+  `crashOpen`, `crashSymbolicate`; `confirmLoaded`, `confirmLoadedAttach`, `confirmLoadedCancel`, `captureScreen`,
   `readUITree`, `uiAction`, `devicePasscodeState`, `devicePasscodeSave`,
   `devicePasscodeRemove`; `agentOpen`, `agentPrompt`, `agentSteer`,
   `agentAbort`, `agentCompact`, `agentApprove`, `agentAttach`, `agentList`, `agentClose`,
@@ -1446,9 +1446,11 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   approval denied, a command's output up to where the host killed it) and
   then left, its answer unread, with `ToolStoppedError` as the result the
   model reads, which says the work it started on the device may still
-  finish; a build the call was reading is cancelled with it
-  (`ChannelHostBackend.read`, `buildCancel`), while an install, a
-  toolchain setup, an SDK import and a git transfer go on by themselves.
+  finish; a build or a load check the call was reading is cancelled with
+  it (`ChannelHostBackend.read`, `buildCancel`, `confirmLoadedCancel`: a
+  check's listen of minutes would otherwise hold its stream and apelind),
+  while an install, a toolchain setup, an SDK import and a git transfer go
+  on by themselves.
   The worker then gives the stopped run 20 s to end (`WorkerState.stop`,
   `AgentSession.StoppedWork`): one that has not, a model request, a
   sign-in's renewal or a compaction that does not answer its
@@ -1677,8 +1679,18 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   apelin_device_respring, apelin_package_confirm_loaded → a
   `confirmLoaded` task with the session's project read to its end (with
   `respring: true` it carries `trigger: respring` and is gated as apelin_device_respring;
+  `wait_seconds`, 1 to 180, is its `logWindowSeconds` (issue #76: a
+  target that starts on demand, such as a daemon CoreDevice starts only
+  when a Mac connects, is set going by the user while the call listens;
+  three minutes, as apelin_conversation_read waits, under the provider's
+  five-minute cache, and called again rather than longer), and a stopped
+  call stops the check (`confirmLoadedCancel`);
   it never asks for `imageCheck`, and answers the host's `loaded` with a
-  `basis` saying it rests on the marker alone, no image field beside it),
+  `basis` saying it rests on the marker alone, no image field beside it,
+  and `targetProcess`, from the host's `process`, saying plainly whether
+  the target never ran while it listened, was already running when it
+  began and did not start again (its marker came before the call), or
+  started meanwhile),
   apelin_log_read → a `logStream` of
   at most 10 s, list/read/symbolicate crashes → `crashList`, `crashOpen`
   (descriptor), `crashSymbolicate`, screen/UI → `captureScreen` (only
@@ -2626,7 +2638,29 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   history on iOS (icli and the root reader stream only; `OSLogStore` is
   current-process only; there is no `log` tool), so a marker logged at the
   target's launch is seen only with the trigger, or with the target
-  relaunched during the window. The filter from `apelin-project.json` is
+  relaunched during the window. The window, `logWindowSeconds`, is 1–600 s
+  (default 15, 30 with a respring; 60 at most until issue #76), the bound
+  of `logStream`, whose one icli `SyslogStream` it now keeps open too
+  (`Diagnostics.listen`; `captureSyslog` stops at 60 s), and the listen
+  ends as soon as the target logs the marker, so a long window costs only
+  a miss its time. `confirmLoadedCancel` (the app's, or an agent's for a
+  check its own session started, `LoadCheckCancelRules`) ends it at once,
+  skips a trigger that has not run, and ends the task `cancelled`; the
+  worker keeps each running check by task (`LoadCheckRegistry`) before the
+  host hears it accepted. Beside the marker, the target process
+  (`process`, `ConfirmLoadedResponse.process`, issue #76): icli's process
+  list (`listProcesses`: sysctl `KERN_PROC_ALL` and `proc_pidpath`, each
+  process by pid and executable name, nothing inside one) read as mobile
+  when the check begins and once a second while it listens
+  (`ProcessWatch`), so "not started" is told from "not loaded": running
+  when the check began, started during it, or never seen; a pid that
+  logged the marker counts as seen, a process that starts and exits
+  between two looks without logging it is not, and a list unreadable at
+  the start is `unavailable` and read no more. `loaded` is still the
+  marker's alone. A bundle-ID target is the running app's executable, else
+  the installed app's (icli's `listApps` and its bundle's Info.plist), so
+  a check can wait for the app to be opened; an id no app has is
+  `notFound`. The filter from `apelin-project.json` is
   checked statically. The image list is **never read** (the evidence says
   `notRead`, naming no iOS version, since it holds on every one): reading
   SpringBoard's image list panicked the iOS 27.0.1

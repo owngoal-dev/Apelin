@@ -7,7 +7,9 @@ import ApelinCore
 // bound to this verification; never a command.
 
 public struct LoadEvidence: Codable, Sendable, Equatable {
-    /// `log`, `image`, `filter`, and `trigger` when the trigger failed.
+    /// `log`, `image`, `filter`, `process` (whether the target ran while the
+    /// check listened: `ConfirmLoadedResponse.process`), and `trigger` when
+    /// the trigger failed.
     public var kind: String
     public var passed: Bool
     /// Starts with the evidence's status — `confirmed`, `absent`,
@@ -43,25 +45,41 @@ public enum LoadImageCheck: String, Codable, Sendable {
 
 /// `buildID` is the build's `APELIN_BUILD_ID` (the marker is `ApelinLoaded
 /// <buildID>`); `targetID` an executable name (`SpringBoard`) or a bundle
-/// id (`com.apple.springboard`). With `projectID`, the marker's subsystem,
-/// the installed dylib and the filter come from the project's
-/// `apelin-project.json`; without it only the marker is checked.
+/// id (`com.apple.springboard`) of an app that is running or installed.
+/// With `projectID`, the marker's subsystem, the installed dylib and the
+/// filter come from the project's `apelin-project.json`; without it only
+/// the marker is checked.
 ///
 /// A task (`confirmLoaded` kind) the session host owns: the reply is its
 /// handle, the request checked first — a bad one is the reply, not a failed
 /// task. Its events are `stage` {stage: `listening` | `trigger`}
 /// and a final `state` whose `result` is the `ConfirmLoadedResponse`; the
-/// task succeeds when the check ran, whatever it found. Read it with
+/// task succeeds when the check ran, whatever it found, and ends
+/// `cancelled` on `confirmLoadedCancel`. Read it with
 /// `confirmLoadedAttach`; nobody need be attached for the answer to be kept.
 public struct ConfirmLoadedRequest: OperationRequest {
     public typealias Response = TaskHandle
     public static let operation = AppOperation.confirmLoaded
+
+    /// Seconds a check may listen: `logStream`'s own bound, since both keep
+    /// one live stream open for the window, and a load check is work that
+    /// keeps apelind up until it ends.
+    public static let logWindowRange: ClosedRange<Double> = 1 ... 600
+
+    /// What a check listens for when the request names no window: 30 s
+    /// with a respring, which has to bring SpringBoard back inside it, and
+    /// 15 s without.
+    public static func defaultLogWindowSeconds(trigger: LoadTrigger?) -> Double {
+        trigger == .respring ? 30 : 15
+    }
+
     public var buildID: String
     public var targetID: String
     public var projectID: String?
     public var trigger: LoadTrigger?
-    /// How long to listen for the marker, 1–60 seconds (default 30 with a
-    /// respring, which has to bring SpringBoard back inside it; 15 without).
+    /// How long to listen for the marker at most, within `logWindowRange`
+    /// (default `defaultLogWindowSeconds`). The listen ends as soon as the
+    /// target logs the marker, so a long window costs only a miss its time.
     public var logWindowSeconds: Double?
     /// Must be nil: any value is refused (`badRequest`), see
     /// `LoadImageCheck`. The image evidence is always `notRead`.
@@ -84,17 +102,47 @@ public struct ConfirmLoadedRequest: OperationRequest {
     }
 }
 
+/// What a load check saw of its target process, by name and pid alone:
+/// the process list is looked at when the check begins and about once a
+/// second until it ends, and a pid that logged the marker counts as seen.
+/// A process that started and exited between two looks without logging
+/// the marker is not seen.
+public struct LoadTargetProcess: Codable, Sendable, Equatable {
+    /// The pids of the target running when the check began.
+    public var runningAtStart: [Int32]
+    /// The pids of the target that appeared after that, in the order seen.
+    public var startedDuring: [Int32]
+    /// How long the check looked, in seconds.
+    public var watchedSeconds: Double
+
+    public init(runningAtStart: [Int32], startedDuring: [Int32], watchedSeconds: Double) {
+        self.runningAtStart = runningAtStart
+        self.startedDuring = startedDuring
+        self.watchedSeconds = watchedSeconds
+    }
+
+    /// The target ran at some point while the check looked.
+    public var ran: Bool {
+        !runningAtStart.isEmpty || !startedDuring.isEmpty
+    }
+}
+
 /// The answer, carried as `result` in the task's final `state` event.
 public struct ConfirmLoadedResponse: Codable, Sendable, Equatable {
     /// The member of the final `state` payload that holds this.
     public static let stateMember = "result"
 
+    /// The marker was heard. Nothing else decides it.
     public var loaded: Bool
     public var evidence: [LoadEvidence]
+    /// Whether the target ran while the check listened; nil when the
+    /// process list could not be read, and from an older worker.
+    public var process: LoadTargetProcess?
 
-    public init(loaded: Bool, evidence: [LoadEvidence] = []) {
+    public init(loaded: Bool, evidence: [LoadEvidence] = [], process: LoadTargetProcess? = nil) {
         self.loaded = loaded
         self.evidence = evidence
+        self.process = process
     }
 
     /// The answer a finished load-check task carries, or why it has none.
@@ -126,6 +174,18 @@ public struct ConfirmLoadedAttachRequest: TaskAttachRequest {
         self.taskID = taskID
         self.afterSeq = afterSeq
         self.waitMilliseconds = waitMilliseconds
+    }
+}
+
+/// Stops a load check: its listen ends at once and the task ends
+/// `cancelled`. An agent's apelin_package_confirm_loaded sends it when the
+/// user stops the call; an agent cancels only the checks it started.
+public struct ConfirmLoadedCancelRequest: TaskCancelRequest {
+    public static let operation = AppOperation.confirmLoadedCancel
+    public var taskID: TaskID
+
+    public init(taskID: TaskID) {
+        self.taskID = taskID
     }
 }
 
@@ -241,6 +301,10 @@ public extension ApelinService {
 
     func confirmLoadedAttach(_ request: ConfirmLoadedAttachRequest) async throws -> TaskEventBatch {
         try await send(request)
+    }
+
+    func confirmLoadedCancel(taskID: TaskID) async throws {
+        _ = try await send(ConfirmLoadedCancelRequest(taskID: taskID))
     }
 
     /// Starts a load check and reads it to its end. A caller the trigger's

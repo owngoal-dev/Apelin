@@ -266,6 +266,8 @@ actor MockBackend: AgentHostBackend {
     }
 
     var calls: [Call] = []
+    /// Each load check's wait, as the tool passed it on.
+    var confirmWaits: [Int?] = []
     var sdkRoot: String = "/nonexistent"
 
     func setSDKRoot(_ path: String) {
@@ -367,6 +369,7 @@ actor MockBackend: AgentHostBackend {
 
     func confirmLoaded(_ request: ConfirmLoadedRequest) -> ConfirmLoadedResponse {
         calls.append(.confirmLoaded(build: request.buildID, target: request.target))
+        confirmWaits.append(request.waitSeconds)
         return ConfirmLoadedResponse(loaded: true, markerLogged: true, filterMatches: true, logEvidence: ["Hello loaded build-1"])
     }
 

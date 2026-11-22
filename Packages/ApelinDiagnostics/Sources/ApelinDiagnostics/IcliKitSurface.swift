@@ -168,6 +168,14 @@
             try mapped { try IcliKit.runningApps() }
         }
 
+        public func processes() throws -> [String: Any] {
+            try mapped { try IcliSystem.listProcesses(filter: nil) }
+        }
+
+        public func installedApps() throws -> [String: Any] {
+            try mapped { try IcliSystem.listApps() }
+        }
+
         public func respring() throws -> [String: Any] {
             try mapped { try IcliKit.respring() }
         }

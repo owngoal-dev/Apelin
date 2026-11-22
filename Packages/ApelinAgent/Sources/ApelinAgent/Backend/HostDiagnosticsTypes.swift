@@ -3,6 +3,15 @@ import Foundation
 // MARK: - apelin_package_confirm_loaded
 
 public struct ConfirmLoadedRequest: Sendable, Hashable, Codable {
+    /// The longest listen a call asks for: three minutes, as
+    /// apelin_conversation_read waits (`ConversationReadToolRequest`). The
+    /// provider keeps the conversation's prompt cached for five minutes
+    /// from the request that last used it, and the model's next request
+    /// after a longer call writes the whole conversation into the cache
+    /// again; calling again costs a read of it instead. The host takes up
+    /// to ten minutes, for the app and the console.
+    public static let maximumWaitSeconds = 180
+
     public var context: HostCallContext
     public var buildID: String
     /// Process name or bundle id the tweak should be loaded in.
@@ -10,12 +19,17 @@ public struct ConfirmLoadedRequest: Sendable, Hashable, Codable {
     /// Listen for the marker, then respring, in one call: the marker is
     /// logged once, when the target starts, and the live log has no history.
     public var respring: Bool
+    /// How long to listen at most, 1 to `maximumWaitSeconds`; nil for the
+    /// host's default (15 s, 30 s with a respring). The listen ends as soon
+    /// as the marker is heard.
+    public var waitSeconds: Int?
 
-    public init(context: HostCallContext, buildID: String, target: String, respring: Bool = false) {
+    public init(context: HostCallContext, buildID: String, target: String, respring: Bool = false, waitSeconds: Int? = nil) {
         self.context = context
         self.buildID = buildID
         self.target = target
         self.respring = respring
+        self.waitSeconds = waitSeconds
     }
 }
 
@@ -34,6 +48,11 @@ public struct ConfirmLoadedResponse: Sendable, Hashable, Codable {
     public var markerLogged: Bool
     /// The tweak's filter selects the target; nil when not determined.
     public var filterMatches: Bool?
+    /// Whether the target process ran while the call listened, in a
+    /// sentence the model can repeat: a target that never ran could not
+    /// load anything, apart from one that ran and logged no marker. Nil
+    /// when the host could not read its process list.
+    public var targetProcess: String?
     public var logEvidence: [String]
     public var notes: String
 
@@ -41,6 +60,7 @@ public struct ConfirmLoadedResponse: Sendable, Hashable, Codable {
         loaded: Bool,
         markerLogged: Bool,
         filterMatches: Bool? = nil,
+        targetProcess: String? = nil,
         logEvidence: [String] = [],
         notes: String = "",
     ) {
@@ -48,6 +68,7 @@ public struct ConfirmLoadedResponse: Sendable, Hashable, Codable {
         basis = Self.markerBasis
         self.markerLogged = markerLogged
         self.filterMatches = filterMatches
+        self.targetProcess = targetProcess
         self.logEvidence = logEvidence
         self.notes = notes
     }

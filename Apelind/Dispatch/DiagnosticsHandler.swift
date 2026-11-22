@@ -13,6 +13,8 @@ enum DiagnosticsHandler: DomainHandler {
             await host.startTask(request, kind: .confirmLoaded, role: .diagnostics)
         case .confirmLoadedAttach:
             await host.attach(request, ConfirmLoadedAttachRequest.self)
+        case .confirmLoadedCancel:
+            await cancelLoadCheck(request, host: host)
         case .captureScreen:
             await host.forward(request, to: .diagnostics)
         case .readUITree:
@@ -27,6 +29,21 @@ enum DiagnosticsHandler: DomainHandler {
                 "\(request.operation.rawValue) is not a diagnostics operation",
             ))
         }
+    }
+
+    /// Stops a load check, and nothing else, as LoadCheckCancelRules lets
+    /// the caller: an agent only a check its own session started.
+    private static func cancelLoadCheck(_ request: HostRequest, host: SessionHost) async -> HostReply {
+        let cancel: ConfirmLoadedCancelRequest
+        do {
+            cancel = try request.decode(ConfirmLoadedCancelRequest.self)
+        } catch {
+            return request.fail((error as? ApelinError) ?? ApelinError(.badRequest, "\(error)"))
+        }
+        if let refusal = await LoadCheckCancelRules.refusal(cancel, caller: request.caller, registry: host.registry) {
+            return request.fail(refusal)
+        }
+        return await host.cancel(request, ConfirmLoadedCancelRequest.self)
     }
 
     /// An agent reads the UI tree only as its session's Ask Before Using the

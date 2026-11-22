@@ -90,6 +90,14 @@ struct UnavailableIcli: IcliSurface {
         throw missing()
     }
 
+    func processes() throws -> [String: Any] {
+        throw missing()
+    }
+
+    func installedApps() throws -> [String: Any] {
+        throw missing()
+    }
+
     func respring() throws -> [String: Any] {
         throw missing()
     }
