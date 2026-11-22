@@ -31,29 +31,29 @@ struct CompactionFallbackTests {
         #expect(!NativeCompactionFallback.returnedNoSummary(CancellationError()))
     }
 
+    /// kwwk's own summary takes over a native compaction that brought none
+    /// back. Before 0.1.127 kwwk alone failed the compaction there, and this
+    /// wrapper was what went on; from 0.1.127 kwwk falls back by itself on
+    /// any native failure but a refused sign-in or a cancellation, and the
+    /// wrapper's answer of none leads to the same summary.
     @Test(.timeLimit(.minutes(1)))
-    func `kwwk's own summary takes over, where kwwk alone fails the compaction`() async {
+    func `kwwk's own summary takes over, with the wrapper or without it`() async {
         let faux = await registerFauxProvider()
         defer { faux.unregister() }
         let model = faux.getModel()
         let empty: NativeCompactionFn = { _, _, _, _ in throw Self.noSummary }
 
-        faux.setResponses([.message(fauxAssistantMessage("The user built a tweak; the hook loads."))])
-        let alone = await Self.compact(model: model, native: empty)
-        guard case let .failure(.failed(reason)) = alone else {
-            Issue.record("kwwk went on without the native summary: \(alone)")
-            return
+        let routes: [(String, NativeCompactionFn)] = [("kwwk alone", empty), ("the wrapper", NativeCompactionFallback.compact(empty))]
+        for (label, native) in routes {
+            faux.setResponses([.message(fauxAssistantMessage("The user built a tweak; the hook loads."))])
+            let compacted = await Self.compact(model: model, native: native)
+            guard case let .success(replacement) = compacted else {
+                Issue.record("\(label): the compaction failed: \(compacted)")
+                continue
+            }
+            #expect(replacement.messagesCompacted > 0, "\(label)")
+            #expect(CompactionRecap.summary(of: replacement.messages) == "The user built a tweak; the hook loads.", "\(label)")
         }
-        #expect(reason.contains("returned no summary"))
-
-        faux.setResponses([.message(fauxAssistantMessage("The user built a tweak; the hook loads."))])
-        let fallingBack = await Self.compact(model: model, native: NativeCompactionFallback.compact(empty))
-        guard case let .success(replacement) = fallingBack else {
-            Issue.record("the compaction failed: \(fallingBack)")
-            return
-        }
-        #expect(replacement.messagesCompacted > 0)
-        #expect(CompactionRecap.summary(of: replacement.messages) == "The user built a tweak; the hook loads.")
 
         let refused: NativeCompactionFn = { _, _, _, _ in
             throw ProviderFailure(message: "invalid x-api-key", httpStatus: 401)

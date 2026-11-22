@@ -8,14 +8,17 @@ import KWWKAI
 /// Anthropic's compaction can answer 200, stop reason `compaction`, with a
 /// `compaction` block whose content is null: its documentation names a tool
 /// called in place of the summary. kwwk keeps that an error ("Anthropic
-/// compaction returned no summary") and does not summarise itself, so a
-/// chat whose context had filled stopped with "context is too large and
-/// compaction failed". A route that cannot compact natively answers nil and
-/// kwwk summarises; this answers nil for a reply that brought nothing back
-/// too. A refusal, a status, a transport failure and a cancellation stay
-/// errors, and so does any failure kwwk would try again, but for a spent
-/// allowance it would wait out as a rate limit (`SpentAllowance`), which
-/// fails the compaction at once.
+/// compaction returned no summary"), and before 0.1.127 it did not
+/// summarise itself, so a chat whose context had filled stopped with
+/// "context is too large and compaction failed". A route that cannot
+/// compact natively answers nil and kwwk summarises; this answers nil for a
+/// reply that brought nothing back too. From 0.1.127 kwwk also summarises
+/// after a native compaction that failed in any way but a refused sign-in
+/// or a cancellation, so this is what it was before for a reply with no
+/// summary, and every other failure passes as it came, but for a spent
+/// allowance kwwk would wait out as a rate limit (`SpentAllowance`): that
+/// is marked not to be asked again, so the native step gives up at once
+/// and the summary, asked of the same account, ends on its first answer.
 enum NativeCompactionFallback {
     static func compact(_ native: @escaping NativeCompactionFn = compactNative) -> NativeCompactionFn {
         { model, context, instructions, options in
