@@ -159,6 +159,56 @@ final class MacPipelineTests: XCTestCase {
         }
     }
 
+    /// Every C and Objective-C template at iOS 15.0, the oldest iOS a
+    /// rootless or roothide bootstrap runs on (issue #71): it builds for both
+    /// bootstraps with `-Werror=unguarded-availability-new`, the arm64e
+    /// slices keep their pointer signatures (the pipeline's own check), every
+    /// slice says 15.0, so does an app's or a bundle's Info.plist, and the
+    /// package depends on that firmware.
+    func testCFamilyTemplatesBuildForTheOldestIOS() throws {
+        let registry = try requireTools()
+        let scratch = try scratchDirectory()
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        let (home, store) = try makeHome(in: scratch)
+        let catalog = ExtensionCatalog(directory: Repository.extensions)
+        let templates = catalog.usable.flatMap { item in
+            (item.manifest?.templates ?? []).filter { $0.language != .swift }.map { "\(item.manifest!.id)/\($0.id)" }
+        }
+        XCTAssertEqual(templates.count, 5, "\(templates)")
+        for template in templates {
+            let created = try store.create(templateID: template, name: "Oldest \(template.split(separator: "/").last!)", values: [
+                "deploymentTarget": .string("15.0"),
+            ], catalog: catalog, registry: registry)
+            for bootstrap in [Bootstrap.roothide, .rootless] {
+                let installRoot = bootstrap == .rootless ? "/var/jb" : "/var/containers/Bundle/Application/.jbroot-0123456789ABCDEF"
+                let inputs = try BuildInputs.resolve(buildID: "oldest-\(bootstrap.rawValue)-\(UUID().uuidString.prefix(8).lowercased())", projectID: created.projectID, configuration: .release, store: store, catalog: catalog, registry: registry, installRoot: installRoot, home: home.path, bootstrap: bootstrap)
+                let reporter = Collector()
+                let result: BuildService.Result
+                do {
+                    result = try BuildService.build(inputs: inputs, store: store, reporter: reporter, cancellation: BuildCancellation())
+                } catch {
+                    XCTFail("\(template) \(bootstrap): \(error)\n\(reporter.lines.suffix(30).joined(separator: "\n"))")
+                    continue
+                }
+                // The templates' own warnings (cli/objc's unused argc) are those they have at 16.0.
+                let lowered = reporter.diagnostics.filter { $0.severity == .error || $0.message.contains("availab") }
+                XCTAssertEqual(lowered, [], "\(template) \(bootstrap)")
+                for product in result.products.products {
+                    let image = try MachOImage(contentsOfFile: product.executable)
+                    for slice in image.slices {
+                        XCTAssertEqual(try image.inspect(slice).minimumOS, "15.0.0", "\(template) \(bootstrap) \(slice.architecture)")
+                    }
+                    if product.type == .app || product.type == .bundle {
+                        let info = try PropertyListSerialization.propertyList(from: Data(contentsOf: URL(fileURLWithPath: product.path).appendingPathComponent("Info.plist")), format: nil) as? [String: Any]
+                        XCTAssertEqual(info?["MinimumOSVersion"] as? String, "15.0", "\(template) \(bootstrap)")
+                    }
+                }
+                let control = try DebArchiveReader.contents(of: .path(result.record.path), contentsLimit: 0).control()
+                XCTAssertTrue(control["Depends"]?.hasPrefix("firmware (>= 15.0)") == true, "\(template) \(bootstrap): \(control["Depends"] ?? "")")
+            }
+        }
+    }
+
     /// clang's diagnostics come back structured, relative to the project.
     func testCompileErrorsAreStructured() throws {
         let registry = try requireTools()

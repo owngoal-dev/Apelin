@@ -104,19 +104,50 @@ struct FailureReasonTests {
     }
 
     /// One that does not answer its cancellation either, as a request to a
-    /// connection that answers nothing may not.
+    /// connection that answers nothing may not. The operation ends only when
+    /// the test lets it, after the limit has answered, so the answer cannot
+    /// have waited for it however slow the machine: no wall clock is read
+    /// (one was, and a loaded runner failed it).
     @Test(.timeLimit(.minutes(1)))
     func `an operation past its limit is no longer waited for`() async throws {
-        let started = Date()
+        let gate = Gate()
         await #expect(throws: Deadline.Exceeded.self) {
             _ = try await Deadline.within(.milliseconds(100)) {
-                await withCheckedContinuation { continuation in
-                    DispatchQueue.global().asyncAfter(deadline: .now() + 5) { continuation.resume() }
-                }
+                await gate.wait()
+                await gate.markEnded()
                 return 1
             }
         }
-        #expect(Date().timeIntervalSince(started) < 3)
+        #expect(await !gate.ended, "the limit answered while the operation still ran")
+        await gate.open()
+    }
+
+    /// An operation's end, held until the test opens it; waiting on it
+    /// ignores cancellation, as a request that answers nothing does.
+    private actor Gate {
+        private var isOpen = false
+        private var waiter: CheckedContinuation<Void, Never>?
+        private(set) var ended = false
+
+        func wait() async {
+            await withCheckedContinuation { continuation in
+                if isOpen {
+                    continuation.resume()
+                } else {
+                    waiter = continuation
+                }
+            }
+        }
+
+        func open() {
+            isOpen = true
+            waiter?.resume()
+            waiter = nil
+        }
+
+        func markEnded() {
+            ended = true
+        }
     }
 
     @Test(.timeLimit(.minutes(1)))

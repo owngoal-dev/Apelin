@@ -1,6 +1,310 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "From an earlier setup. Set it up again to add otool and ar." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "من إعداد سابق. أعد إعدادها لإضافة otool وar."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aus einer früheren Einrichtung. Richte sie erneut ein, um otool und ar hinzuzufügen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De una configuración anterior. Configúrala de nuevo para añadir otool y ar."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "D’une configuration antérieure. Configurez-la à nouveau pour ajouter otool et ar."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Da una configurazione precedente. Configurala di nuovo per aggiungere otool e ar."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "以前のセットアップで作成されました。otoolとarを追加するには、もう一度セットアップしてください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이전 설정에서 생성됨. otool과 ar을 추가하려면 다시 설정하세요."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De uma configuração anterior. Configure-a novamente para adicionar otool e ar."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Из прежней настройки. Настройте его снова, чтобы добавить otool и ar."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Từ lần thiết lập trước. Hãy thiết lập lại để thêm otool và ar."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "来自先前的配置。重新配置即可添加 otool 和 ar。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "來自先前的設定。重新設定即可加入 otool 與 ar。"
+          }
+        }
+      }
+    },
+    "From an earlier setup. Set up %@ to add otool and ar." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "من إعداد سابق. أعدّ %@ لإضافة otool وar."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aus einer früheren Einrichtung. Richte %@ ein, um otool und ar hinzuzufügen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De una configuración anterior. Configura %@ para añadir otool y ar."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "D’une configuration antérieure. Configurez %@ pour ajouter otool et ar."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Da una configurazione precedente. Configura %@ per aggiungere otool e ar."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "以前のセットアップで作成されました。otoolとarを追加するには、%@をセットアップしてください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이전 설정에서 생성됨. otool과 ar을 추가하려면 %@ 버전을 설정하세요."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De uma configuração anterior. Configure a %@ para adicionar otool e ar."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Из прежней настройки. Настройте %@, чтобы добавить otool и ar."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Từ lần thiết lập trước. Hãy thiết lập bản %@ để thêm otool và ar."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "来自先前的配置。配置 %@ 即可添加 otool 和 ar。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "來自先前的設定。設定 %@ 即可加入 otool 與 ar。"
+          }
+        }
+      }
+    },
+    "An earlier version of Apelin set up this toolchain. It still builds projects, but otool and ar do not work with it. Set up Command Line Tools %@ again to add a toolchain that includes them. Projects keep using this toolchain until you switch them." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "أعدّ إصدار سابق من Apelin سلسلة الأدوات هذه. لا تزال تبني المشاريع، لكن otool وar لا يعملان معها. أعدّ Command Line Tools %@ مرة أخرى لإضافة سلسلة أدوات تتضمنهما. ستستمر المشاريع في استخدام سلسلة الأدوات هذه حتى تبدّلها."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eine frühere Version von Apelin hat diese Toolchain eingerichtet. Projekte lassen sich weiterhin damit bauen, aber otool und ar funktionieren nicht. Richte Command Line Tools %@ erneut ein, um eine Toolchain mit beiden hinzuzufügen. Projekte verwenden diese Toolchain weiter, bis du sie umstellst."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Una versión anterior de Apelin configuró esta cadena de herramientas. Todavía compila proyectos, pero otool y ar no funcionan con ella. Configura Command Line Tools %@ de nuevo para añadir una cadena de herramientas que los incluya. Los proyectos seguirán usando esta cadena de herramientas hasta que los cambies."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Une version antérieure d’Apelin a configuré cette chaîne d’outils. Elle compile toujours les projets, mais otool et ar ne fonctionnent pas avec elle. Configurez Command Line Tools %@ à nouveau pour ajouter une chaîne d’outils qui les inclut. Les projets continuent d’utiliser cette chaîne d’outils jusqu’à ce que vous les changiez."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Una versione precedente di Apelin ha configurato questa toolchain. Compila ancora i progetti, ma otool e ar non funzionano. Configura di nuovo Command Line Tools %@ per aggiungere una toolchain che li includa. I progetti continuano a usare questa toolchain finché non li cambi."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このツールチェーンは以前のバージョンのApelinでセットアップされました。引き続きプロジェクトをビルドできますが、otoolとarは動作しません。これらを含むツールチェーンを追加するには、Command Line Tools %@をもう一度セットアップしてください。切り替えるまで、プロジェクトはこのツールチェーンを引き続き使用します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이전 버전의 Apelin에서 이 툴체인을 설정했습니다. 프로젝트 빌드는 여전히 가능하지만 otool과 ar은 작동하지 않습니다. 두 도구가 포함된 툴체인을 추가하려면 Command Line Tools %@ 버전을 다시 설정하세요. 프로젝트에서 툴체인을 전환하기 전까지는 이 툴체인을 계속 사용합니다."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uma versão anterior do Apelin configurou esta cadeia de ferramentas. Ela ainda compila projetos, mas otool e ar não funcionam com ela. Configure o Command Line Tools %@ novamente para adicionar uma cadeia de ferramentas que os inclua. Os projetos continuam usando esta cadeia de ferramentas até que você os altere."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Этот набор инструментов был настроен в более ранней версии Apelin. Он по-прежнему собирает проекты, но otool и ar с ним не работают. Снова настройте Command Line Tools %@, чтобы добавить набор инструментов, включающий их. Проекты продолжат использовать этот набор инструментов, пока вы их не переключите."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Phiên bản Apelin trước đây đã thiết lập chuỗi công cụ này. Chuỗi công cụ này vẫn xây dựng được dự án, nhưng otool và ar không hoạt động. Hãy thiết lập lại Command Line Tools %@ để thêm chuỗi công cụ có các lệnh này. Các dự án vẫn tiếp tục dùng chuỗi công cụ này cho đến khi bạn chuyển đổi chúng."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此工具链由旧版 Apelin 配置。它仍可用于构建项目，但 otool 和 ar 无法使用。重新配置 Command Line Tools %@ 可添加包含这两个工具的工具链。在切换之前，项目会继续使用此工具链。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此工具鏈由舊版 Apelin 設定。它仍可用於建置專案，但無法使用 otool 與 ar。重新設定 Command Line Tools %@ 可加入包含這兩項工具的工具鏈。在切換之前，專案會繼續使用此工具鏈。"
+          }
+        }
+      }
+    },
+    "An earlier version of Apelin set up this toolchain. It still builds projects, but otool and ar do not work with it. Apple no longer offers this release, so set up Command Line Tools %@ to add a toolchain that includes them. Projects keep using this toolchain until you switch them." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "أعدّ إصدار سابق من Apelin سلسلة الأدوات هذه. لا تزال تبني المشاريع، لكن otool وar لا يعملان معها. لم تعد Apple توفّر هذا الإصدار، لذا أعدّ Command Line Tools %@ لإضافة سلسلة أدوات تتضمنهما. ستستمر المشاريع في استخدام سلسلة الأدوات هذه حتى تبدّلها."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eine frühere Version von Apelin hat diese Toolchain eingerichtet. Projekte lassen sich weiterhin damit bauen, aber otool und ar funktionieren nicht. Da Apple diese Version nicht mehr anbietet, richte Command Line Tools %@ ein, um eine Toolchain mit beiden hinzuzufügen. Projekte verwenden diese Toolchain weiter, bis du sie umstellst."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Una versión anterior de Apelin configuró esta cadena de herramientas. Todavía compila proyectos, pero otool y ar no funcionan con ella. Apple ya no ofrece esta versión, así que configura Command Line Tools %@ para añadir una cadena de herramientas que los incluya. Los proyectos seguirán usando esta cadena de herramientas hasta que los cambies."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Une version antérieure d’Apelin a configuré cette chaîne d’outils. Elle compile toujours les projets, mais otool et ar ne fonctionnent pas avec elle. Apple ne propose plus cette version, configurez donc Command Line Tools %@ pour ajouter une chaîne d’outils qui les inclut. Les projets continuent d’utiliser cette chaîne d’outils jusqu’à ce que vous les changiez."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Una versione precedente di Apelin ha configurato questa toolchain. Compila ancora i progetti, ma otool e ar non funzionano. Apple non offre più questa versione, quindi configura Command Line Tools %@ per aggiungere una toolchain che li includa. I progetti continuano a usare questa toolchain finché non li cambi."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このツールチェーンは以前のバージョンのApelinでセットアップされました。引き続きプロジェクトをビルドできますが、otoolとarは動作しません。Appleはこのリリースを提供終了しているため、これらを含むツールチェーンを追加するにはCommand Line Tools %@をセットアップしてください。切り替えるまで、プロジェクトはこのツールチェーンを引き続き使用します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이전 버전의 Apelin에서 이 툴체인을 설정했습니다. 프로젝트 빌드는 여전히 가능하지만 otool과 ar은 작동하지 않습니다. Apple에서 더 이상 이 버전을 제공하지 않으므로 두 도구가 포함된 툴체인을 추가하려면 Command Line Tools %@ 버전을 설정하세요. 프로젝트에서 툴체인을 전환하기 전까지는 이 툴체인을 계속 사용합니다."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uma versão anterior do Apelin configurou esta cadeia de ferramentas. Ela ainda compila projetos, mas otool e ar não funcionam com ela. A Apple não oferece mais esta versão, portanto configure o Command Line Tools %@ para adicionar uma cadeia de ferramentas que os inclua. Os projetos continuam usando esta cadeia de ferramentas até que você os altere."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Этот набор инструментов был настроен в более ранней версии Apelin. Он по-прежнему собирает проекты, но otool и ar с ним не работают. Apple больше не предоставляет этот выпуск, поэтому настройте Command Line Tools %@, чтобы добавить набор инструментов, включающий их. Проекты продолжат использовать этот набор инструментов, пока вы их не переключите."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Phiên bản Apelin trước đây đã thiết lập chuỗi công cụ này. Chuỗi công cụ này vẫn xây dựng được dự án, nhưng otool và ar không hoạt động. Apple không còn cung cấp bản phát hành này nữa, vì vậy hãy thiết lập Command Line Tools %@ để thêm chuỗi công cụ có các lệnh này. Các dự án vẫn tiếp tục dùng chuỗi công cụ này cho đến khi bạn chuyển đổi chúng."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此工具链由旧版 Apelin 配置。它仍可用于构建项目，但 otool 和 ar 无法使用。Apple 已不再提供此版本，请配置 Command Line Tools %@ 以添加包含这两个工具的工具链。在切换之前，项目会继续使用此工具链。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此工具鏈由舊版 Apelin 設定。它仍可用於建置專案，但無法使用 otool 與 ar。Apple 已不再提供此版本，請設定 Command Line Tools %@ 以加入包含這兩項工具的工具鏈。在切換之前，專案會繼續使用此工具鏈。"
+          }
+        }
+      }
+    },
     "Raccoon" : {
       "localizations" : {
         "ar" : {

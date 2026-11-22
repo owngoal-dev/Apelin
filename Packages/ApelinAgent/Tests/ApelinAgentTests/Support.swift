@@ -240,6 +240,8 @@ actor MockBackend: AgentHostBackend {
     var environmentFindings: [String: [EnvironmentDiagnostic]] = [:]
     /// Other projects resolve_project finds, by name or id.
     var otherProjects: [String: ProjectIdentity] = [:]
+    /// The project a conversation opens in when the call names none.
+    static let ownProject = try! ProjectIdentity(id: "project-own", name: ProjectName("Hello"))
 
     /// What apelin_project_list answers: none, as a backend without other
     /// projects answers, unless a test lists some.
@@ -252,6 +254,10 @@ actor MockBackend: AgentHostBackend {
 
     func setListedProjects(_ listing: ProjectListToolResponse) {
         listedProjects = listing
+    }
+
+    func setToolchainList(_ listing: ToolchainListToolResponse) {
+        toolchainList = listing
     }
 
     func setFindings(_ findings: [EnvironmentDiagnostic], forSDK sdkID: String) {
@@ -554,7 +560,12 @@ actor MockBackend: AgentHostBackend {
         } else {
             calls.append(.conversationCreate(prompt: request.prompt, title: request.title))
         }
-        return ConversationCreateToolResponse(sessionID: "child-session", taskID: "child-task", project: request.target)
+        return ConversationCreateToolResponse(
+            sessionID: "child-session",
+            taskID: "child-task",
+            project: request.target ?? Self.ownProject,
+            isThisProject: request.target == nil,
+        )
     }
 
     func conversationSend(_ request: ConversationSendToolRequest) -> ConversationActionToolResponse {

@@ -255,6 +255,9 @@ public struct ToolchainService: Sendable {
                 progress: progress,
             )
             try reporter.checkCancelled()
+            if let earlier = journal.toolchainID, earlier != tree.id {
+                try await releaseEarlierTree(earlier, journal: journal, installer: installer, reporter: reporter)
+            }
             journal.toolchainID = tree.id
 
             if journal.enter("packaging") {
@@ -422,6 +425,46 @@ public struct ToolchainService: Sendable {
         }
     }
 
+    /// What an earlier run of this job installed of another tree — the same
+    /// release an earlier retarget scheme made, under its own ID, before
+    /// Apelin was updated — and neither registered nor rolled back: its
+    /// install task followed to the end, then the install handed to that
+    /// tree's record when it is registered, removed through the bridge
+    /// otherwise. A removal that does not go through fails this run and
+    /// stays in job.json for the next.
+    func releaseEarlierTree(
+        _ earlier: String,
+        journal: JobJournal,
+        installer: any PackageInstaller,
+        reporter: TaskReporter,
+    ) async throws {
+        if let pending = journal.installTaskID {
+            do {
+                let result = try await Self.settled {
+                    try await installer.finishInstall(
+                        TaskHandle(taskID: TaskID(pending), kind: .install),
+                        reporter: reporter,
+                    )
+                }
+                journal.installationID = result.installationID
+            } catch let error as ApelinError where error.code == .unavailable {
+                throw error // still the host's to finish; kept for the next run
+            } catch {
+                // ended without installing, or gone: nothing of it is left
+            }
+            journal.installTaskID = nil
+        }
+        guard let installationID = journal.installationID else { return }
+        var registry = ToolchainRegistry.load(layout)
+        if let index = registry.toolchains.firstIndex(where: { $0.id == earlier }) {
+            registry.toolchains[index].installationID = installationID
+            try registry.save(layout)
+        } else {
+            try await Self.settled { try await installer.remove(installationID: installationID, reporter: reporter) }
+        }
+        journal.installationID = nil
+    }
+
     func register(
         _ tree: PreparedToolchain,
         artifact: LocalArtifact,
@@ -475,10 +518,15 @@ public struct ToolchainService: Sendable {
             swiftRequirements: tree.product.swiftRequirements,
             clangModuleCPUFeatures: tree.product.clangModuleCPUFeatures,
             compatibility: tree.product.compatibility,
+            retargetScheme: tree.retargetScheme,
         )
         registry.toolchains.removeAll { $0.id == record.id }
         registry.toolchains.append(record)
-        if registry.defaultID == nil {
+        // A release set up again under a later scheme takes over as the
+        // default from the one it supersedes; every project keeps the
+        // toolchain it binds.
+        let currentDefault = registry.toolchains.first { $0.id == registry.defaultID }
+        if registry.defaultID == nil || currentDefault.map(record.supersedes) == true {
             registry.defaultID = record.id
         }
         try registry.save(layout)

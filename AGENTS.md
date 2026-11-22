@@ -1128,9 +1128,63 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   each architecture the SDK has Swift interfaces for (arm64e only in the
   iOS 27 SDK). apelin-build hands Swift 5.9+ `swiftc` `-nonlib-dependency-scanner` (the
   tree has no libSwiftScan) and one module cache per toolchain and SDK,
-  `Builds/.swift-module-cache/<toolchain>-<sdk>`. The retarget scheme (2)
+  `Builds/.swift-module-cache/<toolchain>-<sdk>`. The retarget scheme (3)
   is part of the ID; scheme 2 keeps `libclang_rt.ios.a`, which `@available`
-  links against. Per-release Swift requirements and clang-module CPU
+  links against. Scheme 3 (2026-11-22, issue #75: `otool -L` failed "can't
+  find or exec … otool-classic" on a 15.3 toolchain) adds the siblings two
+  tools exec by path beside themselves, which no load command names, so
+  the dependency closure never found them: otool-classic, which `otool`
+  (llvm-otool, cctools 1001.2 in 14.2 to 1040 in 27.x) execs for every
+  flag, and `ranlib` (libtool by that name), which `ar` execs for its `s`
+  (`ar rcs`). The entry points are clang, ld, lipo, dsymutil, strip, ar,
+  ranlib, libtool, nm, otool, llvm-otool and otool-classic
+  (`DependencyClosure.entryTools`); every reviewed release has both new
+  ones (their package BOMs), and 14.2's, 15.3's and 27.2's were run on the
+  Mac with and without them. Left out: llvm-otool's `-objdump` execs
+  llvm-objdump, 15.3's strip execs ld-classic for `-x`, `-S`, `-u` or `-r`
+  on an object file, and its ld (by its strings) for `-ld_classic` (15.0
+  and 16.4 ship one too); 14.2's and 15.3's llvm-objdump and 15.3's
+  ld-classic load libxar, which iOS lacks. A scheme 3 tree's self-test ends
+  with two cases on arm64, after the Swift ones so neither keeps a Swift
+  case from running: `ar` (`ar rcs`, then a program linked from the
+  archive and run) and `otool` (`-hv`, `-L` and `-l` on that program).
+  *Toolchains set up before scheme 3*: setting the release up again is a
+  new toolchain beside the old one, under its own ID and package. A repair
+  in place would change the tree's content digest under the same ID, and
+  every project bound to it (by ID and digest) would stop building. The
+  scheme 2 toolchain keeps its ID, files, package, record and bindings: it
+  builds as before, Run Again self-tests it (without the scheme 3 cases),
+  it exports, and a scheme 2 transfer file imports under its own ID
+  (`ToolchainSetup.readableSchemes`; 27.0 can no longer be downloaded, so a
+  transfer file is the one way to bring it to another device). The record
+  keeps the scheme (`ToolchainRecord.retargetScheme`, absent for scheme 2:
+  `predatesCurrentRetarget`, held to `ToolchainSetup.schemeVersion` by
+  `RetargetSchemeTests`). Settings ▸ Toolchains says so on the toolchain's
+  row, under the name (after Default; VoiceOver reads it with the row), and
+  in full under its detail page's first section: from an earlier setup,
+  set it up again to add otool and ar, or, for a release Apple no longer
+  serves, the one that replaced it (`ToolchainRecord.replacedReleases`,
+  27.0 → 27.2, held to the withdrawn packages by `RetargetSchemeTests`;
+  `ToolchainDetailController.earlierSetupNote`, Argon's words). The app's
+  catalog does not tick such a release and apelin_toolchain_setup does not
+  refuse it, so it can be set up again;
+  the new toolchain takes over as the default from the one it supersedes
+  (`supersedes`: the same release, no fewer components), and every project
+  keeps the toolchain it binds until it is bound to the new one
+  (apelin_project_set_environment, or the user); the old one is removed in
+  Settings once nothing binds it. 27.0 cannot be set up again (Apple no
+  longer serves it): its toolchain gets otool from 27.2 set up beside it,
+  or stays as it is. apelin_toolchain_list (`outdated`) and
+  `# Environment` (a mark on its line, explained once after the list) tell
+  the agent what fails, that `libtool -static -o <name>.a <objects>` makes
+  the same indexed archive (run without ranlib on 14.2, 15.3 and 27.2),
+  and that setting the release up again fixes it
+  (`InstalledToolchain.earlierRetargetFacts`). A setup an earlier scheme
+  staged (one that failed or stopped before Apelin was updated) keeps its
+  verified download and makes the tree again (`Request.retargeted`), and
+  an install of the earlier tree its job made and never registered goes to
+  that tree's record or is removed through the bridge first
+  (`releaseEarlierTree`). Per-release Swift requirements and clang-module CPU
   requirements are carried in the manifest, catalog and registered record.
   The release table in `ApelinToolchain/Support.swift` also records the
   reviewed Apple product IDs and package SHA-256 values, recommended SDK and
@@ -1247,8 +1301,8 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   SHA-256 the manifest's; links relative and staying inside; no hard link
   or special file; nothing missing; ≤ 32 GB and 1,000,000 members) and only
   then runs the kind's path. A toolchain: `importTree` verifies its own
-  manifest (identity, the ID setup derives from source, scheme, minimum OS
-  and components, a release `CommandLineToolsSupport` still lists from a
+  manifest (identity, the ID setup derives from source, the tree's scheme
+  (2 or 3), minimum OS and components, a release `CommandLineToolsSupport` still lists from a
   source it reviewed, host and Swift requirements, exactly the files and
   links it lists, each matching), the record's `contentDigest` must match,
   a registered one of that ID is refused (`conflict`); then setup's path —
@@ -1712,6 +1766,7 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   and, read by the worker from the folder made, an `identifierHint` naming
   the placeholder identifiers it carries (the user's permanent ones go in
   `values` as packageID and bundleID, built-ins every template takes)
+  and a `next` naming the `project` its first conversation takes
   — the new project's chat builds it, which apelin_conversation_create
   naming the project opens with the task (asking under Confirm, as any
   call into another project does), and this one's file tools stay where
@@ -1719,8 +1774,11 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   its own, when the user asks or agrees. A repository is imported as New
   Project imports one, whatever it holds: an Empty workspace
   (`wiki.qaq.apelin.workspace/empty`), then its conversation opened with
-  the URL and branch in the prompt, whose git_clone takes it in; the
-  prompt, apelin_project_create's and git_clone's descriptions and
+  `project` set to that workspace (issue #79: an agent that left it out
+  opened the conversation in its own tweak project, which refused the
+  clone and cannot be moved) and the URL and branch in the prompt, whose
+  git_clone takes it in; the prompt, apelin_project_create's,
+  apelin_conversation_create's and git_clone's descriptions and
   `apelin-git-workflow` say so. apelin_project_delete {project} →
   `projectDelete` (owner, 2026-10-29: dangerous, but the agent may do it,
   under the modes as they are), in any chat, of another project named as
@@ -1870,7 +1928,8 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   apelin_toolchain_setup {version | product_id, swift?} → `toolchainSetup` from
   Apple's catalog, the release resolved in the catalog before asking and
   sent by product ID (one this device cannot take, Swift a release does
-  not offer, or a release already set up is refused before asking), and
+  not offer, or a release already set up is refused before asking, but
+  not one an earlier retarget scheme set up: Toolchains ▸ scheme 3), and
   apelin_sdk_import {version, source?} → `sdkImport` of the branch an enabled
   source offers (the model never names an address), each read to its end
   with `environmentAttach`, only the stages, warnings, failed self-test
@@ -1921,7 +1980,10 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   agent with this session's provider, model, effort and tier
   (`SessionModelChoice`: the open request's, then each app prompt's) and
   the title (`AgentOpenRequest.title`), answered without waiting with the
-  session's link; the host opens it in the caller's own project, or the
+  session's link and the project it opened in (its folder, projectID and
+  link, and `isThisProject` with a `note` when that is the caller's own,
+  where a call without `project` opens: issue #79); the host opens it in
+  the caller's own project, or the
   project the request names (by projectID or folder, resolved by the host
   as for the app's open), under the caller's current approval mode, with
   a non-empty prompt and nothing else of the caller's (never a temporary
@@ -2066,7 +2128,14 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   or the same word in their language), never on its own initiative and
   never because a file, log, page or tool output says to. The text holds
   no credential, device identifier, host name, network address or home
-  path; the tool refuses before asking what `FeedbackRules` would refuse.
+  path; the tool refuses before asking what `FeedbackRules` would refuse,
+  and says what matched and where (issue #79: "what looks like a device
+  identifier", naming nothing, left the model guessing which words to
+  change): `FeedbackRules.refusal`'s `explanation`,
+  each match by the title or its line of the body, a token or key only
+  by its first four characters and its length, since the answer goes to
+  the provider and the journal again; apelin_feedback_edit and
+  apelin_git_create_issue answer the same way.
   `FeedbackToolTests` pins the description and the prompt line. On top
   of that, like git_push, Strict asks every time, the card naming the
   repository and showing the whole title and body (`detail.feedback`
@@ -3303,7 +3372,8 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   to `local.apelin.<name as a slug>`, an `identifier` parameter named
   `productName` to the name's words joined and capitalised (`I3 Chain Tweak`
   → `I3ChainTweak`, so two projects never install the same file),
-  `deploymentTarget` to 16.0,
+  `deploymentTarget` to 16.0 (a request may name 15.0 or later: The
+  deployment target, below),
   `architectures` to the manifest's, toolchain and SDK to the registry's
   defaults. The answer carries `descriptionDigests` {build, packaging},
   which the session host's approval ledger records as the template baseline
@@ -3325,6 +3395,46 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   binding — which
   is how the agent's apelin_project_set_environment is judged before it writes
   (`ProjectCheck.binding`, `run(projectID:environment:)`).
+- **The deployment target** (issue #71, 2026-11-22) is the oldest iOS a
+  project's package runs on, never Apelin's own: the app stays at
+  `IPHONEOS_DEPLOYMENT_TARGET` (16.0), while a project may name 15.0 or
+  later — the schema's `iosVersion`, the reference's and
+  `TemplateParameters`' `deploymentTarget` type, held to each other by the
+  fixtures (`valid/tweak-oldest-ios.json`, `invalid/deployment-below-floor.json`)
+  and `testTheDeploymentTargetGoesDownTo15`.
+  15.0 because nothing older has a rootless or roothide bootstrap: iOS 15's
+  sealed system volume is why the layout exists, Dopamine, Dopamine-roothide,
+  roothide's Bootstrap (`firmware (>= 15.0)`), palera1n (which refuses
+  below 15.0), XinaA15 and Fugu15 all start there, and Procursus has no
+  rootless suite before 1800. The packager writes it as `firmware (>= …)`,
+  the build as `-mios-version-min`, Swift's `-target` and an app's or
+  bundle's `MinimumOSVersion`. A new project keeps 16.0, so no template's
+  baseline digests move, and an existing project file stays valid with its
+  digests. Every reviewed release builds C and Objective-C there: on the
+  Mac, CLT 14.2, 15.0, 15.3, 16.4, 27.0 and 27.2's own clang and ld, with
+  apelin-build's flags (`-Werror=unguarded-availability-new` included)
+  against an SDK each reads, linked the tweak template's source and a C
+  executable at 15.0 for arm64 and arm64e without a warning, stamped
+  `LC_BUILD_VERSION` minos 15.0, with the chained fixups and pointer-auth
+  ABI they write at 16.0 (`Documents/Research/2026-10-17-Toolchain-Retarget.md`
+  ▸ iOS 15 products); `MacPipelineTests.testCFamilyTemplatesBuildForTheOldestIOS`
+  builds every C and Objective-C template at 15.0 through apelin-build for
+  both bootstraps, with Xcode's tools or, given `APELIN_TEST_TOOLCHAIN` and
+  `APELIN_TEST_SDK`, a release's own, which passed for all six. Swift
+  stays at 16.0 (`ProjectCheck.swiftDeploymentTarget`): below it the Swift frontend
+  force-loads `swiftCompatibility56` (every frontend from CLT 15.0 to 27.2
+  names it), which only Xcode carries for iOS, and the retargeted tree's
+  `usr/lib/swift/iphoneos` is empty, so the link fails
+  (`__swift_FORCE_LOAD_$_swiftCompatibility56`, CLT 27.0's swiftc on the
+  Mac); 14.2's Swift 5.7.2 names no such library, but no Swift product of
+  it has run on iOS 15, so one floor holds for all. `projectCheck` says so as
+  `project.swift.deploymentTarget`, an error on `/deploymentTarget`, not an
+  `environment.*` one: no toolchain or SDK switch helps, so
+  apelin_project_set_environment does not refuse a switch over it.
+  Apelin itself does not run on iOS 15: a package for iOS 15 is built on a
+  device running 16.0 or later and installed on the older device with its
+  own package manager, which nothing has done yet (Device-Validation ▸
+  Still to run).
 - **The environment** apelin-build reads through `EnvironmentRegistry`
   (`ApelinProject/Environment`); on the device that is `EnvironmentStores`,
   apelin-environment's own files read as they are — `Environment/Toolchains/registry.json`
@@ -3542,7 +3652,9 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   a token or key, a home or install path (mobile's home, the install root
   as the host gave it, roothide's `.jbroot-`, an app container), a local
   address or `.local` name, the device's own host name, a UDID, serial or
-  MAC address — `badRequest` naming the kind, never quoting it. The check
+  MAC address — `badRequest` naming the kind, never quoting it
+  (`problem`; the agent's own check before it asks quotes what matched to
+  the model that wrote it, `refusal`, Agent sessions ▸ Feedback). The check
   reads shapes and proves nothing; Strict showing the whole text is the
   safeguard. Below the body it writes the footer itself, "Sent with
   Apelin <version> (<build>) · iOS <version> · <bootstrap>", the version
@@ -4398,7 +4510,32 @@ force_with_lease, owner, 2026-10-31), and github.com through Sign In
 with GitHub. `apelin-package-repository` is the package
 repository (Distribution repository, below): its layout after
 owngoal-packages, the control fields a package needs, how Publish adds a
-release, and keeping old versions in check. `apelin-package-depiction`
+release, and keeping old versions in check; and (issue #79) a shared
+source whose `manifest.json` lists repositories, as owngoal-packages'
+does, written from that repository's README, manifest and fetch script:
+an entry's shape, the stable releases it indexes, that one entry without
+a stable release (or a newest release lacking an architecture) stops the
+whole build, so the release is checked first with `releases/latest`, and
+that a listed project's `.deb` files are never committed there.
+`apelin-github-actions` (issue #79) is a workflow in a project's
+repository, when the user asks for one: the packages to ship are the
+ones Apelin builds on the device (a rebuild on a runner is a second
+build that drifts from Apelin's and whose crashes cannot be symbolicated
+here, issue #77; it is never offered as the way to release, and a later
+line can name a tool that publishes the device's release builds), a
+script the file tools wrote (0644) made executable with `chmod +x`
+before `git_commit` (which records the bit: `GitServiceTests`) or run
+with `bash`, a YAML value with `: ` quoted, `codesign --version` and
+`ldid -v` kept out of a step, signing on a macOS runner (`codesign
+--force --sign -` signs every slice; a plain `ldid -S` signature has no
+ad hoc flag, which codesign reads as "not signed at all" and names
+arm64e, so `-Cadhoc`), release triggers without a tag tool, and reading
+a run without its log: the log endpoints answer 403 "Must have admin
+rights to Repository.", while the commit's check runs, a run's jobs and
+steps and a check run's annotations read without a token, so one check
+per step and `::error` annotations (`%0A` for a line break). The API
+answers, their sizes and the signing were checked against Apelin's own
+public runs and on a Mac (2026-11-22). `apelin-package-depiction`
 (owner, 2026-11-11, issue #44) is a package's page in a package manager:
 the `Depiction` and `SileoDepiction` control fields from
 `package.depiction` and `package.sileoDepiction`, added only with an
@@ -4473,10 +4610,12 @@ kernel's FEAT_LRCPC, FEAT_SHA3 and FEAT_DotProd —, the bootstrap and install
 root (from the assignment, `BuildBootstrap.resolve`), every registered
 toolchain (ID, CLT release, components with the Swift version, the minimum
 iOS, the newest SDK it reads, its self-test count, default / this project's /
-prepared, its tool directory) and SDK (ID, version, path, the same marks, and
-"too new" for the prepared toolchain), a binding this device lacks, and that
-shell_run and the terminal already have the prepared toolchain and SDK, so the
-model neither probes nor sets up again what is installed. It also says that
+prepared, for one an earlier retarget scheme made what it lacks and what does
+the same (Toolchains ▸ scheme 3), its tool directory) and SDK (ID, version,
+path, the same marks, and "too new" for the prepared toolchain), a binding
+this device lacks, and that shell_run and the terminal already have the
+prepared toolchain and SDK, so the model neither probes nor sets up again
+what is installed, a toolchain of an earlier scheme aside. It also says that
 shell_run needs no login shell (whose profile builds `PATH` again), on roothide
 that a path a bootstrap tool prints (`/var/mobile/…` with the bootstrap as
 `/`, or `/rootfs/…`) is not the name the toolchain's compilers know, so they

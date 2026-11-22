@@ -160,6 +160,21 @@ struct EnvironmentToolTests {
         #expect(await harness.events.events.isEmpty, "and nothing asked")
     }
 
+    /// One an earlier version of Apelin set up builds, but lacks otool-classic
+    /// and ranlib: its release can be set up again beside it.
+    @Test(.timeLimit(.minutes(1)))
+    func `a release an earlier version of Apelin set up is set up again, not refused`() async throws {
+        let harness = try DigestApprovalTests.Harness()
+        defer { harness.home.remove() }
+        var listing = await harness.backend.toolchainList
+        listing.installed[0].outdated = InstalledToolchain.earlierRetargetNote
+        await harness.backend.setToolchainList(listing)
+        let (_, asked) = try await harness.run(.toolchainSetup, ["version": "16.4"])
+        #expect(asked.count == 1)
+        #expect(await harness.backend.calls.last == .toolchainSetup(productID: "082-16", components: ["c"], evidence: .user(requestID: asked[0].id, fingerprint: asked[0].fingerprint)))
+        #expect(InstalledToolchain.earlierRetargetNote.contains("otool") && InstalledToolchain.earlierRetargetNote.contains("ar rcs"))
+    }
+
     @Test(.timeLimit(.minutes(1)))
     func `an import takes an offered branch of an enabled source, never an address the model wrote`() async throws {
         let harness = try DigestApprovalTests.Harness()

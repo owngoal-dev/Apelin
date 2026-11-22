@@ -37,7 +37,25 @@ public struct InstalledToolchain: Sendable, Hashable, Codable {
     /// Why it cannot be used as it is (files missing, this device lacks a
     /// CPU feature it needs).
     public var problem: String?
+    /// Set for a toolchain an earlier retarget scheme made
+    /// (`ToolchainRecord.predatesCurrentRetarget`): it builds, but tools it
+    /// lacks fail, and setting its release up again is not refused.
+    public var outdated: String?
     public var boundByThisProject: Bool
+
+    /// What `outdated` says.
+    public static let earlierRetargetNote = "Set up by an earlier version of Apelin: " + earlierRetargetFacts
+
+    /// What a toolchain an earlier retarget scheme made lacks, what does the
+    /// same, and how to get the tools (scheme 3 added otool-classic and
+    /// ranlib); the environment section says it once, after the list.
+    public static let earlierRetargetFacts = "it builds as before, but it lacks otool-classic and ranlib, so "
+        + "otool and llvm-otool fail whatever the flags, and so does ar with the s modifier (ar rcs); "
+        + "libtool -static -o <name>.a <objects> makes the same indexed archive. Setting its release up again "
+        + "with apelin_toolchain_setup (or a newer one when apelin_toolchain_list no longer offers it, as for "
+        + "27.0) adds a toolchain that has them, under another ID, beside it; then bind the project to it with "
+        + "apelin_project_set_environment."
+
     public init(
         id: String,
         version: String,
@@ -46,8 +64,10 @@ public struct InstalledToolchain: Sendable, Hashable, Codable {
         selfTests: String? = nil,
         isDefault: Bool = false,
         problem: String? = nil,
+        outdated: String? = nil,
         boundByThisProject: Bool = false,
     ) {
+        self.outdated = outdated
         self.id = id
         self.version = version
         self.components = components

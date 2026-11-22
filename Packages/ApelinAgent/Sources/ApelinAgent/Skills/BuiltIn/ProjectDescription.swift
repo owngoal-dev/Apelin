@@ -39,7 +39,14 @@ extension BuiltInSkills {
           such as a tweak with its own preference bundle.
         - `language`: `objc` and `c` compile `.m` and `.c` files only;
           `swift` compiles `.swift` only. A product never mixes them.
-        - `deploymentTarget`: a string, "16.0" or later.
+        - `deploymentTarget`: a string, the oldest iOS the package installs
+          on (its `firmware` dependency). "15.0" or later, the oldest iOS a
+          rootless or roothide jailbreak runs on; a new project gets "16.0".
+          A Swift project needs "16.0" or later: below it, Swift links
+          libraries the on-device toolchain lacks, and the check refuses it.
+          Lower it only when the user wants older iOS; the build then
+          refuses an API newer than it outside `@available` (in C,
+          `__builtin_available`).
         - `architectures`: `{"rootless": ["arm64", "arm64e"], "roothide":
           ["arm64e"]}`. The keys present are the bootstraps it packages for.
         - `configurations`: `Debug` and `Release`, each `{optimization,
