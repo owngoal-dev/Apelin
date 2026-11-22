@@ -1290,6 +1290,29 @@ console now goes on after a restart only past a successful respring.
       chat still answers after the hour Google's token lasts. A free
       account and a Google AI Pro one say which of the listed models each
       serves; one it does not serve fails in Google's words.
+- [ ] Skills from GitHub (2026-11-22, issue #78, AGENTS.md ▸ Skills are
+      global ▸ From GitHub…). Only the Mac has run it: the scripted GitHub
+      of `make harness` and one live scan of mattpocock/skills at
+      `abeeaf9` (39 skills: 15 importable, 24 marked
+      `disable-model-invocation`, listed under Cannot Be Imported). On an
+      iPhone and an iPad vphone: Settings ▸ Agent ▸ Skills ▸ + ▸ From
+      GitHub…, paste `https://github.com/mattpocock/skills`, Find Skills:
+      the progress card counts the SKILL.md files read, the list shows the
+      15 with their descriptions and file counts, nothing ticked, and the
+      24 with their reason; the info button previews a SKILL.md, with
+      `agents/openai.yaml` under Files; Select All, then Import: the 15
+      land in Your Skills with their reference files (`tdd`'s `mocking.md`
+      and `tests.md`), no problem listed, and a chat lists them. Import
+      `tdd` again: it asks to replace it. A folder link
+      (`…/tree/main/skills/engineering`), a SKILL.md link and its raw
+      address each list what they name; a branch with a slash
+      (`…/tree/matt/commands-and-skills/skills`) is found; a private or
+      misspelt repository says GitHub has no such public repository with
+      GitHub's "Not Found"; Cancel on the card during a download imports
+      nothing. VoiceOver reads a row's name, description and file count,
+      ticked or not, with Preview as an action; Cannot Be Imported rows
+      read the reason. After sixty requests in an hour (about fifteen
+      scans) the sheet says when to try again, with GitHub's words.
 
 ## SDK and toolchain matrix (2026-10-19)
 

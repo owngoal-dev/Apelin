@@ -4402,6 +4402,68 @@ in whole, an existing one replaced only after asking); a swipe removes a
 folder skill or a problem's place, after asking, never through a link out of
 the folder. The app writes the folder itself, as mobile; an open session is
 told in its next message's `<system-state>`.
+From GitHub… (owner, 2026-11-22, issue #78;
+`Apelin/Interface/Settings/Skills/GitHub/`), the plus's other item, takes a
+link to a public repository (`github.com/<owner>/<name>`, a clone address
+too), a folder in one (`…/tree/<ref>/<path>`) or one `SKILL.md`
+(`…/blob/<ref>/…/SKILL.md`, or raw.githubusercontent.com's, with
+`refs/heads/` or without): HTTPS, github.com, www.github.com or
+raw.githubusercontent.com, no user, password or port, an owner and a name
+of `GitHubName`'s shapes, a query or fragment not read (`GitHubSkillLink`).
+It runs in the app, which has the network, without a sign-in: the
+github.com token is apelin-environment's and never the app's, so a private
+repository answers as one GitHub does not have, and the sheet says Apelin
+imports from public repositories only. `GitHubSkillScanner` (an ephemeral
+session: no cookie, cache or credential) asks GitHub's REST API, version
+2026-03-10, three to five of the sixty requests an hour GitHub allows a
+device that has not signed in: the default branch (`GET
+/repos/{owner}/{repo}`) or the refs the path begins with
+(`git/matching-refs/heads/{word}`, then `tags/`: the longest whose words
+the path starts with, so `tree/feature/x/skills` finds the branch
+`feature/x`; forty hex digits are a commit, and seven or more one when no
+ref matches), the commit and its tree (`commits/{ref}?per_page=1`), the
+folder's tree from its parent's listing (`contents/{parent}?ref={commit}`)
+and everything below it (`git/trees/{sha}?recursive=1`, refused when
+GitHub answers `truncated`). Every file comes from
+raw.githubusercontent.com at that commit, which costs none of the sixty,
+and is held to the blob ID the tree gave (Git's SHA-1 over `blob
+<size>\0` and the bytes), so every byte is the commit's. A 403 or 429 with
+no requests left, a `retry-after` or a message naming the rate limit says
+when to try again, and a 404 that GitHub has no such public repository or
+ref, each with GitHub's own words under it, or that nothing is at the
+path. Every folder at or below the link with a `SKILL.md` is a skill (one
+under a hidden folder too, `.claude/skills/…`; a `SKILL.md` link only its
+own folder's), in path order, 200 listed at most and the rest counted;
+its files are everything
+below its folder but what `SkillFolder` leaves behind — hidden entries,
+links and submodules, which the preview lists under Left Behind. Each
+`SKILL.md` is read and judged before anything is ticked
+(`GitHubSkillLayout.candidate`) by ApelinCore's `SkillManifest`, kwwk's
+frontmatter reader and name and description rules ported, which
+`SkillManifestTests` hold to kwwk's own loader and apelin_skill_save's
+name check now reads too: a skill whose name kwwk refuses, with no
+description or one written as a YAML block (`description: >`, which kwwk
+takes as that one character), one over 1,024 characters,
+`disable-model-invocation: true` (for typing as a command, which Apelin's
+chats do not take and its catalogue leaves out without a word), a
+built-in's name, a link or a `SKILL.md` that is not UTF-8, or past 2,000
+entries, 32 MB or a 1 MB `SKILL.md` is listed under Cannot Be Imported
+with why, and never ticked: nothing is imported that would only show up as
+a problem, or not at all. A skill's folder takes its frontmatter's name
+(else its own folder's, the repository's at the top), so kwwk finds the
+folder named for the skill. Each row leads with its check and a tap ticks
+it (two of one name never both); the trailing button previews the
+`SKILL.md` as plain text (`SkillTextController`). A lone importable skill
+starts ticked, several start unticked, with Select All. Import asks first
+when a ticked name is taken (`GitHubSkillImportPlan.replacements`: a
+listed skill of that name anywhere, which goes too, since kwwk keeps one
+of two skills of a name and drops the other unsaid, or anything at its
+place), downloads the ticked skills on a cancellable progress card into a
+temporary folder, a cancel importing nothing, and hands each to
+`SkillFolder.add`, as Files does. Nothing in the repository runs and
+nothing is made executable. Where a skill came from is not kept; there is
+no update. Tested by `Tests/GitHubSkills` (`Scripts/test-github-skills.sh`,
+in `make harness`) against a scripted GitHub.
 The agent manages the same folder (owner, 2026-10-24; `Skills/SkillTools.swift`,
 in every chat, no host request — the worker is mobile too):
 apelin_skill_list (a read preset: name, description, source, files,

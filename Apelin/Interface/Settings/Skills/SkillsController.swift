@@ -9,7 +9,8 @@ import UniformTypeIdentifiers
 /// then those in the skills folder — and what in that folder is not offered
 /// as it stands. The list is the agent worker's (`agentSkillList`), read as
 /// a session reads it. A skill opens its instructions; the plus copies one
-/// in from Files (`SkillFolder`); a skill of the folder, or a problem, is
+/// in from Files (`SkillFolder`) or from a public repository on GitHub
+/// (`GitHubSkillsController`); a skill of the folder, or a problem, is
 /// removed with a trailing swipe after a confirmation.
 final class SkillsController: TableController {
     private enum Section: Hashable {
@@ -56,7 +57,14 @@ final class SkillsController: TableController {
         navigationItem.backButtonDisplayMode = .minimal
         navigationItem.rightBarButtonItem = UIBarButtonItem(
             systemItem: .add,
-            primaryAction: UIAction { [weak self] _ in self?.pickSkill() },
+            menu: UIMenu(children: [
+                UIAction(title: String(localized: "From Files…"), image: UIImage(systemName: "folder")) { [weak self] _ in
+                    self?.pickSkill()
+                },
+                UIAction(title: String(localized: "From GitHub…"), image: UIImage(systemName: "link")) { [weak self] _ in
+                    self?.importFromGitHub()
+                },
+            ]),
         ).then { $0.accessibilityLabel = String(localized: "Import Skill") }
         dataSource.allowsEditing = true
         dataSource.headerTitle = { section in
@@ -70,8 +78,9 @@ final class SkillsController: TableController {
             switch section {
             case .user:
                 String(localized: """
-                Import a folder that holds a SKILL.md, or a Markdown file. Every chat is offered these skills, and \
-                the agent reads one when a task matches its description.
+                Import a folder that holds a SKILL.md or a Markdown file from Files, or skills from a public \
+                repository on GitHub. Every chat is offered these skills, and the agent reads one when a task \
+                matches its description.
                 """)
             case .builtIn, .problems: nil
             }
@@ -87,7 +96,9 @@ final class SkillsController: TableController {
         load()
     }
 
-    @objc private dynamic func load(then check: String? = nil) {
+    /// Reads the list again; a problem the agent finds at one of the places
+    /// in `check`, just imported, is shown.
+    @objc private dynamic func load(then check: [String] = []) {
         loader?.cancel()
         dataSource.beginLoad()
         loader = Task { [weak self] in
@@ -95,7 +106,7 @@ final class SkillsController: TableController {
                 let listing = try await ApelinService.app.agentSkillList()
                 guard !Task.isCancelled, let self else { return }
                 show(listing)
-                if let check, let problem = listing.problems.first(where: { $0.location == check }) {
+                if let problem = listing.problems.first(where: { $0.location.map(check.contains) == true }) {
                     presentNotice(title: "Check This Skill", message: problem.message)
                 }
             } catch {
@@ -226,6 +237,15 @@ final class SkillsController: TableController {
         }
     }
 
+    /// From GitHub…: skills from a public repository, chosen on a sheet.
+    @objc private dynamic func importFromGitHub() {
+        let page = GitHubSkillsController(folder: folder, listing: listing)
+        page.onImport = { [weak self] locations in
+            self?.load(then: locations)
+        }
+        presentPageAsFormSheet(page)
+    }
+
     @objc private dynamic func pickSkill() {
         let markdown = UTType(filenameExtension: "md", conformingTo: .text) ?? .plainText
         let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.folder, markdown], asCopy: false)
@@ -248,7 +268,7 @@ final class SkillsController: TableController {
                 try DataFolder.app.makeLevels(to: folder.root)
                 let location = try await Task.detached { try folder.add(url, replacing: replacing) }.value
                 SPIndicator.present(title: String(localized: "Imported"), preset: .done, haptic: .success)
-                self?.load(then: location)
+                self?.load(then: [location])
             } catch let SkillFolder.Failure.exists(location) {
                 self?.presentConfirmation(
                     title: "Replace \(location)?",

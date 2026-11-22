@@ -3,13 +3,27 @@ import UIKit
 
 /// One skill from Settings ▸ Skills: its description, the instructions the
 /// agent reads with `apelin_skill_read`, and the other files its folder serves.
+/// From GitHub previews a skill before it is imported the same way: its
+/// `SKILL.md` as it is, the files that come with it and what stays behind.
 /// Selectable, wrapping text, as a license's page is.
 final class SkillTextController: UIViewController {
-    private let skill: AgentSkill
+    private let name: String
+    private let summary: String
+    private let text: String
+    private let files: [String]
+    private let leftBehind: [String]
 
-    init(skill: AgentSkill) {
-        self.skill = skill
+    init(name: String, summary: String, text: String, files: [String], leftBehind: [String] = []) {
+        self.name = name
+        self.summary = summary
+        self.text = text
+        self.files = files
+        self.leftBehind = leftBehind
         super.init(nibName: nil, bundle: nil)
+    }
+
+    convenience init(skill: AgentSkill) {
+        self.init(name: skill.name, summary: skill.description, text: skill.body, files: skill.files)
     }
 
     @available(*, unavailable)
@@ -19,25 +33,26 @@ final class SkillTextController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = skill.name
+        title = name
         view.backgroundColor = .systemGroupedBackground
         let body = UIFont.preferredFont(forTextStyle: .body)
         let footnote = UIFont.preferredFont(forTextStyle: .footnote)
         let monospaced = UIFontMetrics(forTextStyle: .footnote).scaledFont(
             for: .monospacedSystemFont(ofSize: footnote.pointSize, weight: .regular),
         )
-        let text = NSMutableAttributedString(string: skill.description + "\n\n", attributes: [
+        let page = NSMutableAttributedString(string: summary + "\n\n", attributes: [
             .font: body, .foregroundColor: UIColor.secondaryLabel,
         ])
-        text.append(NSAttributedString(string: skill.body, attributes: [
+        page.append(NSAttributedString(string: text, attributes: [
             .font: monospaced, .foregroundColor: UIColor.label,
         ]))
-        if !skill.files.isEmpty {
-            text.append(NSAttributedString(
-                string: "\n\n" + String(localized: "Files") + "\n",
+        let lists = [(String(localized: "Files"), files), (String(localized: "Left Behind"), leftBehind)]
+        for (heading, paths) in lists where !paths.isEmpty {
+            page.append(NSAttributedString(
+                string: "\n\n" + heading + "\n",
                 attributes: [.font: UIFont.preferredFont(forTextStyle: .headline), .foregroundColor: UIColor.label],
             ))
-            text.append(NSAttributedString(string: skill.files.joined(separator: "\n"), attributes: [
+            page.append(NSAttributedString(string: paths.joined(separator: "\n"), attributes: [
                 .font: monospaced, .foregroundColor: UIColor.secondaryLabel,
             ]))
         }
@@ -48,7 +63,7 @@ final class SkillTextController: UIViewController {
         textView.backgroundColor = .clear
         textView.adjustsFontForContentSizeCategory = true
         textView.textContainerInset = UIEdgeInsets(top: 16, left: 12, bottom: 16, right: 12)
-        textView.attributedText = text
+        textView.attributedText = page
         textView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(textView)
         NSLayoutConstraint.activate([
