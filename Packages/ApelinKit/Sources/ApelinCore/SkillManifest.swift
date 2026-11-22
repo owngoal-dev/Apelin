@@ -130,3 +130,78 @@ public struct SkillManifest: Sendable, Equatable {
         return value
     }
 }
+
+// MARK: - What stops kwwk's loader
+
+public extension SkillManifest {
+    /// kwwk's `parseFrontmatter` stops the process on a text that opens with
+    /// an empty frontmatter, `---` and at once another `---` line: it slices
+    /// the frontmatter from after the first fence's line break to before the
+    /// second fence, a range whose end comes before its start ("Range
+    /// requires lowerBound <= upperBound"). Every worker that lists the
+    /// skills folder would stop on such a file, and every chat with it;
+    /// `parse` reads it as no frontmatter. CR line ends count as kwwk reads
+    /// them, and a byte-order mark is passed over, which can only make this
+    /// true more often than kwwk stops.
+    static func stopsKwwkLoader(_ text: String) -> Bool {
+        let unmarked = text.hasPrefix("\u{FEFF}") ? String(text.dropFirst()) : text
+        return unmarked
+            .replacingOccurrences(of: "\r\n", with: "\n")
+            .replacingOccurrences(of: "\r", with: "\n")
+            .hasPrefix("---\n---")
+    }
+
+    /// `stopsKwwkLoader` for the file at `url`, read as kwwk reads it: whole,
+    /// as UTF-8, and a file that does not read stops nothing. Its first
+    /// bytes are read first, which settle it for nearly every file.
+    static func stopsKwwkLoader(fileAt url: URL) -> Bool {
+        guard let handle = try? FileHandle(forReadingFrom: url) else { return false }
+        let head = (try? handle.read(upToCount: 16)) ?? Data()
+        try? handle.close()
+        guard stopsKwwkLoader(String(decoding: head, as: UTF8.self)),
+              let text = try? String(contentsOf: url, encoding: .utf8)
+        else { return false }
+        return stopsKwwkLoader(text)
+    }
+
+    /// How deep `filesStoppingKwwk` walks, so a link back up a folder ends it.
+    static let deepestWalk = 32
+
+    /// The files in the skills folder `root` that would stop kwwk's loader,
+    /// relative to it. They are the ones its walk (`Skills.load`) reads: a
+    /// folder holding a `SKILL.md` is that skill, and nothing below it is
+    /// read; any other folder is looked into, links followed, and at the
+    /// top its `.md` files are skills too; hidden entries and
+    /// `node_modules` are passed over. Ignore files are not read, so this
+    /// names what kwwk would read and perhaps more.
+    static func filesStoppingKwwk(in root: URL) -> [String] {
+        let manager = FileManager.default
+        var found: [String] = []
+        func check(_ path: String, _ relative: String) {
+            var info = stat()
+            guard stat(path, &info) == 0, info.st_mode & S_IFMT == S_IFREG,
+                  stopsKwwkLoader(fileAt: URL(fileURLWithPath: path))
+            else { return }
+            found.append(relative)
+        }
+        func walk(_ path: String, _ relative: String, depth: Int) {
+            guard depth <= deepestWalk, let entries = try? manager.contentsOfDirectory(atPath: path) else { return }
+            if entries.contains("SKILL.md") {
+                check(path + "/SKILL.md", relative + "SKILL.md")
+                return
+            }
+            for entry in entries.sorted() where !entry.hasPrefix(".") && entry != "node_modules" {
+                let full = path + "/" + entry
+                var isDirectory: ObjCBool = false
+                guard manager.fileExists(atPath: full, isDirectory: &isDirectory) else { continue }
+                if isDirectory.boolValue {
+                    walk(full, relative + entry + "/", depth: depth + 1)
+                } else if depth == 0, entry.hasSuffix(".md") {
+                    check(full, relative + entry)
+                }
+            }
+        }
+        walk(root.path, "", depth: 0)
+        return found
+    }
+}

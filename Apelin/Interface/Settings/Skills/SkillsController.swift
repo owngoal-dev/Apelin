@@ -285,6 +285,12 @@ final class SkillsController: TableController {
                         title: "Unable to Import Skill",
                         message: "A skill can hold up to 2,000 files and 32 MB.",
                     )
+                case .emptyFrontmatter:
+                    // From GitHub… says the same of such a skill.
+                    self?.presentNotice(
+                        title: "Unable to Import Skill",
+                        message: "Its SKILL.md has no one-line description, which chats need to know when to use it.",
+                    )
                 default:
                     self?.presentNotice(
                         title: "Unable to Import Skill",

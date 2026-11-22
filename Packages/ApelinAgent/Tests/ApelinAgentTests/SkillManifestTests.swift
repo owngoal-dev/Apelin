@@ -1,3 +1,4 @@
+import ApelinAgent
 import ApelinCore
 import Foundation
 import KWWKAgent
@@ -68,6 +69,68 @@ struct SkillManifestTests {
     func `an empty frontmatter, which kwwk's parser traps on, has no description`() {
         let manifest = SkillManifest("---\n---\nNothing above.")
         #expect(manifest.description == nil && manifest.fields.isEmpty)
+        #expect(SkillManifest.stopsKwwkLoader("---\n---\nNothing above."))
+        #expect(SkillManifest.stopsKwwkLoader("---\r\n---"))
+        #expect(!SkillManifest.stopsKwwkLoader("----\n---\nBody"))
+        #expect(!SkillManifest.stopsKwwkLoader("---\n\n---\nBody"))
+        #expect(!SkillManifest.stopsKwwkLoader("---\nname: x\n---\nBody"))
+    }
+
+    /// The trap itself, in kwwk's own loader at the revision Apelin pins:
+    /// a skills folder with one such `SKILL.md` stops the process that lists
+    /// it. When kwwk no longer traps this fails, and `stopsKwwkLoader`'s
+    /// guards can go.
+    @Test
+    func `kwwk's loader stops the process on a SKILL.md with an empty frontmatter`() async {
+        await #expect(processExitsWith: .failure) {
+            let root = FileManager.default.temporaryDirectory.appendingPathComponent("skill-trap-\(UUID().uuidString)")
+            let folder = root.appendingPathComponent("hollow", isDirectory: true)
+            try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            try? Data("---\n---\nNothing above.\n".utf8).write(to: folder.appendingPathComponent("SKILL.md"))
+            _ = Skills.load(directories: [root.path], useIndex: false)
+        }
+    }
+
+    /// What a session, apelin_skill_read and Settings ▸ Skills list goes
+    /// round such files: every other skill is offered as it was, each file
+    /// that would stop kwwk is named where it is, as kwwk names a skill
+    /// with no description, and nothing of the copy kwwk read is left.
+    @Test
+    func `the skills listing passes over a file that would stop kwwk and keeps the rest`() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("skill-guard-\(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent("skills", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root.deletingLastPathComponent()) }
+        let files = [
+            "plain/SKILL.md": "---\nname: plain\ndescription: Use when testing.\n---\nBody.",
+            "plain/reference.md": "---\n---\nNever read: below a SKILL.md.",
+            "hollow/SKILL.md": "---\n---\nNothing above.",
+            "group/inner/SKILL.md": "---\nname: inner\ndescription: Nested.\n---\nInner.",
+            "group/stuck/SKILL.md": "---\r\n---\r\n",
+            "loose.md": "---\nname: loose\ndescription: A file at the top.\n---\nLoose.",
+            "empty.md": "---\n---\n",
+            ".gitignore": "ignored/\n",
+            "ignored/SKILL.md": "---\nname: ignored\ndescription: Ignored.\n---\nx",
+        ]
+        for (place, text) in files {
+            let url = root.appendingPathComponent(place)
+            try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try Data(text.utf8).write(to: url)
+        }
+        #expect(Set(SkillManifest.filesStoppingKwwk(in: root)) == ["hollow/SKILL.md", "group/stuck/SKILL.md", "empty.md"])
+
+        let listed = SkillCatalog.load(userDirectory: root)
+        let user = listed.skills.filter(\.isUserSkill)
+        #expect(Set(user.map(\.name)) == ["plain", "inner", "loose"])
+        #expect(user.first { $0.name == "plain" }?.directory == root.appendingPathComponent("plain").standardizedFileURL.path)
+        #expect(user.first { $0.name == "inner" }?.location == "group/inner")
+        for place in ["hollow/SKILL.md", "group/stuck/SKILL.md", "empty.md"] {
+            #expect(listed.diagnostics.contains { $0.path == root.appendingPathComponent(place).path && $0.message == "description is required" },
+                    "\(place) is named as kwwk names a skill with no description")
+        }
+        #expect(!listed.diagnostics.contains { $0.path.contains("/.check-") }, "no path names the copy")
+        let left = try FileManager.default.contentsOfDirectory(atPath: root.path).filter { $0.hasPrefix(".check-") }
+        #expect(left.isEmpty, "the copy is removed")
     }
 
     @Test

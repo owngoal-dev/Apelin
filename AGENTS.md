@@ -4464,6 +4464,22 @@ temporary folder, a cancel importing nothing, and hands each to
 nothing is made executable. Where a skill came from is not kept; there is
 no update. Tested by `Tests/GitHubSkills` (`Scripts/test-github-skills.sh`,
 in `make harness`) against a scripted GitHub.
+An empty frontmatter stops kwwk (2026-11-22): its `parseFrontmatter`, at
+the pinned revision, slices a text that opens `---` and at once another
+`---` line with a range whose end comes before its start, and the process
+traps, so one such file in the skills folder would stop every worker that
+lists it and every chat with it. `SkillManifest.stopsKwwkLoader` names the
+shape (CR line ends as kwwk reads them); `SkillFolder.add` refuses such a
+`SKILL.md` (`emptyFrontmatter`, which Settings says as From GitHub… says a
+skill with no description: From GitHub… finds none in it already); and
+`SkillCatalog.loadFolder`, which every session, apelin_skill_read and the
+Settings listing read through, finds them as kwwk's walk would
+(`SkillManifest.filesStoppingKwwk`) and, when there are any, has kwwk read
+a hidden copy of the folder made of links, an empty file in place of each,
+so they are named "description is required", as a skill with no
+description is, and every other skill is offered as before.
+`SkillManifestTests` proves the trap in kwwk's own loader with an exit test,
+which fails once kwwk no longer traps.
 The agent manages the same folder (owner, 2026-10-24; `Skills/SkillTools.swift`,
 in every chat, no host request — the worker is mobile too):
 apelin_skill_list (a read preset: name, description, source, files,
