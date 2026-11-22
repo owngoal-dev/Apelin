@@ -20,6 +20,10 @@ public struct SkillFolder {
         case tooLarge
         /// Not a place inside the folder.
         case invalidLocation
+        /// The `SKILL.md` opens with an empty frontmatter, which gives no
+        /// description and stops kwwk's loader
+        /// (`SkillManifest.stopsKwwkLoader`).
+        case emptyFrontmatter
     }
 
     public let root: URL
@@ -62,6 +66,10 @@ public struct SkillFolder {
         } else {
             guard Self.size(of: source) <= Self.maximumBytes else { throw Failure.tooLarge }
             try manager.copyItem(at: source, to: staging.appendingPathComponent("SKILL.md"))
+        }
+        // Judged on the copy, the bytes that would stay.
+        guard !SkillManifest.stopsKwwkLoader(fileAt: staging.appendingPathComponent("SKILL.md")) else {
+            throw Failure.emptyFrontmatter
         }
         try place(staging, at: location, replacing: replacing)
         return location
