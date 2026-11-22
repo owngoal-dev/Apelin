@@ -62,6 +62,69 @@ final class FeedbackRulesTests: XCTestCase {
         XCTAssertNotNil(FeedbackRules.problem(title: "Fails at 192.168.0.2", body: "x"), "the title is read too")
     }
 
+    /// The writer is told what matched and where (issue #79: a body refused
+    /// as holding "what looks like a device identifier" named nothing, and
+    /// the model guessed); a token or key only by its start and length.
+    func testTheWriterIsToldWhatMatchedAndWhere() throws {
+        let hash = "3ce304f3577122c6b022c07a44df263cedb36532"
+        let commit = try XCTUnwrap(FeedbackRules.refusal(title: title, body: "Steps:\n1. Build\n2. CI at \(hash) failed"))
+        XCTAssertEqual(commit.reason, problem("Steps:\n1. Build\n2. CI at \(hash) failed"), "the reason is problem's")
+        XCTAssertEqual(commit.matches.map(\.kind), [.deviceIdentifier])
+        XCTAssertEqual(commit.matches.first?.place, .body(line: 3))
+        XCTAssertEqual(commit.matches.first?.shown, hash)
+        XCTAssertTrue(commit.explanation.hasPrefix(commit.reason + ". What matched: `\(hash)`"), commit.explanation)
+        XCTAssertTrue(commit.explanation.contains("as a commit hash is written"), commit.explanation)
+        XCTAssertTrue(commit.explanation.contains("on line 3 of the body"), commit.explanation)
+
+        let serial = try XCTUnwrap(FeedbackRules.refusal(title: "Fails on IPHONEOS16", body: "x"))
+        XCTAssertEqual(serial.matches, [FeedbackRules.Match(
+            kind: .deviceIdentifier,
+            place: .title,
+            shown: "IPHONEOS16",
+            note: "10 to 12 capital letters and digits, as an Apple serial number is written",
+        )])
+        XCTAssertTrue(serial.explanation.contains("`IPHONEOS16`") && serial.explanation.contains("in the title"), serial.explanation)
+
+        let token = "ghp_" + String(repeating: "A1b2", count: 9)
+        let bearer = "abcdefghijklmnopqrstuvwxyz012345"
+        // No key at all, put together here so no scanner reads a key block.
+        let key = ["-----BEGIN OPENSSH PRIVATE", " KEY-----\nTk9UIEEgS0VZ\n-----END OPENSSH PRIVATE", " KEY-----"].joined()
+        let secrets = try XCTUnwrap(FeedbackRules.refusal(
+            title: title,
+            body: "token \(token)\r\nAuthorization: Bearer \(bearer)\r\nfrom 192.168.1.20\n\(key)",
+        ))
+        XCTAssertEqual(secrets.matches.map(\.kind), [.tokenOrKey, .tokenOrKey, .localNetwork, .tokenOrKey], "in the text's order")
+        XCTAssertEqual(secrets.matches.map(\.place), [.body(line: 1), .body(line: 2), .body(line: 3), .body(line: 4)])
+        XCTAssertTrue(secrets.reason.contains("token or key"), "the first kind looked for is the one named")
+        let told = secrets.explanation
+        XCTAssertTrue(told.contains("`ghp_…`") && told.contains("\(token.count) characters"), told)
+        XCTAssertTrue(told.contains("`Bearer …`") && told.contains("`192.168.1.20`"), told)
+        XCTAssertTrue(told.contains("`-----BEGIN OPENSSH PRIVATE KEY-----`"), told)
+        for secret in [String(token.prefix(5)), String(bearer.prefix(4)), "Tk9UIEEg"] {
+            XCTAssertFalse(told.contains(secret), "\(secret) is shown: \(told)")
+        }
+
+        // An edit reads the body alone; a match inside another is named once.
+        let edit = try XCTUnwrap(FeedbackRules.editRefusal(title: nil, body: "ok\nsee /Users/AB12CD34EF56/x"))
+        XCTAssertEqual(edit.matches.map(\.kind), [.homeOrInstallPath])
+        XCTAssertEqual(edit.matches.first?.place, .body(line: 2))
+        // This device's own path and name, which apelin-environment passes.
+        let own = try XCTUnwrap(FeedbackRules.refusal(
+            title: title, body: "it is Adas-iPhone\nunder /OPT/apelin-test/x", paths: ["/opt/apelin-test"], names: ["Adas-iPhone"],
+        ))
+        XCTAssertEqual(own.matches.map(\.shown), ["Adas-iPhone", "/OPT/apelin-test"])
+        XCTAssertEqual(own.matches.map(\.kind), [.deviceName, .homeOrInstallPath])
+        XCTAssertTrue(own.reason.contains("home or install path"), "a path is looked for before a name")
+
+        let many = try XCTUnwrap(FeedbackRules.refusal(
+            title: title, body: (1 ... 10).map { "10.0.0.\($0)" }.joined(separator: "\n"),
+        ))
+        XCTAssertEqual(many.matches.count, 10)
+        XCTAssertTrue(many.explanation.hasSuffix("`10.0.0.8` (a local network address or name) on line 8 of the body; and 2 more"), many.explanation)
+        // A refusal of the text's shape quotes nothing.
+        XCTAssertEqual(FeedbackRules.refusal(title: "  ", body: "x")?.explanation, "the title is empty")
+    }
+
     func testThisDevicesOwnPathsAndNameAreRefused() {
         XCTAssertNil(problem("see /opt/apelin-test/data/x"))
         XCTAssertNotNil(problem("see /opt/apelin-test/data/x", paths: ["/opt/apelin-test"]))

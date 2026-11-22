@@ -1,7 +1,7 @@
 extension BuiltInSkills {
     static let packageRepository = SkillDocument(
         name: "apelin-package-repository",
-        description: "Maintaining the user's package repository (an APT source on GitHub Pages): its layout, the packages in debs/, depictions, the control fields a package needs, how a release is published, and keeping old versions in check.",
+        description: "Maintaining the user's package repository (an APT source on GitHub Pages): its layout, the packages in debs/, depictions, the control fields a package needs, how a release is published, and keeping old versions in check; and adding a project to a shared source that indexes GitHub Releases, such as owngoal-packages.",
         body: """
         # Maintaining a package repository
 
@@ -64,11 +64,52 @@ extension BuiltInSkills {
         - Write depictions and featured banners when the user asks for a
           better page; keep images small (a banner around 1000×400, an icon
           120×120, PNG).
-        - The workflow's own failures show only on GitHub, in the repository's
-          Actions tab: when the source does not update, say so and point the
-          user there; you cannot read them from here.
+        - When the source still does not update, look at the workflow's run:
+          its log shows only on GitHub, in the repository's Actions tab, but
+          whether it failed, at which step, and what it annotated can be
+          read from here (the apelin-github-actions skill). Say what you
+          found, and point the user to that tab for the log.
         - Pushing publishes: in Strict mode `git_push` asks the user, and that
           is the step that makes a change public.
+
+        ## A shared source that lists repositories
+        Some sources, often shared by several projects, hold no packages of
+        a project: their `manifest.json` lists GitHub repositories, and their
+        workflow indexes each one's GitHub Releases. owngoal-dev/owngoal-packages
+        (`https://apt.owngoal.dev/`) is one. A project gets into it as an
+        entry naming its repository, whose GitHub Releases carry the
+        packages. Read the source's README, `manifest.json` and workflow
+        first; owngoal-packages' say:
+        - An entry: `{"repository": "https://github.com/<owner>/<repo>",
+          "architectures": ["iphoneos-arm64e", "iphoneos-arm64"]}`, each
+          repository once, with the architectures its releases carry; add
+          `"allPackages": true` when one release holds several packages.
+        - The workflow indexes each repository's three newest stable
+          releases and the newest of the minor version before them: not a
+          draft or a prerelease, and no `alpha`, `beta`, `rc`, `pre`,
+          `preview`, `dev`, `nightly` or `snapshot` as a word of the tag
+          (`v1.2-beta`). From each it
+          takes, per architecture, the first asset whose name ends
+          `<architecture>.deb` (every one with `allPackages`), checked
+          against the release's `SHA256SUMS` when it has one; devices
+          download it from the release.
+        - One entry that fails stops the whole build, and the source keeps
+          its old index for every package in it: a repository with no
+          stable release, or whose newest release has no `.deb` for an
+          architecture its entry lists. So before adding an entry, check the
+          release: `apelin_web_fetch`
+          `https://api.github.com/repos/<owner>/<repo>/releases/latest`
+          answers the newest release that is neither a draft nor a
+          prerelease, its `tag_name` and each asset's `name`, and 404 when
+          there is none; its tag must hold none of the words above.
+        - Never commit a listed project's `.deb` files there: `debs/` is for
+          packages with no release of their own, and a file name both give
+          stops the build too.
+        - The workflow runs on a push to `main` that changes the manifest,
+          every day at 04:00 UTC and by hand, so a new release of a listed
+          repository shows by the next day.
+        - It is a repository of its own: change it only when the user asks,
+          in a workspace that imported it, and push as the user agrees.
         """,
     )
 }
