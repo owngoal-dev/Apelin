@@ -95,11 +95,11 @@
 	<key>com.apple.private.coreservices.lsaw</key>
 	<true/>
 
-	<!-- Other processes' paths (confirmLoaded's target), and the kernel's
-	     region paths for the image check a request opts into. No task port
-	     key: reading SpringBoard's memory through one is the likeliest cause
-	     of the iOS 27 kernel panic of 2026-10-17, and nothing here reads
-	     another task's memory. -->
+	<!-- Other processes' executable paths (confirmLoaded's target and the
+	     process list it watches), never their region paths: the image check
+	     is refused. No task port key: reading SpringBoard's memory through
+	     one is the likeliest cause of the iOS 27 kernel panic of 2026-10-17,
+	     and nothing here reads another task's memory. -->
 	<key>proc_info-allow</key>
 	<true/>
 

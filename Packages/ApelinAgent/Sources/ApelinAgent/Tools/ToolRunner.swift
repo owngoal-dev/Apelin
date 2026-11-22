@@ -657,6 +657,9 @@ actor ToolRunner {
                 buildID: arguments.requireString("build_id"),
                 target: arguments.requireString("target"),
                 respring: arguments.argBool("respring") ?? false,
+                waitSeconds: arguments.argInt("wait_seconds").map {
+                    min(ConfirmLoadedRequest.maximumWaitSeconds, max(1, $0))
+                },
             )))
 
         case .logRead:
