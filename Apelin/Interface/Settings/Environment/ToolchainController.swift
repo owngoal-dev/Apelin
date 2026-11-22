@@ -181,9 +181,15 @@ final class ToolchainController: TableController {
             return cell
         case let .toolchain(record, isDefault):
             let cell = UITableViewCell(style: .default, reuseIdentifier: nil)
-            var content = isDefault ? UIListContentConfiguration.stackedValueCell() : .cell()
+            // the default's word, then what a toolchain an earlier version
+            // set up lacks; VoiceOver reads both after the name
+            let lines = [
+                isDefault ? String(localized: "Default") : nil,
+                ToolchainDetailController.earlierSetupNote(of: record),
+            ].compactMap(\.self)
+            var content = lines.isEmpty ? UIListContentConfiguration.cell() : .stackedValueCell()
             content.text = ToolchainDetailController.name(of: record)
-            content.secondaryText = isDefault ? String(localized: "Default") : nil
+            content.secondaryText = lines.isEmpty ? nil : lines.joined(separator: "\n")
             content.secondaryTextProperties.color = .secondaryLabel
 
             cell.contentConfiguration = content

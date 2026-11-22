@@ -135,6 +135,7 @@ let package = Package(
             name: "ApelinEnvironmentTests",
             dependencies: [
                 "ApelinEnvironment", "ApelinGit", "ApelinProject", "ApelinProtocol",
+                .product(name: "ApelinToolchain", package: "ApelinToolchain"),
                 .product(name: "ArchiveKit", package: "libarchive.xcframework"),
                 .product(name: "ApelinDebArchive", package: "ApelinFormats"),
                 .product(name: "ApelinDebian", package: "ApelinFormats"),

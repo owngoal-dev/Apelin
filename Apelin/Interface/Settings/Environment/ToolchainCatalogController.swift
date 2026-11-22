@@ -27,9 +27,12 @@ final class ToolchainCatalogController: TableController {
 
     private var products: [ToolchainCatalogProduct] = []
     private let installedToolchains: [ToolchainRecord]
+    /// One an earlier version of Apelin set up lacks tools a setup now adds
+    /// (`predatesCurrentRetarget`), so its release can be set up again.
     private func isInstalled(_ product: ToolchainCatalogProduct) -> Bool {
         installedToolchains.contains { record in
-            ToolchainDetailController.product(of: record) == product.productID
+            !record.predatesCurrentRetarget
+                && ToolchainDetailController.product(of: record) == product.productID
                 && (product.supportsSwift != true
                     || record.components.contains { $0.kind == .swift && $0.selfCheckPassed == true })
         }

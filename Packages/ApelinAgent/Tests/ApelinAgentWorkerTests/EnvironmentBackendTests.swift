@@ -57,6 +57,11 @@ struct EnvironmentBackendTests {
         let installed = try #require(list.installed.first)
         #expect(installed.components == ["c"], "a component counts once its self-check passed")
         #expect(installed.selfTests == "1 of 2 passed against iPhoneOS 18.2" && installed.isDefault && installed.boundByThisProject)
+        // Registered before the retarget scheme was recorded: scheme 2, without otool-classic and ranlib.
+        #expect(installed.outdated == InstalledToolchain.earlierRetargetNote && installed.problem == nil)
+        var current = Self.toolchain("clt-16.4-c", version: "16.4", newestSDK: "18.5", productID: "082-16")
+        current.retargetScheme = ToolchainRecord.currentRetargetScheme
+        #expect(ChannelHostBackend.installed(current, defaultID: nil, boundID: nil).outdated == nil)
         #expect(list.available.map(\.productID) == ["082-27", "082-16"])
         let newest = list.available[0]
         #expect(newest.unavailable == "This toolchain requires iOS 26.0 or later." && newest.minimumIOS == "26.0")

@@ -339,8 +339,10 @@ extension ToolRunner {
                 ?? "Command Line Tools \(product.version) offers no Swift on this device; set it up without Swift or choose another release")
         }
         let components = swift ? ["c", "swift"] : ["c"]
+        // One an earlier version of Apelin set up lacks tools a new setup adds.
         if let installed = listed.installed.first(where: { record in
-            record.version == product.version && components.allSatisfy(record.components.contains) && record.problem == nil
+            record.version == product.version && components.allSatisfy(record.components.contains)
+                && record.problem == nil && record.outdated == nil
         }) {
             throw ToolArgumentError("Command Line Tools \(product.version) is already set up as \(installed.id); bind it with apelin_project_set_environment")
         }

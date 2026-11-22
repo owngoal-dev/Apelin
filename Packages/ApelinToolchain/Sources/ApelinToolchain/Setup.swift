@@ -2,9 +2,18 @@ import Darwin
 import Foundation
 
 public struct ToolchainSetup: Sendable {
-    /// 2: the iOS builtins (libclang_rt.ios.a) are kept, so `@available` links; and
-    /// the Swift component exists. Scheme 1 trees stay where they are, under their own IDs.
-    public static let schemeVersion = 2
+    /// 3: otool-classic and ranlib, which `otool` and `ar rcs` exec beside
+    /// themselves, are in the tree (`DependencyClosure.entryTools`), and the
+    /// self-test runs both. 2: the iOS builtins (libclang_rt.ios.a) are kept,
+    /// so `@available` links; and the Swift component exists. The scheme is
+    /// part of the ID, so a release set up again is a toolchain of its own
+    /// beside the earlier one, which keeps its ID, its files and the
+    /// projects bound to it.
+    public static let schemeVersion = 3
+    /// The schemes of trees Apelin still verifies, self-tests, exports and
+    /// imports: a scheme 2 tree lacks only what scheme 3 added. No scheme 1
+    /// tree was ever released.
+    public static let readableSchemes = 2 ... schemeVersion
     /// The iOS version setup builds every tool for unless told otherwise, and so the
     /// oldest host each release's `compatibility` states.
     public static let defaultMinimumOS = "16.0"
@@ -58,8 +67,16 @@ public struct ToolchainSetup: Sendable {
         let request = Request(source: source, components: components, minimumOS: minimumOS, scheme: Self.schemeVersion)
         let identity = staging.appendingPathComponent("request.json")
         if FileManager.default.fileExists(atPath: identity.path) {
-            guard try JSONDecoder().decode(Request.self, from: Data(contentsOf: identity)) == request else {
+            let staged = try JSONDecoder().decode(Request.self, from: Data(contentsOf: identity))
+            // The same package an earlier scheme staged (a setup that failed
+            // or stopped before Apelin was updated) keeps its verified
+            // download; extraction and adaptation are done again anyway.
+            guard staged == request || staged.scheme < request.scheme && staged.retargeted(request.scheme) == request
+            else {
                 throw ToolchainFailure("The staging folder belongs to another setup request.")
+            }
+            if staged != request {
+                try writeJSON(request, to: identity)
             }
         } else {
             try writeJSON(request, to: identity)
@@ -79,11 +96,18 @@ public struct ToolchainSetup: Sendable {
         }
         let id = Self.identity(sourceSHA256: digest, minimumOS: minimumOS, components: components)
         let manifestPath = output.appendingPathComponent("manifest.json")
-        if let old = try? JSONDecoder().decode(ToolchainManifest.self, from: Data(contentsOf: manifestPath)),
-           old.id == id
-        {
-            try Self.verify(old, at: output)
-            return old
+        if let old = try? JSONDecoder().decode(ToolchainManifest.self, from: Data(contentsOf: manifestPath)) {
+            if old.id == id {
+                try Self.verify(old, at: output)
+                return old
+            }
+            // This request's tree as an earlier scheme made it, under its own
+            // ID: superseded, and made again below.
+            if old.retargetSchemeVersion < Self.schemeVersion, old.sourceSHA256 == digest,
+               old.minimumOS == minimumOS, old.components == components
+            {
+                try FileManager.default.removeItem(at: output)
+            }
         }
         guard !FileManager.default.fileExists(atPath: output.path) else {
             throw ToolchainFailure("The output folder already exists and does not match this toolchain.")
@@ -228,17 +252,23 @@ public struct ToolchainSetup: Sendable {
         }
     }
 
-    /// The toolchain ID setup gives these sources and components under the current scheme.
-    static func identity(sourceSHA256: String, minimumOS: String, components: Set<ToolchainComponent>) -> String {
+    /// The toolchain ID setup gives these sources and components under
+    /// `scheme`, the current one unless a tree an earlier one made is checked.
+    static func identity(
+        sourceSHA256: String,
+        scheme: Int = schemeVersion,
+        minimumOS: String,
+        components: Set<ToolchainComponent>,
+    ) -> String {
         // The base-only ID keeps its original spelling, so a registered base toolchain keeps its ID.
         let componentKey = components.contains(.swift) ? "base+swift" : "base"
-        return String(sha256(Data("\(sourceSHA256):\(schemeVersion):\(minimumOS):\(componentKey)".utf8)).prefix(24))
+        return String(sha256(Data("\(sourceSHA256):\(scheme):\(minimumOS):\(componentKey)".utf8)).prefix(24))
     }
 
     static func validateIdentity(_ manifest: ToolchainManifest) throws {
         guard manifest.id.count == 24, manifest.id.allSatisfy({ $0.isHexDigit && !$0.isUppercase }),
               manifest.sourceSHA256.count == 64, !manifest.files.isEmpty,
-              manifest.components.contains(.base), manifest.retargetSchemeVersion == schemeVersion
+              manifest.components.contains(.base), readableSchemes.contains(manifest.retargetSchemeVersion)
         else {
             throw ToolchainFailure(
                 "The toolchain manifest is invalid or from another version of Apelin. Set up the toolchain again.",
@@ -269,8 +299,13 @@ public struct ToolchainSetup: Sendable {
         throw ToolchainFailure("The package does not contain Command Line Tools.")
     }
 
-    private struct Request: Codable, Equatable {
+    struct Request: Codable, Equatable {
         let source: ToolchainSource; let components: Set<ToolchainComponent>; let minimumOS: String; let scheme: Int
+
+        /// The same request under another scheme.
+        func retargeted(_ scheme: Int) -> Request {
+            Request(source: source, components: components, minimumOS: minimumOS, scheme: scheme)
+        }
     }
 }
 

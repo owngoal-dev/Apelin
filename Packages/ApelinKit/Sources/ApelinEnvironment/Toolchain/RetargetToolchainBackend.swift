@@ -99,6 +99,7 @@
                 files: manifest.files,
                 installRelativePath: manifest.installRelativePath,
                 manifest: JSONEncoder().encode(manifest),
+                retargetScheme: manifest.retargetSchemeVersion,
             )
         }
 
@@ -185,6 +186,7 @@
                 files: manifest.files,
                 installRelativePath: manifest.installRelativePath,
                 manifest: JSONEncoder().encode(manifest),
+                retargetScheme: manifest.retargetSchemeVersion,
             )
         }
 

@@ -129,7 +129,120 @@ public struct ToolchainSelfTest: Sendable {
                 cltVersion: manifest.source.version,
             )
         }
+        // Last, so a failure here never keeps a Swift case from running; an
+        // earlier scheme's tree lacks the siblings these run.
+        if manifest.retargetSchemeVersion >= BinaryToolsSelfTest.scheme {
+            results += try await BinaryToolsSelfTest(
+                bin: bin,
+                sdk: sdk,
+                scratch: scratch,
+                minimumOS: manifest.minimumOS,
+            ).run(progress: progress)
+        }
         return results
+    }
+}
+
+/// Scheme 3's cases, for the siblings two tools exec by path beside
+/// themselves, which no load command names and no compile or link runs:
+/// `ar rcs` execs ranlib for its `s`, and the archive it makes must link;
+/// `otool` (llvm-otool) execs otool-classic for every flag, and `-hv`, `-L`
+/// and `-l` read the program linked from that archive. One case each, on
+/// arm64; the otool case links the objects directly when the archive did
+/// not come out, so each failure names its own tool.
+struct BinaryToolsSelfTest {
+    /// The retarget scheme that ships what these cases run.
+    static let scheme = 3
+    let bin: URL, sdk: URL, scratch: URL, minimumOS: String
+
+    static let library = "int apelin_answer(void) { return 42; }\n"
+    static let program = """
+    #include <stdio.h>
+    int apelin_answer(void);
+    int main(void) { puts(apelin_answer() == 42 ? "apelin-ok" : "bad"); return 0; }
+
+    """
+
+    func run(progress: ToolchainProgressHandler) async throws -> [ToolchainTestResult] {
+        let architecture = "arm64"
+        let work = scratch.appendingPathComponent(UUID().uuidString)
+        try directory(work)
+        defer { try? FileManager.default.removeItem(at: work) }
+        let flags = ["-target", "\(architecture)-apple-ios\(minimumOS)", "-isysroot", sdk.path, "-B" + bin.path]
+        let library = work.appendingPathComponent("answer.o"), main = work.appendingPathComponent("main.o")
+        let archive = work.appendingPathComponent("libanswer.a"), executable = work.appendingPathComponent("hello")
+        func tool(_ name: String, _ arguments: [String]) async throws -> String {
+            try await runProcess(bin.appendingPathComponent(name), arguments, cwd: work, bin: bin)
+        }
+        func compile() async throws {
+            try Data(Self.library.utf8).write(to: work.appendingPathComponent("answer.c"))
+            try Data(Self.program.utf8).write(to: work.appendingPathComponent("main.c"))
+            _ = try await tool("clang", flags + ["-c", work.appendingPathComponent("answer.c").path, "-o", library.path])
+            _ = try await tool("clang", flags + ["-c", work.appendingPathComponent("main.c").path, "-o", main.path])
+        }
+        var results: [ToolchainTestResult] = []
+        func record(_ name: String, _ start: Date, _ body: () async throws -> String) async throws {
+            try Task.checkCancellation()
+            progress(.init(stage: .validating, completedBytes: 0, totalBytes: nil, detail: "\(name) \(architecture)"))
+            do {
+                let detail = try await body()
+                results.append(.init(
+                    language: name,
+                    architecture: architecture,
+                    passed: true,
+                    detail: detail,
+                    seconds: Date().timeIntervalSince(start),
+                ))
+            } catch {
+                try Task.checkCancellation()
+                results.append(.init(
+                    language: name,
+                    architecture: architecture,
+                    passed: false,
+                    detail: String(describing: error),
+                    seconds: Date().timeIntervalSince(start),
+                ))
+            }
+        }
+        try await record("ar", Date()) {
+            try await compile()
+            // ar execs ranlib beside itself for `s`, and fails without it.
+            _ = try await tool("ar", ["rcs", archive.path, library.path])
+            _ = try await tool("clang", flags + [main.path, "-L" + work.path, "-lanswer", "-o", executable.path])
+            try sign(executable)
+            let output = try await runProcess(executable, [], cwd: work, bin: bin)
+            guard output.contains("apelin-ok") else {
+                throw ToolchainFailure("The test program did not produce the expected output.")
+            }
+            return "Archived with ar rcs (ranlib), linked and run"
+        }
+        try await record("otool", Date()) {
+            if !FileManager.default.fileExists(atPath: executable.path) {
+                if !FileManager.default.fileExists(atPath: main.path) {
+                    try await compile()
+                }
+                _ = try await tool("clang", flags + [main.path, library.path, "-o", executable.path])
+            }
+            let checks: [(flag: String, expected: [String])] = [
+                ("-hv", ["MH_MAGIC_64", "EXECUTE"]),
+                ("-L", ["/usr/lib/libSystem.B.dylib"]),
+                ("-l", ["LC_MAIN", "LC_LOAD_DYLIB"]),
+            ]
+            for (flag, expected) in checks {
+                let output = try await tool("otool", [flag, executable.path])
+                guard expected.allSatisfy(output.contains) else {
+                    throw ToolchainFailure("otool \(flag) did not print \(expected.joined(separator: " and ")): \(output)")
+                }
+            }
+            return "otool -hv, -L and -l read the program"
+        }
+        return results
+    }
+
+    private func sign(_ executable: URL) throws {
+        var image = try MachOImage(Data(contentsOf: executable))
+        try image.signed(identifier: executable.lastPathComponent).write(to: executable, options: .atomic)
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: executable.path)
     }
 }
 

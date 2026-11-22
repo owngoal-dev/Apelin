@@ -96,6 +96,9 @@ public struct PreparedToolchain: Sendable {
     public var installRelativePath: String
     /// The backend's own manifest, encoded; handed back to `installAndValidate`.
     public var manifest: Data
+    /// The retarget scheme that made the tree, which its record keeps
+    /// (`ToolchainRecord.retargetScheme`).
+    public var retargetScheme: Int?
 
     public init(
         id: String,
@@ -105,7 +108,9 @@ public struct PreparedToolchain: Sendable {
         files: [String: String],
         installRelativePath: String,
         manifest: Data,
+        retargetScheme: Int? = nil,
     ) {
+        self.retargetScheme = retargetScheme
         self.id = id
         self.product = product
         self.components = components

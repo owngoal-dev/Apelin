@@ -1126,9 +1126,63 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   each architecture the SDK has Swift interfaces for (arm64e only in the
   iOS 27 SDK). apelin-build hands Swift 5.9+ `swiftc` `-nonlib-dependency-scanner` (the
   tree has no libSwiftScan) and one module cache per toolchain and SDK,
-  `Builds/.swift-module-cache/<toolchain>-<sdk>`. The retarget scheme (2)
+  `Builds/.swift-module-cache/<toolchain>-<sdk>`. The retarget scheme (3)
   is part of the ID; scheme 2 keeps `libclang_rt.ios.a`, which `@available`
-  links against. Per-release Swift requirements and clang-module CPU
+  links against. Scheme 3 (2026-11-22, issue #75: `otool -L` failed "can't
+  find or exec … otool-classic" on a 15.3 toolchain) adds the siblings two
+  tools exec by path beside themselves, which no load command names, so
+  the dependency closure never found them: otool-classic, which `otool`
+  (llvm-otool, cctools 1001.2 in 14.2 to 1040 in 27.x) execs for every
+  flag, and `ranlib` (libtool by that name), which `ar` execs for its `s`
+  (`ar rcs`). The entry points are clang, ld, lipo, dsymutil, strip, ar,
+  ranlib, libtool, nm, otool, llvm-otool and otool-classic
+  (`DependencyClosure.entryTools`); every reviewed release has both new
+  ones (their package BOMs), and 14.2's, 15.3's and 27.2's were run on the
+  Mac with and without them. Left out: llvm-otool's `-objdump` execs
+  llvm-objdump, 15.3's strip execs ld-classic for `-x`, `-S`, `-u` or `-r`
+  on an object file, and its ld (by its strings) for `-ld_classic` (15.0
+  and 16.4 ship one too); 14.2's and 15.3's llvm-objdump and 15.3's
+  ld-classic load libxar, which iOS lacks. A scheme 3 tree's self-test ends
+  with two cases on arm64, after the Swift ones so neither keeps a Swift
+  case from running: `ar` (`ar rcs`, then a program linked from the
+  archive and run) and `otool` (`-hv`, `-L` and `-l` on that program).
+  *Toolchains set up before scheme 3*: setting the release up again is a
+  new toolchain beside the old one, under its own ID and package. A repair
+  in place would change the tree's content digest under the same ID, and
+  every project bound to it (by ID and digest) would stop building. The
+  scheme 2 toolchain keeps its ID, files, package, record and bindings: it
+  builds as before, Run Again self-tests it (without the scheme 3 cases),
+  it exports, and a scheme 2 transfer file imports under its own ID
+  (`ToolchainSetup.readableSchemes`; 27.0 can no longer be downloaded, so a
+  transfer file is the one way to bring it to another device). The record
+  keeps the scheme (`ToolchainRecord.retargetScheme`, absent for scheme 2:
+  `predatesCurrentRetarget`, held to `ToolchainSetup.schemeVersion` by
+  `RetargetSchemeTests`). Settings ▸ Toolchains says so on the toolchain's
+  row, under the name (after Default; VoiceOver reads it with the row), and
+  in full under its detail page's first section: from an earlier setup,
+  set it up again to add otool and ar, or, for a release Apple no longer
+  serves, the one that replaced it (`ToolchainRecord.replacedReleases`,
+  27.0 → 27.2, held to the withdrawn packages by `RetargetSchemeTests`;
+  `ToolchainDetailController.earlierSetupNote`, Argon's words). The app's
+  catalog does not tick such a release and apelin_toolchain_setup does not
+  refuse it, so it can be set up again;
+  the new toolchain takes over as the default from the one it supersedes
+  (`supersedes`: the same release, no fewer components), and every project
+  keeps the toolchain it binds until it is bound to the new one
+  (apelin_project_set_environment, or the user); the old one is removed in
+  Settings once nothing binds it. 27.0 cannot be set up again (Apple no
+  longer serves it): its toolchain gets otool from 27.2 set up beside it,
+  or stays as it is. apelin_toolchain_list (`outdated`) and
+  `# Environment` (a mark on its line, explained once after the list) tell
+  the agent what fails, that `libtool -static -o <name>.a <objects>` makes
+  the same indexed archive (run without ranlib on 14.2, 15.3 and 27.2),
+  and that setting the release up again fixes it
+  (`InstalledToolchain.earlierRetargetFacts`). A setup an earlier scheme
+  staged (one that failed or stopped before Apelin was updated) keeps its
+  verified download and makes the tree again (`Request.retargeted`), and
+  an install of the earlier tree its job made and never registered goes to
+  that tree's record or is removed through the bridge first
+  (`releaseEarlierTree`). Per-release Swift requirements and clang-module CPU
   requirements are carried in the manifest, catalog and registered record.
   The release table in `ApelinToolchain/Support.swift` also records the
   reviewed Apple product IDs and package SHA-256 values, recommended SDK and
@@ -1245,8 +1299,8 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   SHA-256 the manifest's; links relative and staying inside; no hard link
   or special file; nothing missing; ≤ 32 GB and 1,000,000 members) and only
   then runs the kind's path. A toolchain: `importTree` verifies its own
-  manifest (identity, the ID setup derives from source, scheme, minimum OS
-  and components, a release `CommandLineToolsSupport` still lists from a
+  manifest (identity, the ID setup derives from source, the tree's scheme
+  (2 or 3), minimum OS and components, a release `CommandLineToolsSupport` still lists from a
   source it reviewed, host and Swift requirements, exactly the files and
   links it lists, each matching), the record's `contentDigest` must match,
   a registered one of that ID is refused (`conflict`); then setup's path —
@@ -1860,7 +1914,8 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   apelin_toolchain_setup {version | product_id, swift?} → `toolchainSetup` from
   Apple's catalog, the release resolved in the catalog before asking and
   sent by product ID (one this device cannot take, Swift a release does
-  not offer, or a release already set up is refused before asking), and
+  not offer, or a release already set up is refused before asking, but
+  not one an earlier retarget scheme set up: Toolchains ▸ scheme 3), and
   apelin_sdk_import {version, source?} → `sdkImport` of the branch an enabled
   source offers (the model never names an address), each read to its end
   with `environmentAttach`, only the stages, warnings, failed self-test
@@ -4519,10 +4574,12 @@ kernel's FEAT_LRCPC, FEAT_SHA3 and FEAT_DotProd —, the bootstrap and install
 root (from the assignment, `BuildBootstrap.resolve`), every registered
 toolchain (ID, CLT release, components with the Swift version, the minimum
 iOS, the newest SDK it reads, its self-test count, default / this project's /
-prepared, its tool directory) and SDK (ID, version, path, the same marks, and
-"too new" for the prepared toolchain), a binding this device lacks, and that
-shell_run and the terminal already have the prepared toolchain and SDK, so the
-model neither probes nor sets up again what is installed. It also says that
+prepared, for one an earlier retarget scheme made what it lacks and what does
+the same (Toolchains ▸ scheme 3), its tool directory) and SDK (ID, version,
+path, the same marks, and "too new" for the prepared toolchain), a binding
+this device lacks, and that shell_run and the terminal already have the
+prepared toolchain and SDK, so the model neither probes nor sets up again
+what is installed, a toolchain of an earlier scheme aside. It also says that
 shell_run needs no login shell (whose profile builds `PATH` again), on roothide
 that a path a bootstrap tool prints (`/var/mobile/…` with the bootstrap as
 `/`, or `/rootfs/…`) is not the name the toolchain's compilers know, so they

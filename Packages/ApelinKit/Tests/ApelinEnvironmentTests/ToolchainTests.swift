@@ -25,6 +25,9 @@ struct FakeBackend: ToolchainBackend {
         ToolchainSelfTestResult(language: $0, architecture: "arm64e", passed: true)
     }
 
+    /// The retarget scheme the "tree" says it was made with.
+    var retargetScheme: Int?
+
     var isAvailable: Bool {
         true
     }
@@ -52,7 +55,7 @@ struct FakeBackend: ToolchainBackend {
         try FileManager.default.createDirectory(at: output.appendingPathComponent("usr/bin"), withIntermediateDirectories: true)
         try Self.tool.write(to: output.appendingPathComponent("usr/bin/clang"))
         progress(ToolchainBackendProgress(stage: "packaging"))
-        return PreparedToolchain(id: Self.id, product: product, components: components, tree: output, files: ["usr/bin/clang": "digest"], installRelativePath: "usr/lib/apelin/toolchains/\(Self.id)", manifest: Data("{}".utf8))
+        return PreparedToolchain(id: Self.id, product: product, components: components, tree: output, files: ["usr/bin/clang": "digest"], installRelativePath: "usr/lib/apelin/toolchains/\(Self.id)", manifest: Data("{}".utf8), retargetScheme: retargetScheme)
     }
 
     func installAndValidate(_ prepared: PreparedToolchain, installRoot: URL, sdk: URL, journal _: URL, scratch _: URL, install: @escaping ToolchainInstallStep, progress: @escaping @Sendable (ToolchainBackendProgress) -> Void) async throws -> [ToolchainSelfTestResult] {
@@ -618,6 +621,104 @@ final class ToolchainServiceTests: XCTestCase {
         let again = try await service.setup(service.prepare(ToolchainSetupRequest()), taskID: TaskID("y"), installer: installer, reporter: .silent)
         XCTAssertEqual(installer.submitted, 2)
         XCTAssertEqual(again.installationID, "inst-2")
+    }
+
+    /// A release set up again under a later retarget scheme is a toolchain
+    /// of its own: the earlier one stays registered as it was, for the
+    /// projects bound to it, and the new one takes over as the default.
+    func testAReleaseSetUpUnderALaterSchemeSitsBesideTheEarlierAndTakesTheDefault() async throws {
+        let home = try await ready(self)
+        let earlier = ToolchainRecord(
+            id: "aaaaaaaaaaaaaaaaaaaaaaaa",
+            version: FakeBackend.newest.version,
+            components: [ToolchainComponent(kind: .c, selfCheckPassed: true)],
+            installationID: "inst-earlier",
+        )
+        let other = ToolchainRecord(id: "bbbbbbbbbbbbbbbbbbbbbbbb", version: "16.4", components: earlier.components)
+        try ToolchainRegistry(toolchains: [earlier, other], defaultID: earlier.id).save(home.layout)
+        XCTAssertTrue(earlier.predatesCurrentRetarget, "a record from before the field is scheme 2")
+
+        let service = ToolchainService(layout: home.layout, backend: FakeBackend(retargetScheme: ToolchainRecord.currentRetargetScheme))
+        let record = try await service.setup(service.prepare(ToolchainSetupRequest()), taskID: TaskID("t"), installer: FakeInstaller(installRoot: home.layout.installRoot), reporter: .silent)
+        XCTAssertEqual(record.retargetScheme, ToolchainRecord.currentRetargetScheme)
+        XCTAssertFalse(record.predatesCurrentRetarget)
+        let registry = ToolchainRegistry.load(home.layout)
+        XCTAssertEqual(registry.toolchains.map(\.id), [earlier.id, other.id, record.id])
+        XCTAssertEqual(registry.toolchains.first, earlier, "the earlier toolchain is left as it was")
+        XCTAssertEqual(registry.defaultID, record.id)
+
+        // Another release's default is not taken over.
+        try ToolchainRegistry(toolchains: [earlier, other], defaultID: other.id).save(home.layout)
+        _ = try await service.setup(service.prepare(ToolchainSetupRequest()), taskID: TaskID("u"), installer: FakeInstaller(installRoot: home.layout.installRoot), reporter: .silent)
+        XCTAssertEqual(ToolchainRegistry.load(home.layout).defaultID, other.id)
+    }
+
+    /// A setup that installed a tree an earlier scheme made and stopped
+    /// before registering it, then ran again after Apelin was updated: that
+    /// install is removed through the bridge before the new tree goes in,
+    /// so nothing it installed outlives it unregistered.
+    func testAnEarlierSchemesUnregisteredInstallIsRemovedBeforeTheNewTree() async throws {
+        let home = try await ready(self)
+        let installer = FakeInstaller(installRoot: home.layout.installRoot)
+        let earlierID = "aaaaaaaaaaaaaaaaaaaaaaaa"
+        let earlier = try await installer.install(
+            LocalArtifact(
+                artifactID: "toolchain-" + earlierID,
+                path: home.home.path,
+                digest: "",
+                packageID: ToolchainPackager.packageID(for: earlierID),
+                version: "27.0+aaaaaaaa",
+            ),
+            reporter: .silent,
+        )
+        let folder = jobFolder(home)
+        try home.layout.make(folder)
+        try JSONFile.write(
+            ToolchainJob(
+                key: folder.lastPathComponent,
+                productID: FakeBackend.newest.productID,
+                components: [.c],
+                stage: "validating",
+                taskID: "before-update",
+                toolchainID: earlierID,
+                installationID: earlier.installationID,
+                updated: Date(),
+            ),
+            to: folder.appendingPathComponent("job.json"),
+        )
+
+        let service = ToolchainService(layout: home.layout, backend: FakeBackend())
+        let record = try await service.setup(service.prepare(ToolchainSetupRequest()), taskID: TaskID("after-update"), installer: installer, reporter: .silent)
+        XCTAssertEqual(installer.removed, [earlier.installationID])
+        XCTAssertEqual(record.id, FakeBackend.id)
+        XCTAssertEqual(record.installationID, "inst-2", "the new tree went through the bridge itself")
+        XCTAssertEqual(ToolchainRegistry.load(home.layout).toolchains.map(\.id), [FakeBackend.id])
+        XCTAssertFalse(FileManager.default.fileExists(atPath: folder.path))
+    }
+
+    /// The same, when the earlier tree is registered after all: the install
+    /// is its record's, never removed from under it.
+    func testAnEarlierSchemesInstallGoesToItsRegisteredRecord() async throws {
+        let home = try await ready(self)
+        let installer = FakeInstaller(installRoot: home.layout.installRoot)
+        let earlierID = "aaaaaaaaaaaaaaaaaaaaaaaa"
+        try ToolchainRegistry(
+            toolchains: [ToolchainRecord(id: earlierID, version: "27.0", components: [ToolchainComponent(kind: .c, selfCheckPassed: true)], installationID: "inst-old")],
+            defaultID: earlierID,
+        ).save(home.layout)
+        let folder = jobFolder(home)
+        try home.layout.make(folder)
+        try JSONFile.write(
+            ToolchainJob(key: folder.lastPathComponent, productID: FakeBackend.newest.productID, components: [.c], stage: "validating", taskID: "before-update", toolchainID: earlierID, installationID: "inst-newer", updated: Date()),
+            to: folder.appendingPathComponent("job.json"),
+        )
+
+        let service = ToolchainService(layout: home.layout, backend: FakeBackend())
+        _ = try await service.setup(service.prepare(ToolchainSetupRequest()), taskID: TaskID("after-update"), installer: installer, reporter: .silent)
+        XCTAssertEqual(installer.removed, [])
+        let toolchains = ToolchainRegistry.load(home.layout).toolchains
+        XCTAssertEqual(toolchains.first { $0.id == earlierID }?.installationID, "inst-newer")
+        XCTAssertEqual(toolchains.first { $0.id == FakeBackend.id }?.installationID, "inst-1")
     }
 
     /// Bytes nobody installed through the bridge (a tree copied by hand) give
