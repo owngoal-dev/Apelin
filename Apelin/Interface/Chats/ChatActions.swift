@@ -4,9 +4,10 @@ import SPIndicator
 import UIKit
 
 /// The chat page's `…` menu: Rename… and Compact… for the conversation,
-/// then its project's actions (`ProjectActions`). General Chat has no
-/// project, so after them come Open in iGhostVT and Open in Fila for the
-/// conversation's own working folder, `Temporary/<conversation>/`. Last,
+/// then its project's actions (`ProjectActions`), Custom Instructions…
+/// among them. General Chat has no project, so Custom Instructions… joins
+/// the conversation's group, and after it come Open in iGhostVT and Open in
+/// Fila for the conversation's own working folder, `Temporary/<conversation>/`. Last,
 /// in a group of its own, Delete Conversation…, which `onDelete` asks
 /// about and carries out as the sidebar's Delete does (`ChatDeletion`).
 @MainActor
@@ -29,8 +30,10 @@ enum ChatActions {
             let folders = ProjectActions.folderActions(from: presenter, failureTitle: "Unable to Open Folder") {
                 try ProjectActions.temporaryDirectory(of: chat.id)
             }
+            // what it loads: only the custom instructions for every chat
+            let instructions = ConversationInstructionsController.menuAction(projectID: nil, projectFolder: nil, from: presenter)
             completion([
-                UIMenu(options: .displayInline, children: chatActions),
+                UIMenu(options: .displayInline, children: chatActions + [instructions]),
                 UIMenu(options: .displayInline, children: folders),
                 deletion,
             ])
@@ -50,6 +53,11 @@ enum ChatActions {
                 anchor: anchor,
                 distributionBlocker: (project?.buildMethod ?? .missingDescription).shortBlocker,
                 chatActions: chatActions,
+                instructions: ConversationInstructionsController.menuAction(
+                    projectID: project?.projectID,
+                    projectFolder: projectName,
+                    from: presenter,
+                ),
                 onPrepareDistribution: onPrepareDistribution,
             )
             completion(projectActions.children + [deletion])

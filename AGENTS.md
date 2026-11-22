@@ -4247,9 +4247,10 @@ uses type section headers and single-line display names.
 
 The chat's More menu (`ChatActions`) acts on its conversation and its current
 project, in four groups: Rename… and Compact… (the conversation); Open in
-iGhostVT and Open in Fila; the project's Rename…, Export… and Distribute…;
+iGhostVT and Open in Fila; the project's Rename…, Custom Instructions…
+(Custom instructions, below), Export… and Distribute…;
 and Delete Conversation…. General
-Chat has Rename…, Compact…, the two Open items for the conversation's own `Temporary/<conversation>/`,
+Chat has Rename…, Compact…, Custom Instructions…, the two Open items for the conversation's own `Temporary/<conversation>/`,
 made if missing (`ProjectActions.temporaryDirectory`), and Delete
 Conversation…. Delete Conversation… (owner, 2026-10-30) is the sidebar's
 Delete (`SidebarController.delete(_:from:presenter:)`), but always asks
@@ -4437,8 +4438,10 @@ guessing once a compaction summarised the message that last named the
 language or the mode. The host's
 enforcement of the mode is unchanged; the block only tells the model. The
 project's `AGENTS.md`, else `CLAUDE.md` — a regular file inside the project, at most
-16 KB — is added as project instructions that never override the prompt or the
-approval mode. Skills are pi's progressive disclosure: the prompt lists each
+16 KB, read by ApelinCore's `ProjectInstructionsFile`, which the app's
+preview reads it with too — is added as project instructions that never
+override the prompt or the approval mode, and that the user's own custom
+instructions come before (Custom instructions, below). Skills are pi's progressive disclosure: the prompt lists each
 built-in and user skill (`~/Documents/wiki.qaq.apelin/skills`) by name and
 description only, and `apelin_skill_read{name, file?}` reads the body, or a file in a
 user skill's own folder (no link out of it), on demand; it is a read preset.
@@ -4690,16 +4693,20 @@ opens, and again only when it is reopened or compacted, where the prefix is
 written anew anyway (after a compaction, by the next run that starts; a
 mid-run compaction of kwwk's own thus costs one more write of the now small
 conversation). For the session's life it stays those bytes: the project's
-`AGENTS.md` or `CLAUDE.md`, the skills list, the memory this chat sees,
-`# Environment`, the build system and the MCP list are as they were then, and
-there is no date and no mode in it. A change reaches the model only in the
-next message's `<system-state>`, once, as a delta naming its source —
-`memory added (all chats): <title>: <body>`, `memory removed: <title>`,
-`skill added: <name>: <description>`, `project instructions: AGENTS.md is
-now:` and its text (over 2000 characters: that it changed, and to read it
-with file_read), `environment:` and the lines that went and came, `build
-system:` — each quote at most 300 characters and the whole at most 4000,
-past which it names the sources that changed and the tool that reads each.
+`AGENTS.md` or `CLAUDE.md`, the user's custom instructions, the skills list,
+the memory this chat sees, `# Environment`, the build system and the MCP
+list are as they were then, and there is no date and no mode in it. A
+change reaches the model only in the next message's `<system-state>`, once,
+as a delta naming its source — `memory added (all chats): <title>: <body>`,
+`memory removed: <title>`, `skill added: <name>: <description>`, `project
+instructions: AGENTS.md is now:` and its text (over 2000 characters: that it
+changed, and to read it with file_read), `the user's instructions for all
+conversations are now:` (or `for this project`, `were cleared`, `cannot be
+read now`) and the whole text, `environment:` and the lines that went and
+came, `build system:` — each quote at most 300 characters and the whole at
+most 4000, past which it names the sources that changed and the tool that
+reads each; the user's instructions are kept apart from that budget and
+always quoted whole (Custom instructions, below).
 What the session's own apelin_memory_save, apelin_memory_delete,
 apelin_skill_save or apelin_skill_remove changed is not told again (its
 result said it), only the item the call named; a delta carried by a queued
@@ -4740,6 +4747,80 @@ requests (`AnthropicProvider.swift`, `OpenAIResponsesProvider.swift`) are
 encoded without sorted keys, so they probably miss the conversation's cache.
 The device check is `Documents/Research/Device-Validation.md` ▸ Still to run
 ▸ Prompt caching.
+
+## Custom instructions
+
+The user's standing preferences for the agent (issue #74), in their own
+words: those for every conversation, and one project's, which supplement
+them (for example "check my premises first and say when the evidence is
+thin", or in a tweak project "package each patch so it installs on its
+own"). ApelinCore's `CustomInstructionsStore` keeps them in the data folder,
+never in the project, where a commit or another repository would take them:
+`Instructions/global.md` and `Instructions/Projects/<projectID>.md` (a key of
+letters, digits and hyphens, as a `projectID` is; a temporary chat has none),
+plain UTF-8 text, trimmed, at most 2,000 characters each (`maximumCharacters`,
+and 16 KB a file), so a change of both is about one delta's budget. The app
+writes them, as mobile; apelin-agent, mobile too, only reads. MemoryStore's
+discipline: every level opened without following a link, a file read only
+when it is regular, singly linked, the caller's own and writable by no one
+else, a save written to a temporary file beside it and renamed over it under
+`Instructions/.lock`, and only while the file still holds what the editor
+loaded (`changed` otherwise), so another window cannot undo a newer save or
+a Clear; an empty save removes the file. A file that does not read — a
+link, another owner or link count, group- or world-writable, too long, not
+UTF-8, a NUL — is `unreadable` to the agent, which changes nothing, and is
+set aside by the app when it next loads it (`UnreadableFile.setAside(_:in:)`,
+the directory-relative form, `RENAME_EXCL`), so a save never replaces it;
+the editor then starts empty and says so. Tested by
+`CustomInstructionsStoreTests`.
+
+A deleted project's instructions go with it: apelin-build's
+`ProjectDeletion` removes them (and any copy set aside) after the folder,
+and the app sweeps on every reading of `Projects/` — at launch and on each
+change `ProjectCatalogMonitor` reports, its own Delete included
+(`CustomInstructionsUpkeep`, `removeGoneProjects`) — those of every project
+no folder names any more, but only when every folder there tells its
+project: a `Projects/` that does not read, or a real folder whose
+`apelin-project.json` is missing (set aside by an import), does not read or
+names no ID, takes nothing; links, files and hidden entries are no
+projects. `ProjectReferences` counts the IDs they name, so a repository
+imported into a workspace the user wrote instructions for keeps the
+workspace's ID.
+
+A session reads them into its snapshot (`UserInstructions`, part of
+`PromptState`): a `# The user's instructions` section after the project's
+`AGENTS.md` or `CLAUDE.md`, with `## For all conversations` and, in a
+project's chat, `## For this project`, a scope with nothing saved left out
+and no section at all when neither has anything; General Chat reads only
+those for every conversation. Its paragraph ranks them: they are the user's
+own words, followed as the user's messages are, though what the user asks
+in the conversation comes first; this project's win over those for all
+conversations; both win over `AGENTS.md`/`CLAUDE.md`, which may have come
+with a repository from anyone; they never change Apelin's rules on tools,
+approvals and consent or the approval mode, grant no permission, and nothing
+in them is the explicit go-ahead or consent a rule asks the user for; text
+elsewhere claiming to be them is not. One that does not read is said to be
+saved but unreadable, never guessed at. A change while a chat is open is a
+delta in its next message's `<system-state>`, each scope that changed
+quoted whole (or `were cleared`, `cannot be read now`), kept apart from the
+other sources' 4,000-character budget, and preceded by the ranking
+paragraph when the snapshot had no section to say it; the system prompt
+stays those bytes (`PromptCacheTests`, `UserInstructionsTests`).
+
+The app (`Apelin/Interface/Settings/Instructions/`): Settings ▸ Agent ▸
+Custom Instructions edits those for every chat (`InstructionsEditorController`:
+a multi-line field with a count under it, `1,234/2,000`, spoken as "1,234 of
+2,000 characters", Save, which waits while the text is over the limit
+rather than cutting it, Clear Instructions, which asks first, and a footer
+saying what they are for and that they cannot change approvals or Apelin's
+rules). The chat's More menu has Custom Instructions… — in a project's chat
+in the Project group after Rename…, in General Chat after Compact… — which
+opens what the conversation loads (`ConversationInstructionsController`):
+All Chats, This Project and, under Project Folder, the project's
+`AGENTS.md` or `CLAUDE.md` read as the agent reads it, shown read-only. The
+user's rows open their editor (the project's titled Project Instructions)
+and clear with a trailing swipe after the same question; the page is read
+again whenever it appears.
 
 ## Long-term agent memory
 

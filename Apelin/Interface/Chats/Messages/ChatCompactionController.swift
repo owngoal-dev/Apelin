@@ -1,13 +1,16 @@
 import UIKit
 
 /// The summary a compaction left, which the conversation goes on from, as
-/// plain selectable text in a sheet.
+/// plain selectable text in a sheet; with `title`, another text shown the
+/// same way (a project's AGENTS.md, `ConversationInstructionsController`).
 final class ChatCompactionController: UIViewController {
     private let summary: String
+    private let pageTitle: String?
     private let textView = UITextView()
 
-    init(summary: String) {
+    init(summary: String, title: String? = nil) {
         self.summary = summary
+        pageTitle = title
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -18,7 +21,7 @@ final class ChatCompactionController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = String(localized: "Summary")
+        title = pageTitle ?? String(localized: "Summary")
         view.backgroundColor = .pageBackground
         textView.backgroundColor = .clear
         textView.isEditable = false

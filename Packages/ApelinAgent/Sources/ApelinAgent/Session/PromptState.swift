@@ -5,8 +5,8 @@ import Foundation
 import KWWKAI
 
 /// What the system prompt shows that can change while a session runs: the
-/// project's instructions, the skills list, the memory this chat sees, the
-/// environment and the build system.
+/// project's instructions, the user's own (`UserInstructions`), the skills
+/// list, the memory this chat sees, the environment and the build system.
 ///
 /// A session takes it once, when it opens (and again after a compaction,
 /// which rewrites the conversation's prefix anyway), and its system prompt
@@ -15,6 +15,7 @@ import KWWKAI
 /// delta in the next message's `<system-state>` (`changes(since:)`).
 struct PromptState: Equatable {
     var instructions: ProjectInstructions?
+    var userInstructions: UserInstructions = .none
     var skills: [SkillDocument]
     /// The records this chat sees; nil when the store cannot be read.
     var memory: [MemoryRecord]?
@@ -46,6 +47,7 @@ struct PromptState: Equatable {
         let inputs = EnvironmentPrompt.inputs(configuration, root: root, device: device, toolExtensions: extensions)
         return PromptState(
             instructions: SystemPrompt.projectInstructions(in: root),
+            userInstructions: UserInstructions.read(configuration),
             skills: skills,
             memory: memory?.records,
             environment: EnvironmentPrompt.section(inputs),
@@ -75,8 +77,12 @@ struct PromptState: Equatable {
         }
     }
 
-    /// One line per change from `old` to here, each naming its source.
+    /// One line per change from `old` to here, each naming its source. The
+    /// user's instructions come first and whole whatever else changed: they
+    /// are bounded, and what the user wants followed from this message on
+    /// (`UserInstructions.changes(since:)`).
     func changes(since old: PromptState) -> [String] {
+        let user = userInstructions.changes(since: old.userInstructions)
         var changes: [(source: Source, text: String)] = []
         if buildSystem != old.buildSystem {
             changes.append((.buildSystem, buildSystem == .external
@@ -87,9 +93,9 @@ struct PromptState: Equatable {
         changes += skillChanges(since: old.skills).map { (.skills, $0) }
         changes += memoryChanges(since: old.memory).map { (.memory, $0) }
         changes += environmentChanges(since: old.environment).map { (.environment, $0) }
-        guard changes.reduce(0, { $0 + $1.text.count }) > Self.maximumDelta else { return changes.map(\.text) }
+        guard changes.reduce(0, { $0 + $1.text.count }) > Self.maximumDelta else { return user + changes.map(\.text) }
         // Too much to quote: say which sources changed and where they are.
-        return Source.allCases.filter { source in changes.contains { $0.source == source } }
+        return user + Source.allCases.filter { source in changes.contains { $0.source == source } }
             .map { "\($0.rawValue): changed; \($0.whereToRead)." }
     }
 
