@@ -3281,7 +3281,8 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   to `local.apelin.<name as a slug>`, an `identifier` parameter named
   `productName` to the name's words joined and capitalised (`I3 Chain Tweak`
   → `I3ChainTweak`, so two projects never install the same file),
-  `deploymentTarget` to 16.0,
+  `deploymentTarget` to 16.0 (a request may name 15.0 or later: The
+  deployment target, below),
   `architectures` to the manifest's, toolchain and SDK to the registry's
   defaults. The answer carries `descriptionDigests` {build, packaging},
   which the session host's approval ledger records as the template baseline
@@ -3303,6 +3304,46 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   binding — which
   is how the agent's apelin_project_set_environment is judged before it writes
   (`ProjectCheck.binding`, `run(projectID:environment:)`).
+- **The deployment target** (issue #71, 2026-11-22) is the oldest iOS a
+  project's package runs on, never Apelin's own: the app stays at
+  `IPHONEOS_DEPLOYMENT_TARGET` (16.0), while a project may name 15.0 or
+  later — the schema's `iosVersion`, the reference's and
+  `TemplateParameters`' `deploymentTarget` type, held to each other by the
+  fixtures (`valid/tweak-oldest-ios.json`, `invalid/deployment-below-floor.json`)
+  and `testTheDeploymentTargetGoesDownTo15`.
+  15.0 because nothing older has a rootless or roothide bootstrap: iOS 15's
+  sealed system volume is why the layout exists, Dopamine, Dopamine-roothide,
+  roothide's Bootstrap (`firmware (>= 15.0)`), palera1n (which refuses
+  below 15.0), XinaA15 and Fugu15 all start there, and Procursus has no
+  rootless suite before 1800. The packager writes it as `firmware (>= …)`,
+  the build as `-mios-version-min`, Swift's `-target` and an app's or
+  bundle's `MinimumOSVersion`. A new project keeps 16.0, so no template's
+  baseline digests move, and an existing project file stays valid with its
+  digests. Every reviewed release builds C and Objective-C there: on the
+  Mac, CLT 14.2, 15.0, 15.3, 16.4, 27.0 and 27.2's own clang and ld, with
+  apelin-build's flags (`-Werror=unguarded-availability-new` included)
+  against an SDK each reads, linked the tweak template's source and a C
+  executable at 15.0 for arm64 and arm64e without a warning, stamped
+  `LC_BUILD_VERSION` minos 15.0, with the chained fixups and pointer-auth
+  ABI they write at 16.0 (`Documents/Research/2026-10-17-Toolchain-Retarget.md`
+  ▸ iOS 15 products); `MacPipelineTests.testCFamilyTemplatesBuildForTheOldestIOS`
+  builds every C and Objective-C template at 15.0 through apelin-build for
+  both bootstraps, with Xcode's tools or, given `APELIN_TEST_TOOLCHAIN` and
+  `APELIN_TEST_SDK`, a release's own, which passed for all six. Swift
+  stays at 16.0 (`ProjectCheck.swiftDeploymentTarget`): below it the Swift frontend
+  force-loads `swiftCompatibility56` (every frontend from CLT 15.0 to 27.2
+  names it), which only Xcode carries for iOS, and the retargeted tree's
+  `usr/lib/swift/iphoneos` is empty, so the link fails
+  (`__swift_FORCE_LOAD_$_swiftCompatibility56`, CLT 27.0's swiftc on the
+  Mac); 14.2's Swift 5.7.2 names no such library, but no Swift product of
+  it has run on iOS 15, so one floor holds for all. `projectCheck` says so as
+  `project.swift.deploymentTarget`, an error on `/deploymentTarget`, not an
+  `environment.*` one: no toolchain or SDK switch helps, so
+  apelin_project_set_environment does not refuse a switch over it.
+  Apelin itself does not run on iOS 15: a package for iOS 15 is built on a
+  device running 16.0 or later and installed on the older device with its
+  own package manager, which nothing has done yet (Device-Validation ▸
+  Still to run).
 - **The environment** apelin-build reads through `EnvironmentRegistry`
   (`ApelinProject/Environment`); on the device that is `EnvironmentStores`,
   apelin-environment's own files read as they are — `Environment/Toolchains/registry.json`

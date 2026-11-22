@@ -330,6 +330,50 @@ list or a disabled source, replaces that default. Source failures and a source
 with no compatible version are reported before installing a toolchain package. A release the catalog marks
 as unavailable for Swift is refused before resolving or downloading an SDK.
 
+## iOS 15 products (2026-11-22, issue #71)
+
+A project may target iOS 15.0, the oldest iOS any rootless or roothide
+bootstrap runs on (AGENTS.md ▸ The deployment target). Each kept release
+was taken from Apple's package (SHA-256 checked, only its C tools
+extracted) and run as it is on the Mac — the device runs the same code,
+retargeted — with apelin-build's compile and link flags
+(`-Werror=unguarded-availability-new`, `-Wall -Wextra`, `-fobjc-arc`, the
+`APELIN_*` defines) at `-mios-version-min=15.0`, against an SDK the release
+reads: the tweak template's `Tweak.m` linked as a dylib against its
+rootless substrate stub and Foundation, and a C executable, for arm64 and
+arm64e.
+
+| CLT | clang | ld | SDK | Every image |
+|---|---|---|---|---|
+| 14.2 | clang-1400.0.29.202 | ld64-820.1 | 16.2 | no warning; `LC_BUILD_VERSION` iOS, minos 15.0 |
+| 15.0 | clang-1500.0.40.1 | dyld-1015.6 | 17.0 | the same |
+| 15.3 | clang-1500.3.9.4 | ld-1053.12 | 17.4 | the same |
+| 16.4 | clang-1700.0.13.5 | ld-1167.5 | 18.5 | the same |
+| 27.0 | clang-2100.3.34.2 | ld-27037.1 | 27.0 | the same |
+| 27.2 | clang-2100.4.1.1 | ld-27106.1 | 27.0 | the same |
+
+Every release writes chained fixups, `DYLD_CHAINED_PTR_64_OFFSET` for arm64
+and `DYLD_CHAINED_PTR_ARM64E_USERLAND24` (authenticated) for arm64e, whose
+header is `CPU_SUBTYPE_ARM64E` with the pointer-auth ABI flag (caps 0x80):
+the formats each writes at 16.0, the same source linked again there. No
+template, and neither the substrate nor the Preferences stub (`tbd-version
+4`, no minimum OS), needs an API newer than 15.0:
+`MacPipelineTests.testCFamilyTemplatesBuildForTheOldestIOS` builds the five
+C and Objective-C templates there with Xcode's tools, and again with each
+release's own (`APELIN_TEST_TOOLCHAIN`, `APELIN_TEST_SDK`). Whether iOS 15
+loads them is still to run (Device-Validation).
+
+Swift is not offered below 16.0. Linking a Swift executable for
+`arm64(e)-apple-ios15.0` or `15.4` with CLT 27.0's swiftc, which has no
+`usr/lib/swift/iphoneos` as the retargeted tree has none, fails:
+`Undefined symbols … __swift_FORCE_LOAD_$_swiftCompatibility56`, after
+`Could not find or use auto-linked library 'swiftCompatibility56'` and
+`'swiftCompatibilityPacks'`. At 16.0 only `swiftCompatibilityPacks` is
+named, not force-loaded, and the link passes. The frontends of 15.0, 15.3,
+16.4 and 27.2 name `swiftCompatibility56` too; 14.2's (Swift 5.7.2) does
+not. Xcode ships these archives for iOS; the Command Line Tools ship them for
+macOS only.
+
 ## Runtime branding on real RootHide hosts
 
 Repeated verification on the iOS 17.3.1 and 26.0.1 real devices exposed a

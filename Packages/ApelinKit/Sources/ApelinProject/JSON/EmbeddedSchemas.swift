@@ -162,9 +162,9 @@ enum EmbeddedSchemas {
       "pattern": "^([0-9]+:)?[0-9][0-9A-Za-z.+~-]*$"
     },
     "iosVersion": {
-      "description": "16.0 or later: the app's own floor.",
+      "description": "15.0 or later: the oldest iOS a rootless or roothide bootstrap runs on. projectCheck holds a Swift project to 16.0 or later.",
       "type": "string",
-      "pattern": "^(1[6-9]|[2-9][0-9])\\.[0-9]{1,2}(\\.[0-9]{1,2})?$"
+      "pattern": "^(1[5-9]|[2-9][0-9])\\.[0-9]{1,2}(\\.[0-9]{1,2})?$"
     },
     "identifier": {
       "type": "string",
