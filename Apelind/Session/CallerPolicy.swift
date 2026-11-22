@@ -53,7 +53,9 @@ enum CallerPolicy {
         .installPackage, .removePackage, .installationList, .respring, .approvalDigestState,
         .fileRead,
         .logStream, .crashList, .crashOpen, .crashSymbolicate,
-        .confirmLoaded, .confirmLoadedAttach, .captureScreen, .readUITree, .uiAction,
+        // A load check it started, stopped with the call that waited on it
+        // (DiagnosticsHandler holds the cancel to the session's own checks).
+        .confirmLoaded, .confirmLoadedAttach, .confirmLoadedCancel, .captureScreen, .readUITree, .uiAction,
         .toolHostOpen, .toolHostClose, .toolHostCall,
         .gitStatus, .gitDiff, .gitStage, .gitUnstage, .gitCommit, .gitInit,
         .gitCloneInto, .gitFetch, .gitPull, .gitPush,

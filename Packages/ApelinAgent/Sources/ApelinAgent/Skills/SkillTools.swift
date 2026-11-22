@@ -1,4 +1,5 @@
 import struct ApelinCore.SkillFolder
+import struct ApelinCore.SkillManifest
 import Foundation
 import KWWKAgent
 import KWWKAI
@@ -9,8 +10,8 @@ import KWWKAI
 /// asked about, and again, staged, before it goes in.
 struct SkillTools {
     /// kwwk's bounds on a skill's frontmatter (`Skills.validateName`).
-    static let maximumNameLength = 64
-    static let maximumDescriptionLength = 1024
+    static let maximumNameLength = SkillManifest.maximumNameLength
+    static let maximumDescriptionLength = SkillManifest.maximumDescriptionLength
 
     let directory: URL
 
@@ -135,17 +136,12 @@ struct SkillTools {
 
     /// Why `name` is no skill name kwwk takes, or nil.
     static func nameProblem(_ name: String) -> String? {
-        let allowed = Set("abcdefghijklmnopqrstuvwxyz0123456789-")
-        if name.isEmpty || name.count > maximumNameLength {
-            return "is 1 to \(maximumNameLength) characters"
+        switch SkillManifest.nameProblem(name) {
+        case .length?: "is 1 to \(maximumNameLength) characters"
+        case .characters?: "takes lowercase letters, digits and hyphens only"
+        case .hyphens?: "neither starts nor ends with a hyphen, nor has two in a row"
+        case nil: nil
         }
-        if !name.allSatisfy(allowed.contains) {
-            return "takes lowercase letters, digits and hyphens only"
-        }
-        if name.hasPrefix("-") || name.hasSuffix("-") || name.contains("--") {
-            return "neither starts nor ends with a hyphen, nor has two in a row"
-        }
-        return nil
     }
 
     private static func exists(_ url: URL) -> Bool {

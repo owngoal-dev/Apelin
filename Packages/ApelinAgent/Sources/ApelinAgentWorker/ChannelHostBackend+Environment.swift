@@ -228,6 +228,7 @@ public extension ChannelHostBackend {
             selfTests: tests,
             isDefault: record.id == defaultID,
             problem: record.components.compactMap(\.problem).first ?? record.compatibility?.unavailableReason,
+            outdated: record.predatesCurrentRetarget ? InstalledToolchain.earlierRetargetNote : nil,
             boundByThisProject: record.id == boundID,
         )
     }

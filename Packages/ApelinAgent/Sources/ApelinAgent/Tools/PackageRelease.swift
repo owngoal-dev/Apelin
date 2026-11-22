@@ -161,7 +161,13 @@ public enum PackageRelease {
             throw ToolArgumentError("Nothing was released: the notes are at most \(DistributionReleaseRequest.maximumNotesBytes / 1024) KB.")
         }
         if let kind = FeedbackRules.privateData(in: notes) {
-            throw ToolArgumentError("Nothing was released: the notes hold \(kind), which a public release must not carry; leave it out.")
+            // What matched and where, as the feedback tools say it (#79):
+            // the model wrote the notes and has to find the words to change.
+            let refusal = FeedbackRules.Refusal(
+                "Nothing was released: the notes hold \(kind), which a public release must not carry; leave it out",
+                matches: FeedbackRules.privateDataMatches(in: notes),
+            )
+            throw ToolArgumentError(refusal.explanation + ".")
         }
         return notes
     }

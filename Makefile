@@ -467,6 +467,7 @@ harness:
 	"$$harness_dir/device-owner-check" && \
 	xcrun --sdk macosx swiftc -swift-version 5 \
 		"$(ROOT_DIR)/Packages/ApelinKit/Sources/ApelinCore/SkillFolder.swift" \
+		"$(ROOT_DIR)/Packages/ApelinKit/Sources/ApelinCore/SkillManifest.swift" \
 		"$(ROOT_DIR)/Tests/SkillFolder/main.swift" \
 		-o "$$harness_dir/skill-folder" && \
 	"$$harness_dir/skill-folder" && \
@@ -516,6 +517,7 @@ harness:
 	kit_flags="$$(module_flags "$(SWIFTPM_SCRATCH)")"; \
 	"$(ROOT_DIR)/Scripts/test-chat-transcript.sh" "$$modules" && \
 	"$(ROOT_DIR)/Scripts/test-onboarding.sh" "$$modules" && \
+	"$(ROOT_DIR)/Scripts/test-github-skills.sh" "$$modules" && \
 	xcrun --sdk macosx swiftc -swift-version 5 -typecheck -target arm64-apple-macos13.0 -I "$(XPC_SHIM_DIR)" -I "$(IRISIN_SHIM_DIR)" $$kit_flags -I "$$toolhost_modules" \
 		$$(find "$(ROOT_DIR)/Shared/Protocol" "$(ROOT_DIR)/Apelind" -name '*.swift' | sort) "$(ROOT_DIR)/Shared/RoothideRoot.swift" && \
 	echo "ok: apelind typechecks for macOS" && \

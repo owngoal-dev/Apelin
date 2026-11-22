@@ -106,6 +106,35 @@ final class ToolchainDetailController: TableController {
         record.origin?.split(separator: " ").first.map(String.init)
     }
 
+    /// The list row's line for a toolchain an earlier version of Apelin set
+    /// up, which lacks otool and ar (`predatesCurrentRetarget`): set up its
+    /// release again, or the one that replaced it when Apple no longer
+    /// serves it. Nil for any other toolchain.
+    static func earlierSetupNote(of record: ToolchainRecord) -> String? {
+        guard record.predatesCurrentRetarget else { return nil }
+        if let replacement = ToolchainRecord.replacedReleases[record.version] {
+            return String(localized: "From an earlier setup. Set up \(replacement) to add otool and ar.")
+        }
+        return String(localized: "From an earlier setup. Set it up again to add otool and ar.")
+    }
+
+    /// The same, said in full under the detail page's first section.
+    static func earlierSetupExplanation(of record: ToolchainRecord) -> String? {
+        guard record.predatesCurrentRetarget else { return nil }
+        if let replacement = ToolchainRecord.replacedReleases[record.version] {
+            return String(localized: """
+            An earlier version of Apelin set up this toolchain. It still builds projects, but otool and ar do not \
+            work with it. Apple no longer offers this release, so set up Command Line Tools \(replacement) to add a \
+            toolchain that includes them. Projects keep using this toolchain until you switch them.
+            """)
+        }
+        return String(localized: """
+        An earlier version of Apelin set up this toolchain. It still builds projects, but otool and ar do not work \
+        with it. Set up Command Line Tools \(record.version) again to add a toolchain that includes them. Projects \
+        keep using this toolchain until you switch them.
+        """)
+    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
         title = Self.name(of: record)
@@ -118,6 +147,8 @@ final class ToolchainDetailController: TableController {
             default: nil
             }
         }
+        let explanation = Self.earlierSetupExplanation(of: record)
+        dataSource.footerTitle = { section in section == .overview ? explanation : nil }
         updateRows()
     }
 

@@ -26,6 +26,11 @@
     {"op": "expect", "request": {"step": "after", "path": "response.toolchains.0.selfTests.3.passed", "equals": true}},
     {"op": "expect", "request": {"step": "after", "path": "response.toolchains.0.selfTests.4.passed", "equals": true}},
     {"op": "expect", "request": {"step": "after", "path": "response.toolchains.0.selfTests.5.passed", "equals": true}},
+    {"op": "expect", "request": {"step": "after", "path": "response.toolchains.0.selfTests.6.language", "equals": "ar"}},
+    {"op": "expect", "request": {"step": "after", "path": "response.toolchains.0.selfTests.6.passed", "equals": true}},
+    {"op": "expect", "request": {"step": "after", "path": "response.toolchains.0.selfTests.7.language", "equals": "otool"}},
+    {"op": "expect", "request": {"step": "after", "path": "response.toolchains.0.selfTests.7.passed", "equals": true}},
+    {"op": "expect", "request": {"step": "after", "path": "response.toolchains.0.retargetScheme", "equals": 3}},
     {"op": "expect", "request": {"step": "after", "path": "response.defaultID", "equals": "${after.response.toolchains.0.id}"}},
     {"op": "expect", "request": {"step": "after", "path": "response.activeTasks", "equals": []}}
   ]

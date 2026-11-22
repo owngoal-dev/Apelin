@@ -156,15 +156,24 @@ extension BuiltInSkills {
           bundle id is the `CFBundleIdentifier` of the app product's
           Info.plist; `icli app list` names it too.
         - `apelin_package_confirm_loaded` with the `buildID` and the target process reports
-          the marker log line and whether the filter selects the target,
+          the marker log line, whether the filter selects the target and
+          whether the target process ran while it listened (`targetProcess`),
           separately; its `loaded` rests on the marker alone, since the image
           list is never read, on any iOS version. The marker is logged once,
           when the target starts, and is only seen while `apelin_package_confirm_loaded`
-          listens (15 s; 30 s with a respring): for a SpringBoard tweak pass
+          listens (15 s; 30 s with a respring; the call ends as soon as it
+          hears it): for a SpringBoard tweak pass
           `respring: true` instead of a separate `apelin_device_respring`. For an app, your
           tool calls run one at a time, so quit it first if it runs
           (`icli app kill --force <bundle id>`), then ask the user to open it
-          while the call listens. "Installed" is not "loaded": report both.
+          while the call listens; an installed app's bundle id works when it
+          is not running. For a process that starts only on demand — a
+          daemon launched when a Mac connects, such as `dtremotedisplayd`, or
+          a helper an action starts — first tell the user what to do, then
+          call with `wait_seconds` (up to 180) and have them do it while the
+          call listens; call again rather than asking for longer.
+          "Installed" is not "loaded": report both. When `targetProcess` says
+          the process never ran, report it as not started, not as not loaded.
         - If nothing loaded: check the filter plist's bundle id against the
           target, the injection framework dependency (`mobilesubstrate` in
           `depends`), then `apelin_log_read` for the target process. A daemon

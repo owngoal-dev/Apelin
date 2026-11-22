@@ -81,4 +81,20 @@ public enum UnreadableFile {
         }
         return rename(url.path, destination.path) == 0 ? destination : nil
     }
+
+    /// As `setAside(_:now:)`, for `name` in an opened directory, so no
+    /// link above it is followed and no name already there is replaced.
+    /// Answers the name it took, or nil when the rename failed.
+    @discardableResult
+    public static func setAside(_ name: String, in directory: Int32, now: Date = Date()) -> String? {
+        let stamp = Int(now.timeIntervalSince1970)
+        for attempt in 1 ... 100 {
+            let candidate = attempt == 1 ? "\(name).unreadable-\(stamp)" : "\(name).unreadable-\(stamp)-\(attempt)"
+            if renameatx_np(directory, name, directory, candidate, UInt32(RENAME_EXCL)) == 0 {
+                return candidate
+            }
+            guard errno == EEXIST else { return nil }
+        }
+        return nil
+    }
 }

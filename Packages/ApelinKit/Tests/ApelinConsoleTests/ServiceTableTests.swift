@@ -121,6 +121,8 @@ final class ServiceTableTests: XCTestCase {
             }
         case .confirmLoadedAttach:
             return Row(reply: batch) { _ = try await $0.confirmLoadedAttach(ConfirmLoadedAttachRequest(taskID: id)) }
+        case .confirmLoadedCancel:
+            return Row(reply: ack) { try await $0.confirmLoadedCancel(taskID: id) }
         case .captureScreen:
             return Row(reply: CaptureScreenResponse(image: Self.slot, width: 1, height: 1)) { _ = try await $0.captureScreen() }
         case .readUITree:

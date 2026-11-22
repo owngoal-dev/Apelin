@@ -15,8 +15,9 @@ import Foundation
 /// `removePackage`; apelin_package_list (and apelin_package_remove's package id)
 /// → `installationList`, every project's;
 /// apelin_device_respring → `respring`; apelin_package_confirm_loaded → a `confirmLoaded` task with the session's
-/// project (and `trigger: respring` when asked), read to its end, the image
-/// list never asked for;
+/// project (and `trigger: respring` when asked, its window the call's
+/// `wait_seconds`), read to its end and stopped with the call
+/// (`confirmLoadedCancel`), the image list never asked for;
 /// apelin_log_read → a bounded `logStream` read to its end; apelin_crash_list →
 /// `crashList`; apelin_crash_read → `crashOpen` (a read-only descriptor);
 /// apelin_crash_symbolicate → `crashSymbolicate` (apelin-diagnostics, the project's
@@ -467,13 +468,23 @@ public struct ChannelHostBackend: AgentHostBackend {
         _ request: ApelinAgent.ConfirmLoadedRequest,
     ) async throws -> ApelinAgent.ConfirmLoadedResponse {
         // The answer is the task's, in the session host: the respring this may
-        // trigger takes the app down, not this worker.
-        let response = try await service.confirmLoaded(
+        // trigger takes the app down, not this worker. A call the user stops
+        // stops the check with it (`read`), however long its window.
+        let handle = try await service.confirmLoadedStart(ApelinProtocol.ConfirmLoadedRequest(
             buildID: request.buildID,
             targetID: request.target,
             projectID: project.id,
             trigger: request.respring ? .respring : nil,
-        )
+            logWindowSeconds: request.waitSeconds.map(Double.init),
+        ))
+        var final: TaskEvent?
+        _ = try await read(handle) { event in
+            if event.kind == TaskEvent.stateKind {
+                final = event
+            }
+        }
+        guard let final else { throw ApelinError(.internal, "the load check ended without a state") }
+        let response = try ApelinProtocol.ConfirmLoadedResponse.from(finalState: final)
         let marker = response.evidence.first { $0.kind == "log" }
         let filter = response.evidence.first { $0.kind == "filter" }
         let filterMatches: Bool? = filter.flatMap { evidence in
@@ -489,9 +500,35 @@ public struct ChannelHostBackend: AgentHostBackend {
             loaded: response.loaded,
             markerLogged: marker?.passed ?? false,
             filterMatches: filterMatches,
+            targetProcess: Self.targetProcess(request.target, loaded: response.loaded, process: response.process),
             logEvidence: marker.map { [$0.detail] } ?? [],
             notes: notes.joined(separator: "\n"),
         )
+    }
+
+    /// Whether the target ran while the call listened, plainly: a process
+    /// that never ran could load nothing, one already running when the call
+    /// began logged its marker (once, at launch) before it, and one that
+    /// started meanwhile and logged none did not load the tweak.
+    static func targetProcess(_ target: String, loaded: Bool, process: LoadTargetProcess?) -> String? {
+        guard let process else { return nil }
+        func pids(_ pids: [Int32]) -> String {
+            (pids.count == 1 ? "pid " : "pids ") + pids.map(String.init).joined(separator: ", ")
+        }
+        let seconds = Int(process.watchedSeconds.rounded())
+        switch (process.runningAtStart.isEmpty, process.startedDuring.isEmpty) {
+        case (true, true):
+            return "\(target) never ran while the call listened (\(seconds) s): it was not running when the call began and was not seen starting, so nothing could load into it. If it starts on demand, call again with wait_seconds and have it started (ask the user when only they can) while the call listens."
+        case (false, true):
+            return loaded
+                ? "\(target) was already running when the call began (\(pids(process.runningAtStart))) and logged the marker."
+                : "\(target) was already running when the call began (\(pids(process.runningAtStart))) and did not start again while it listened: a tweak logs its marker once, when the process starts, so restart it while the call listens (respring: true for SpringBoard)."
+        case (_, false):
+            let started = "\(target) started while the call listened (\(pids(process.startedDuring)))"
+            return loaded
+                ? "\(started) and logged the marker."
+                : "\(started) and logged no marker: the tweak did not load into it, or no longer logs its marker."
+        }
     }
 
     // MARK: SDK
@@ -896,8 +933,10 @@ public struct ChannelHostBackend: AgentHostBackend {
 
     /// Reads a task to its end, handing each event to `body`. A call the
     /// user stops is cancelled (`ToolRunner.run`), which ends the read
-    /// short of the task's end, and a build it was reading with it: no one
-    /// is left to take its package. Any other task goes on by itself.
+    /// short of the task's end, and a build or a load check it was reading
+    /// with it: no one is left to take the build's package, and a check's
+    /// listen of minutes would keep its stream open and apelind up. Any
+    /// other task goes on by itself.
     func read(_ handle: TaskHandle, _ body: (TaskEvent) throws -> Void) async throws -> TaskEnd {
         let service = service
         let end = try await withTaskCancellationHandler {
@@ -912,8 +951,14 @@ public struct ChannelHostBackend: AgentHostBackend {
             }
             return end
         } onCancel: {
-            guard handle.kind == .build else { return }
-            Task.detached { try? await service.buildCancel(taskID: handle.taskID) }
+            switch handle.kind {
+            case .build:
+                Task.detached { try? await service.buildCancel(taskID: handle.taskID) }
+            case .confirmLoaded:
+                Task.detached { try? await service.confirmLoadedCancel(taskID: handle.taskID) }
+            default:
+                break
+            }
         }
         try Task.checkCancellation()
         return end

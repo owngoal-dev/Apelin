@@ -88,6 +88,24 @@ require(fails(.notASkill) { try folder.add(base.appendingPathComponent("in/notes
 require(fails(.notASkill) { try folder.add(base.appendingPathComponent("in/bare/SKILL.md"), replacing: false) },
         "a file named SKILL.md names no folder")
 
+// An empty frontmatter, which stops kwwk's loader and every worker that
+// lists the folder: refused whole, as a folder or as one file, whatever
+// its line ends.
+try write("in/hollow/SKILL.md", "---\n---\nNothing above.")
+try write("in/hollow/notes.md", "# Notes")
+try write("in/hollow.md", "---\r\n---\r\n")
+try write("in/fenced.md", "----\n---\nfour dashes, then a fence: kwwk reads it")
+require(fails(.emptyFrontmatter) { try folder.add(base.appendingPathComponent("in/hollow"), replacing: false) },
+        "a folder whose SKILL.md opens with an empty frontmatter is refused")
+require(fails(.emptyFrontmatter) { try folder.add(base.appendingPathComponent("in/hollow.md"), replacing: false) },
+        "and so is such a Markdown file, CRLF and all")
+require(visible(folder.root) == ["lint", "release-notes"], "and nothing of either stays")
+require(!SkillManifest.stopsKwwkLoader("----\n---\nx") && !SkillManifest.stopsKwwkLoader("---\n\n---\nx"),
+        "a fence kwwk reads is no empty frontmatter")
+require(SkillManifest.stopsKwwkLoader("\u{FEFF}---\r---"), "a byte-order mark and a lone CR are read past")
+try require(folder.add(base.appendingPathComponent("in/fenced.md"), replacing: false) == "fenced", "kwwk reads four dashes")
+try folder.remove("fenced")
+
 // Too large: nothing is left behind.
 try write("in/huge/SKILL.md", "---\nname: huge\ndescription: Huge.\n---\nx")
 try Data(count: SkillFolder.maximumBytes + 1).write(to: base.appendingPathComponent("in/huge/blob.bin"))

@@ -30,7 +30,8 @@ public extension ChannelHostBackend {
         return ConversationCreateToolResponse(
             sessionID: opened.sessionID,
             taskID: opened.task.taskID.rawValue,
-            project: request.target,
+            project: target,
+            isThisProject: request.target == nil,
         )
     }
 

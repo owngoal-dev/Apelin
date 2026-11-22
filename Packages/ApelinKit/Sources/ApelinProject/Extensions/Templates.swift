@@ -52,7 +52,7 @@ public enum TemplateParameters {
         "bundleID": #"^[A-Za-z0-9][A-Za-z0-9-]*(\.[A-Za-z0-9][A-Za-z0-9-]*)+$"#,
         "packageID": #"^[a-z0-9][a-z0-9+.-]+$"#,
         "version": #"^[0-9][0-9A-Za-z.+~-]{0,63}$"#,
-        "deploymentTarget": #"^(1[6-9]|[2-9][0-9])\.[0-9]{1,2}(\.[0-9]{1,2})?$"#,
+        "deploymentTarget": #"^(1[5-9]|[2-9][0-9])\.[0-9]{1,2}(\.[0-9]{1,2})?$"#,
         "uuid": #"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"#,
         "digest": #"^sha256:[0-9a-f]{64}$"#,
         "registrationID": #"^[A-Za-z0-9][A-Za-z0-9._+-]{0,127}$"#,

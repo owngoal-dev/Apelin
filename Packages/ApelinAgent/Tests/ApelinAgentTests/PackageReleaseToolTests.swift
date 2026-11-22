@@ -219,6 +219,13 @@ struct PackageReleaseToolTests {
             (["build_ids": ["build-roothide"], "repository": "no-owner"], "name the GitHub repository as owner/name"),
             (["build_ids": ["build-roothide"], "notes": .string(String(repeating: "x", count: 17 * 1024))], "the notes are at most 16 KB"),
             (["build_ids": ["build-roothide"], "notes": "token ghp_0123456789abcdefghijklmnopqrstuvwxyz"], "a public release must not carry"),
+            // What matched is quoted as the feedback tools quote it (#79),
+            // a token only by its start and length.
+            (
+                ["build_ids": ["build-roothide"], "notes": "Fixed in\n3ce304f3e0a1b2c3d4e5f60718293a4b5c6d7e8f."],
+                "What matched: `3ce304f3e0a1b2c3d4e5f60718293a4b5c6d7e8f` (reads as a device identifier",
+            ),
+            (["build_ids": ["build-roothide"], "notes": "token ghp_0123456789abcdefghijklmnopqrstuvwxyz"], "`ghp_…` (a token or key; 40 characters"),
         ]
         for (arguments, words) in refused {
             await #expect {
