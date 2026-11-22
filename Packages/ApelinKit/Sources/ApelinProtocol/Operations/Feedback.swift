@@ -10,7 +10,11 @@ import Foundation
 /// or let someone in: a home or install path, a local network address or
 /// name, a device identifier, a token or key. The check reads shapes; it
 /// cannot prove a text holds nothing private, which is why Strict shows the
-/// user the whole text first. Below the body apelin-environment writes
+/// user the whole text first. apelin-environment's refusal names the kind
+/// and never quotes it; the agent's, before it asks, also says what matched
+/// and where (`Refusal`), since its model wrote the text and has to find
+/// the words to change, but shows a token or key only by its first
+/// characters and its length. Below the body apelin-environment writes
 /// `footer`: Apelin's version, the iOS version and the bootstrap, naming
 /// no device. An edit of an issue the account opened (`feedbackEdit`;
 /// owner, 2026-10-30) checks the title or body it puts in the same way,
@@ -21,11 +25,18 @@ public enum FeedbackRules {
     public static let maximumBodyBytes = 16 * 1024
 
     /// Nil when the title and body may be posted, else why not, naming the
-    /// kind of data and never quoting it. `paths` are this device's own
-    /// (mobile's home, the install root) and `names` what it calls itself
-    /// (its host name), beside the shapes every device's have.
+    /// kind of data and never quoting it: what apelin-environment answers.
+    /// `paths` are this device's own (mobile's home, the install root) and
+    /// `names` what it calls itself (its host name), beside the shapes
+    /// every device's have.
     public static func problem(title: String, body: String, paths: [String] = [], names: [String] = []) -> String? {
-        textProblem(title: title, body: body, paths: paths, names: names)
+        refusal(title: title, body: body, paths: paths, names: names)?.reason
+    }
+
+    /// `problem`, with what matched and where, for the one who wrote the
+    /// text: the agent's tools tell their model, which wrote it.
+    public static func refusal(title: String, body: String, paths: [String] = [], names: [String] = []) -> Refusal? {
+        textRefusal(title: title, body: body, paths: paths, names: names)
     }
 
     /// For an edit: nil when the new title, the new body or both may be put
@@ -34,34 +45,45 @@ public enum FeedbackRules {
     /// themselves never hold an edit up. A body that ends with Apelin's
     /// footer is refused: the footer the issue has stays below it.
     public static func editProblem(title: String?, body: String?, paths: [String] = [], names: [String] = []) -> String? {
-        guard title != nil || body != nil else {
-            return "it changes neither the title nor the body"
-        }
-        if let body, split(issueBody: body).footer != nil {
-            return "the body ends with the line Apelin adds below it, which stays as it is: leave it out"
-        }
-        return textProblem(title: title, body: body, paths: paths, names: names)
+        editRefusal(title: title, body: body, paths: paths, names: names)?.reason
     }
 
-    private static func textProblem(title: String?, body: String?, paths: [String], names: [String]) -> String? {
+    /// `editProblem`, with what matched and where, as `refusal` has it.
+    public static func editRefusal(title: String?, body: String?, paths: [String] = [], names: [String] = []) -> Refusal? {
+        guard title != nil || body != nil else {
+            return Refusal("it changes neither the title nor the body")
+        }
+        if let body, split(issueBody: body).footer != nil {
+            return Refusal("the body ends with the line Apelin adds below it, which stays as it is: leave it out")
+        }
+        return textRefusal(title: title, body: body, paths: paths, names: names)
+    }
+
+    private static func textRefusal(title: String?, body: String?, paths: [String], names: [String]) -> Refusal? {
         var parts: [String] = []
+        var titleLength: Int?
         if let title {
             let heading = title.trimmingCharacters(in: .whitespaces)
-            guard !heading.isEmpty else { return "the title is empty" }
+            guard !heading.isEmpty else { return Refusal("the title is empty") }
             guard heading.count <= maximumTitleLength, !heading.contains(where: \.isNewline) else {
-                return "the title is one line of at most \(maximumTitleLength) characters"
+                return Refusal("the title is one line of at most \(maximumTitleLength) characters")
             }
             parts.append(heading)
+            titleLength = heading.utf16.count
         }
         if let body {
-            guard !body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return "the body is empty" }
-            guard body.utf8.count <= maximumBodyBytes else { return "the body is at most \(maximumBodyBytes / 1024) KB" }
+            guard !body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return Refusal("the body is empty") }
+            guard body.utf8.count <= maximumBodyBytes else { return Refusal("the body is at most \(maximumBodyBytes / 1024) KB") }
             parts.append(body)
         }
         let text = parts.joined(separator: "\n")
-        guard !text.unicodeScalars.contains("\0") else { return "the title or body holds a NUL character" }
-        guard let kind = privateKind(in: text, paths: paths, names: names) else { return nil }
-        return "the title or body holds \(kind), which a public issue must not carry: leave it out and send again"
+        guard !text.unicodeScalars.contains("\0") else { return Refusal("the title or body holds a NUL character") }
+        let matches = privateMatches(in: text, titleLength: titleLength, paths: paths, names: names)
+        guard let kind = matches.first?.kind else { return nil }
+        return Refusal(
+            "the title or body holds \(kind.reason), which a public issue must not carry: leave it out and send again",
+            matches: matches.sorted { $0.offset < $1.offset }.map(\.match),
+        )
     }
 
     /// The line apelin-environment writes below the body: only what a report
@@ -119,37 +141,6 @@ public enum FeedbackRules {
             text.removeLast()
         }
         return text
-    }
-
-    // MARK: Private data
-
-    /// The kind of private data `text` holds, by the shapes every device's
-    /// takes (`PrivateShapes`, which a diagnostic log replaces too) and
-    /// this device's own paths and names.
-    private static func privateKind(in text: String, paths: [String], names: [String]) -> String? {
-        if PrivateShapes.matches(PrivateShapes.credential, text) || PrivateShapes.matches(PrivateShapes.bearer, text)
-            || PrivateShapes.matches(PrivateShapes.privateKey, text)
-        {
-            return "a token or key"
-        }
-        let lowered = text.lowercased()
-        // `/var/jb`, rootless's install root, is every rootless device's.
-        let ownPaths = paths.filter { $0.count > 1 && $0 != "/var/jb" }
-        if PrivateShapes.matches(PrivateShapes.homePath, text) || ownPaths.contains(where: { lowered.contains($0.lowercased()) }) {
-            return "a home or install path (write ~ for mobile's home)"
-        }
-        if names.contains(where: { PrivateShapes.isOwnName($0) && !PrivateShapes.ranges(ofWord: $0, in: text).isEmpty }) {
-            return "this device's name"
-        }
-        if PrivateShapes.matches(PrivateShapes.localName, text) || PrivateShapes.matches(PrivateShapes.localIPv6, text)
-            || !PrivateShapes.localIPv4(in: text).isEmpty
-        {
-            return "a local network address or name"
-        }
-        if PrivateShapes.matches(PrivateShapes.deviceIdentifier, text) {
-            return "what looks like a device identifier (a UDID, serial number or MAC address; a commit hash reads the same, so shorten it)"
-        }
-        return nil
     }
 
     private static func pattern(_ text: String) -> NSRegularExpression {

@@ -19,7 +19,7 @@
     }
   },
   "language": "objc",
-  "deploymentTarget": "15.0",
+  "deploymentTarget": "14.8",
   "architectures": {
     "rootless": [
       "arm64",

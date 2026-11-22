@@ -141,12 +141,14 @@ struct ProjectCreationTests {
 
     /// A repository goes into an Empty workspace whose conversation clones
     /// it, as New Project does; a template it fell back to was the wrong
-    /// project. Each place that names one step names the others with it.
+    /// project. Each place that names one step names the others with it,
+    /// the conversation's project among them (issue #79: without it, the
+    /// conversation opened in the caller's tweak project).
     @Test
     func `Every chat imports a repository through an Empty workspace's conversation`() throws {
         let home = try TemporaryHome()
         defer { home.remove() }
-        let steps = ["wiki.qaq.apelin.workspace/empty", "apelin_conversation_create", "git_clone"]
+        let steps = ["wiki.qaq.apelin.workspace/empty", "apelin_conversation_create", "set to the new workspace", "git_clone"]
         func namesEveryStep(_ text: String) -> Bool {
             steps.allSatisfy { text.contains($0) }
         }
@@ -158,6 +160,14 @@ struct ProjectCreationTests {
         #expect(namesEveryStep(AgentToolName.projectCreate.summary))
         #expect(AgentToolName.gitClone.summary.contains("apelin_project_create"))
         #expect(namesEveryStep(BuiltInSkills.gitWorkflow.body))
+        let skill = BuiltInSkills.gitWorkflow.body.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        #expect(skill.contains("`project` is required here: without it the conversation opens in this chat's own project"))
+        // and where the model reads it when it acts: the new project's
+        // answer, and the opened conversation's
+        let created = ProjectCreateToolResponse(projectID: "6f1c5b0e-0000-4000-8000-000000000001", name: "Repo")
+        #expect(created.next.contains("apelin_conversation_create and project \"6f1c5b0e-0000-4000-8000-000000000001\""))
+        #expect(AgentToolName.conversationCreate.summary.contains("Without project it opens in this conversation's own project"))
+        #expect(AgentToolName.conversationCreate.summary.contains("the project it opened in"))
     }
 
     @Test

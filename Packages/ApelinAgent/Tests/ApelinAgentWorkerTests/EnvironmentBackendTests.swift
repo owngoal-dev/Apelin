@@ -213,6 +213,7 @@ struct EnvironmentBackendTests {
         let open = try #require(fixture.host.requests(AgentOpenRequest.self).first)
         #expect(open.projectID == "far-id" && open.projectName == "Far")
         #expect(opened.link == "apelin://conversation/child" && opened.projectLink == "apelin://project/far-id" && opened.project == "Far")
+        #expect(opened.projectID == "far-id" && !opened.isThisProject && opened.note == nil)
         fixture.host.on(.agentList, reply: AgentListResponse(sessions: []))
         _ = try await fixture.backend.conversationList(ConversationListToolRequest(context: fixture.context(), target: byName))
         #expect(fixture.host.requests(AgentListRequest.self).last?.projectID == "far-id")
