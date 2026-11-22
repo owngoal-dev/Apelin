@@ -1276,8 +1276,11 @@ console now goes on after a restart only past a successful respring.
       key fails verification without the key in what the app shows. Kimi
       For Coding Global signs in with its code on kimi.ai, a chat answers,
       and a sign-in again keeps the device id the first one recorded.
-- [ ] Antigravity's Google sign-in (2026-11-04, kwwk 0.1.111, AGENTS.md ▸
-      Agent sign-in; no Google account has signed in on a device). With a
+- [ ] Antigravity's Google sign-in (2026-11-04, kwwk 0.1.111; offered
+      again in 0.4.9 on kwwk 0.1.127 with Antigravity restored, AGENTS.md
+      ▸ Agent sign-in). An account's renewal and a chat have run on a
+      device, from a sign-in another client made (the 0.4.9 record below);
+      no Google account has signed in through Apelin's own page. With a
       Google account, Settings ▸ Model Providers ▸ Antigravity opens
       Google's page in Safari, which comes back to
       `localhost:51121/oauth-callback` (or the address pasted from
@@ -3541,3 +3544,45 @@ Not run: the #67 stand-in modes on an iPhone (the iPad ran them), a real
 provider's spent allowance, the worker's own 20 s bound on a stopped run,
 right to left, the rootless package on a device, and a device with a
 passcode.
+
+## Antigravity back (2026-11-22, 0.4.9)
+
+On the Mac: `make check`, the full `make harness` (ApelinAgent 466 and
+175 tests, the session host's checks, the typechecks) and `make build`
+with the roothide package, on kwwk 0.1.127 with Antigravity restored
+(yellowplushq/kwwk#296, `fdd68f4a`). This round's tests: the Antigravity
+sign-in up to Google's page and its bundled models (`AccountDeskTests`,
+`ProviderModelsTests`), and kwwk's summary taking over a native compaction
+that brought none back, with `NativeCompactionFallback` and without it
+(`CompactionFallbackTests`).
+
+On the iPhone vphone (iOS 26.4, roothide, Irisin 5.1.7, icli 0.11.0), the
+official 0.4.8 package (CI build 168) first, with the device's DeepSeek
+key and 48 conversations, then this branch's roothide package (build 372)
+over it:
+
+- After the upgrade the 48 conversations were there, the DeepSeek key was
+  still the only sign-in (`agentCredentialImport`'s `available`:
+  `openai-compatible`), and the account list had Antigravity after Cursor,
+  not signed in. Settings ▸ Model Providers listed it under Sign In with
+  an Account with its mark. `suite smoke`: 7 pass; `accounts.json`
+  passed, Antigravity's step reaching Google's
+  `accounts.google.com/o/oauth2/v2/auth` with Antigravity's client and the
+  `localhost:51121/oauth-callback` redirect, then cancelled.
+- A real chat: the sign-in of the Antigravity CLI on the Mac (the same
+  OAuth client) put through the credentials inbox as kwwk's credential
+  with its refresh token alone, no access token, an expiry in the past and
+  no project. The import stored `antigravity` and left the inbox empty;
+  Model Providers then read "Antigravity, Signed In". A console
+  `agentOpen` on `gemini-3.8-flash` in the Hello-World workspace,
+  read only: kwwk renewed the sign-in at Google and found the account's
+  Code Assist project itself (the chat could not have run without one),
+  the model called file_list once and file_read three times, and
+  answered in one sentence that the project is an external workspace
+  with no build defined; 17.6 s, no error. `agentSignOut` then left only
+  `openai-compatible`, and the Mac's own sign-in still renewed at Google
+  afterwards: Sign Out revokes nothing.
+
+Not run: a sign-in through Apelin's own Google page, a second model,
+Compact… on an Antigravity chat, the iPad, the iOS 27 guests, the
+regression suite and the rootless package.
