@@ -3867,12 +3867,19 @@ iPhone):
   in the body was refused before any card, quoting it "on line 1 of the
   body", 40 hex digits as a commit hash is written.
 
-The test instructions and the `tdd` skill were removed afterwards.
+The test instructions and the `tdd` skill were removed afterwards, and so
+was the 27.2 toolchain, before `suite regression` on the iOS 26.4 iPhone
+(over ssh, the guest kept unlocked for the respring's relaunch): 25 pass,
+3 skipped as on 0.4.8 (`t1-toolchain-setup` and `r2-resume-toolchain`
+need no toolchain, `transfer-project` its project), and
+`t2-toolchain-remove` failed as it does on this guest, its toolchain
+bound by seven projects. `t6-toolchain-beside` set up and removed CLT 14.2
+under scheme 3, and `distribution` refused a release to `no-owner` before
+anything reached GitHub.
 
 Not run: a GitHub Release on real GitHub, the release confirmation (it
 needs a sign-in), the import flow of #79 and reading a run, the 15.0
 products on iOS 15, the reporter's `dtremotedisplayd` and iOS 17.3.1
 devices, a setup of 27.0's own release again, the rest of the From GitHub
 cases (Select All, replace, SKILL.md and slash-branch links, a private
-repository, Cancel, the rate limit), the regression suite and the
-rootless package.
+repository, Cancel, the rate limit) and the rootless package.
