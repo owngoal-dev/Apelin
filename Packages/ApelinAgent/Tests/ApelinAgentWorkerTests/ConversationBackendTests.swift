@@ -64,7 +64,18 @@ struct ConversationBackendTests {
         #expect(sent.modelLimits == AgentModelLimits(contextWindow: 65000))
         #expect(sent.prompt == "Write the README" && sent.title == "Docs")
         #expect(sent.sessionID == nil && sent.temporaryID == nil && sent.closeWhenFinished == nil)
-        #expect(opened == ConversationCreateToolResponse(sessionID: Self.child, taskID: "child-task"))
+        #expect(opened == ConversationCreateToolResponse(
+            sessionID: Self.child,
+            taskID: "child-task",
+            project: fixture.project,
+            isThisProject: true,
+        ))
+        // Named every time, and said to be this one (issue #79: a call that
+        // left project out opened in the caller's tweak, not the workspace).
+        #expect(opened.project == "Hello" && opened.projectID == fixture.project.id)
+        #expect(opened.projectLink == "apelin://project/\(fixture.project.id)")
+        #expect(opened.note?.contains("this conversation's own project, Hello") == true)
+        #expect(opened.note?.contains("pass project (its folder name or projectID)") == true)
     }
 
     @Test

@@ -198,6 +198,19 @@ console now goes on after a restart only past a successful respring.
 
 ## Still to run on the owner's devices
 
+- [ ] The lessons of a GitHub Actions release (2026-11-22, issue #79;
+      the Mac harness holds the wording, the tools' answers and the
+      committed file mode).
+      In a tweak project's chat, ask it to import a public repository:
+      apelin_project_create makes an Empty workspace, and
+      apelin_conversation_create names it with `project`, so the new
+      conversation is in the workspace's sidebar and its git_clone runs;
+      the call's answer names the workspace with `isThisProject` false.
+      Agree to feedback whose body has a full commit hash in it: the tool
+      refuses before any card, quoting the hash and its line. In a
+      new General Chat, ask how to read why a GitHub Actions run failed:
+      the model reads `apelin-github-actions`, then fetches a public
+      repository's `check-runs` and `jobs` with apelin_web_fetch.
 - [ ] Why Irisin did not answer, and who holds the package database
       (2026-11-21, issue #66, AGENTS.md ▸ Install bridge; all four cases
       ran on the iOS 26.4 iPad vphone, and the first in a chat on the iPhone
