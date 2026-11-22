@@ -88,6 +88,11 @@ enum CallerPolicy {
         // exactly them (AgentPublishRules). Creating, linking, listing and
         // unlinking the repository stay the app's.
         .distributionPublish,
+        // Its own project's release builds published as a GitHub Release of
+        // a repository the user named, tagged at the project's pushed
+        // commit, under Confirm only as the user approved exactly it
+        // (AgentReleaseRules).
+        .distributionRelease,
         .agentRunCode,
         // The project's other conversations (AgentConversations): AgentHandler
         // keeps an agent to its own project, and to the sessions it opened

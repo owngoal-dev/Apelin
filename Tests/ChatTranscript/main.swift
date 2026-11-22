@@ -140,6 +140,43 @@ precondition(
 )
 print("ok: a publication's card names the repository and every package's digest")
 
+/// A GitHub Release's card shows what it is bound to: the repository, the
+/// tag, the commit, the notes and each package with its digest, rather
+/// than the build IDs the call named.
+let releaseApproval = ChatTranscript(events: [
+    event(1, "prompt", ["text": .string("Release both")]),
+    event(2, "approvalRequested", [
+        "approvalID": .string("r1"), "tool": .string("apelin_package_release"),
+        "arguments": .string("{\"build_ids\":[\"b-hide\",\"b-less\"]}"),
+        "reason": .string("Publishes these 2 packages on GitHub as the release v1.0 of someone/clock."),
+        "detail": .object(["packageRelease": .object([
+            "projectID": .string("p-clock"),
+            "repository": .string("someone/clock"),
+            "tag": .string("v1.0"),
+            "commit": .string(String(repeating: "d", count: 40)),
+            "notes": .string("First release."),
+            "packages": .array([
+                .object(["packageID": .string("com.example.clock"), "version": .string("1.0"),
+                         "architecture": .string("iphoneos-arm64e"), "digest": .string("sha256:aa")]),
+                .object(["packageID": .string("com.example.clock"), "version": .string("1.0"),
+                         "architecture": .string("iphoneos-arm64"), "digest": .string("sha256:bb")]),
+            ]),
+        ])]),
+    ]),
+]) { _ in nil }.messages.first { $0.role.needsApproval }
+precondition(releaseApproval?.approvalTitle == "Publish a GitHub release")
+let releaseDetail = releaseApproval?.approvalDetail ?? ""
+precondition(
+    releaseDetail.contains("repository\nsomeone/clock") && releaseDetail.contains("tag\nv1.0")
+        && releaseDetail.contains("commit\n" + String(repeating: "d", count: 40))
+        && releaseDetail.contains("notes\nFirst release.")
+        && releaseDetail.contains("com.example.clock 1.0 (iphoneos-arm64e)\nsha256:aa")
+        && releaseDetail.contains("com.example.clock 1.0 (iphoneos-arm64)\nsha256:bb")
+        && !releaseDetail.contains("b-hide"),
+    "the card names the repository, tag, commit, notes and each package's digest, not the build IDs: \(releaseDetail)",
+)
+print("ok: a release's card names the repository, the tag, the commit and every package's digest")
+
 /// A feedback edit's card shows what it is bound to: the repository, the
 /// issue and the new text in full, not the revision the call named, and
 /// no title when only the body changes.

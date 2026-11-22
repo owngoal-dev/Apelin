@@ -63,6 +63,7 @@ sources=(
     "$root/Apelind/Session/Agent/AgentResetToRemoteRules.swift"
     "$root/Apelind/Session/Agent/AgentPublishRules.swift"
     "$root/Apelind/Session/Agent/LoadCheckCancelRules.swift"
+    "$root/Apelind/Session/Agent/AgentReleaseRules.swift"
     "$root/Apelind/Session/Notice/AgentNotices.swift"
     "$root/Apelind/Session/Patience.swift"
     "$root/Tests/SessionHost/AgentNoticeChecks.swift"

@@ -17,6 +17,8 @@
 // A commit's author is the request's, else Settings/git.json in the data
 // folder ({"authorName", "authorEmail"}), else the repository's own config.
 
+import Foundation
+
 public struct GitStatusEntry: Codable, Sendable, Equatable {
     public var path: String
     /// One-letter states as `git status --porcelain` spells them.
@@ -522,6 +524,26 @@ public enum GitHubName {
         let allowed = Set("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_.")
         return (1 ... 100).contains(name.count) && name.allSatisfy(allowed.contains)
             && name != "." && name != ".." && !name.lowercased().hasSuffix(".git")
+    }
+
+    /// `owner/name` of a remote's address on github.com —
+    /// `https://github.com/owner/name`, with `.git` or a final `/` or
+    /// neither —, nil for any other address.
+    public static func fullName(remoteURL url: String) -> String? {
+        guard let components = URLComponents(string: url), components.scheme?.lowercased() == "https",
+              components.host?.lowercased() == "github.com", components.port == nil,
+              components.user == nil, components.password == nil, components.query == nil, components.fragment == nil
+        else { return nil }
+        var path = components.path
+        if path.hasSuffix("/") {
+            path.removeLast()
+        }
+        if path.lowercased().hasSuffix(".git") {
+            path.removeLast(4)
+        }
+        guard path.hasPrefix("/") else { return nil }
+        let fullName = String(path.dropFirst())
+        return isFullName(fullName) ? fullName : nil
     }
 }
 

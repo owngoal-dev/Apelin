@@ -143,6 +143,25 @@ public enum FeedbackRules {
         return text
     }
 
+    // MARK: Private data
+
+    /// Nil when `text` holds none of the private data a public issue must
+    /// not carry, else its kind, never quoting it: for other public text,
+    /// such as a release's notes, which says it in its own words. The kind
+    /// is the first `PrivateKind` the text holds, as `problem` names it.
+    public static func privateData(in text: String, paths: [String] = [], names: [String] = []) -> String? {
+        privateMatches(in: text, titleLength: nil, paths: paths, names: names).first?.kind.reason
+    }
+
+    /// What `privateData` found, in the order the text has it, for the one
+    /// who wrote the text (`Match.description`; a token or key shown only by
+    /// its first characters): the agent's tools tell their model.
+    public static func privateDataMatches(in text: String, paths: [String] = [], names: [String] = []) -> [Match] {
+        privateMatches(in: text, titleLength: nil, paths: paths, names: names)
+            .sorted { $0.offset < $1.offset }
+            .map(\.match)
+    }
+
     private static func pattern(_ text: String) -> NSRegularExpression {
         // The patterns are constants; one that does not compile is a bug
         // the tests catch.

@@ -580,6 +580,7 @@ struct ChatTranscript {
         case .packageRemove: return String(localized: "Remove the package")
         case .packageList: return String(localized: "List installed packages")
         case .packagePublish: return String(localized: "Publish to the package repository")
+        case .packageRelease: return String(localized: "Publish a GitHub release")
         case .packageConfirmLoaded: return String(localized: "Check the tweak loaded")
         case .screenCapture: return String(localized: "Capture the screen")
         case .screenReadTree: return String(localized: "Inspect the screen")

@@ -80,6 +80,9 @@ enum ApprovalCardText {
         if let published = publishedPackages(payload) {
             return ToolCallDetail(detail: published, title: title)
         }
+        if let released = releasedPackages(payload) {
+            return ToolCallDetail(detail: released, title: title)
+        }
         if let edited = editedIssue(payload) {
             return ToolCallDetail(detail: edited, title: title)
         }
@@ -127,6 +130,31 @@ enum ApprovalCardText {
               case let .array(packages)? = detail["packages"]
         else { return nil }
         var shown: [String: JSONValue] = ["repository": .string(repository)]
+        for package in packages {
+            guard let id = package["packageID"]?.stringValue, let version = package["version"]?.stringValue,
+                  let architecture = package["architecture"]?.stringValue, let digest = package["digest"]?.stringValue
+            else { return nil }
+            shown["\(id) \(version) (\(architecture))"] = .string(digest)
+        }
+        return (try? JSONCoding.encode(JSONValue.object(shown))).map { String(decoding: $0, as: UTF8.self) }
+    }
+
+    /// An apelin_package_release card's arguments: not the build IDs the
+    /// call names but what the approval is bound to, its
+    /// `detail.packageRelease` — the repository, the tag, the commit it
+    /// names and the notes, then each package by its ID, version and
+    /// architecture with the digest it is held to. Nil for any other
+    /// request.
+    private static func releasedPackages(_ payload: JSONValue?) -> String? {
+        guard let detail = payload?["detail"]?["packageRelease"],
+              let repository = detail["repository"]?.stringValue, let tag = detail["tag"]?.stringValue,
+              let commit = detail["commit"]?.stringValue,
+              case let .array(packages)? = detail["packages"]
+        else { return nil }
+        var shown: [String: JSONValue] = [
+            "repository": .string(repository), "tag": .string(tag), "commit": .string(commit),
+        ]
+        shown["notes"] = detail["notes"]?.stringValue.map { .string($0) }
         for package in packages {
             guard let id = package["packageID"]?.stringValue, let version = package["version"]?.stringValue,
                   let architecture = package["architecture"]?.stringValue, let digest = package["digest"]?.stringValue
