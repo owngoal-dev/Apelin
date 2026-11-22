@@ -198,6 +198,40 @@ console now goes on after a restart only past a successful respring.
 
 ## Still to run on the owner's devices
 
+- [ ] `otool` and `ar rcs` on a toolchain set up with retarget scheme 3
+      (2026-11-22, issue #75, AGENTS.md ▸ Toolchains ▸ scheme 3). On the
+      Mac the tools of 14.2, 15.3 and 27.2 ran with and without
+      otool-classic and ranlib beside them, and their setup ran offline
+      from the reviewed packages (`LivePackageTests`); nothing of it has
+      run on a device. On a roothide iPhone on iOS 17.3.1 (where #75 came
+      from) with 15.3 and Swift, and on the iOS 26.4 iPhone vphone with
+      27.2, each starting from the 0.4.9 package with its scheme 2
+      toolchain set up and a project bound to it:
+      1. Install this round's package. The scheme 2 toolchain is still
+         listed, the project bound to it builds and installs
+         (`make device-run SCRIPT=i1-smoke`), Self-Tests ▸ Run Again
+         passes the cases it had, and in a chat `apelin_toolchain_list`
+         shows it with `outdated` and `# Environment` names what it lacks.
+      2. Settings ▸ Toolchains ▸ +: the release is no longer ticked. Set
+         it up again: a second toolchain of that release is listed, under
+         another ID, and is now the Default; its self-test passes every
+         case, the last two `ar arm64` and `otool arm64` (15.3 with Swift:
+         16 cases). On a device with no toolchain,
+         `make device-run SCRIPT=t1-toolchain-setup` checks the two cases
+         and `retargetScheme` 3 too.
+      3. Bind the project to it (in its chat, apelin_project_set_environment)
+         and build; then through shell_run `otool -L`, `otool -l` and
+         `otool -hv` on the build's dylib
+         (`~/Documents/wiki.qaq.apelin/Builds/*/*/*/products/*.dylib`),
+         and `ar rcs` of an object, each succeed; on the scheme 2
+         toolchain the same fail as #75 says, and `libtool -static -o`
+         makes the archive. Try `otool -tv` too: otool-classic dlopens
+         the tree's libLTO to disassemble, which no self-test case does.
+      4. Remove the scheme 2 toolchain once nothing binds it; the new one
+         stays the default.
+      5. A `.apetc` exported by 0.4.9 (scheme 2) imports under its own ID
+         on a device that lacks it, and is listed with `outdated`.
+
 - [ ] Why Irisin did not answer, and who holds the package database
       (2026-11-21, issue #66, AGENTS.md ▸ Install bridge; all four cases
       ran on the iOS 26.4 iPad vphone, and the first in a chat on the iPhone

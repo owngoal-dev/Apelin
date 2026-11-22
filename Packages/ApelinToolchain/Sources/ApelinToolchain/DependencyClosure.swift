@@ -1,7 +1,20 @@
 import Foundation
 
 struct DependencyClosure {
-    static let entryTools = ["clang", "ld", "lipo", "dsymutil", "strip", "ar", "libtool", "nm", "otool", "llvm-otool"]
+    /// The tools a build or a user runs by name, and the siblings two of them
+    /// exec by path beside themselves, which no load command names (scheme 3):
+    /// `otool` (llvm-otool) execs otool-classic for every flag it takes, and
+    /// `ar` execs `ranlib` (libtool, which acts as ranlib by its name) for
+    /// its `s` modifier, so `ar rcs`. Every reviewed release has both.
+    /// Left out: llvm-otool's `-objdump` execs llvm-objdump (14.2's and
+    /// 15.3's load libxar, which iOS lacks), and 15.3's ld and strip exec
+    /// ld-classic, an ld64 that loads libxar, for `ld -ld_classic` and for
+    /// strip's `-x`, `-S`, `-u` or `-r` on an object file (15.0 and 16.4
+    /// ship one too). See the research document ▸ Retarget scheme 3.
+    static let entryTools = [
+        "clang", "ld", "lipo", "dsymutil", "strip", "ar", "ranlib", "libtool", "nm", "otool", "llvm-otool",
+        "otool-classic",
+    ]
     /// What the Swift tools read beside themselves: the host libraries and
     /// macro plugins the frontend loads (`host/`), and API notes.
     static let swiftResources = ["usr/lib/swift/host", "usr/lib/swift/apinotes"]

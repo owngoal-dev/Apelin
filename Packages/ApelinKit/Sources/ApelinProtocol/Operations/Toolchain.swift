@@ -120,6 +120,31 @@ public struct ToolchainRecord: Codable, Sendable, Equatable {
     public var swiftRequirements: SwiftToolchainRequirements?
     public var clangModuleCPUFeatures: [String]?
     public var compatibility: ToolchainCompatibility?
+    /// The retarget scheme its tree was made with (ApelinToolchain's
+    /// `ToolchainSetup.schemeVersion`). Absent on a record registered before
+    /// scheme 3, whose tree is scheme 2.
+    public var retargetScheme: Int?
+
+    /// The scheme setup makes a tree with now, ApelinToolchain's
+    /// `ToolchainSetup.schemeVersion`, which a test holds this to.
+    public static let currentRetargetScheme = 3
+
+    /// Made by an earlier scheme: it builds as it did, but lacks what later
+    /// schemes added (scheme 3: otool-classic and ranlib, so `otool` and
+    /// `ar rcs` fail). Its release set up again is a toolchain of its own,
+    /// under another ID, beside it.
+    public var predatesCurrentRetarget: Bool {
+        (retargetScheme ?? 2) < Self.currentRetargetScheme
+    }
+
+    /// Whether this record, set up under a later scheme, takes the place of
+    /// `other`: the same release, made by an earlier scheme, with no
+    /// component this one lacks.
+    public func supersedes(_ other: ToolchainRecord) -> Bool {
+        other.id != id && other.version == version
+            && (other.retargetScheme ?? 2) < (retargetScheme ?? 2)
+            && Set(other.components.map(\.kind)).isSubset(of: Set(components.map(\.kind)))
+    }
 
     public init(
         id: String,
@@ -137,7 +162,9 @@ public struct ToolchainRecord: Codable, Sendable, Equatable {
         swiftRequirements: SwiftToolchainRequirements? = nil,
         clangModuleCPUFeatures: [String]? = nil,
         compatibility: ToolchainCompatibility? = nil,
+        retargetScheme: Int? = nil,
     ) {
+        self.retargetScheme = retargetScheme
         self.newestSDK = newestSDK
         self.selfTestSDK = selfTestSDK
         self.swiftRequirements = swiftRequirements

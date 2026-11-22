@@ -254,6 +254,10 @@ actor MockBackend: AgentHostBackend {
         listedProjects = listing
     }
 
+    func setToolchainList(_ listing: ToolchainListToolResponse) {
+        toolchainList = listing
+    }
+
     func setFindings(_ findings: [EnvironmentDiagnostic], forSDK sdkID: String) {
         environmentFindings[sdkID] = findings
     }

@@ -1,4 +1,5 @@
 @testable import ApelinAgent
+import struct ApelinProtocol.ToolchainRecord
 import Foundation
 import Testing
 
@@ -99,6 +100,32 @@ struct EnvironmentPromptTests {
         #expect(prompt.contains("Default, prepared."))
         #expect(!prompt.contains("This project's") && !prompt.contains("This project binds"))
         #expect(prompt.contains("IPHONEOS_DEPLOYMENT_TARGET=16.0 (Apelin's default; this chat has no project)"))
+    }
+
+    /// A toolchain an earlier version of Apelin set up (no retarget scheme
+    /// recorded: scheme 2) says what it lacks, what does the same, and that
+    /// its release can be set up again; one of the current scheme says none.
+    @Test
+    func `a toolchain an earlier version of Apelin set up says what it lacks`() throws {
+        let home = try TemporaryHome()
+        defer { home.remove() }
+        try EnvironmentContextTests.register(in: home)
+        let configuration = AgentSessionConfiguration(project: home.project, provider: .githubCopilot(model: "m"), approval: ApprovalPolicy(mode: .confirm), dataRoot: home.dataRoot)
+        let current = try AgentSession.systemPrompt(configuration, root: ScopedRoot(home.projectURL), skills: [])
+        #expect(!current.contains(InstalledToolchain.earlierRetargetFacts) && !current.contains("earlier version of Apelin"))
+        #expect(current.contains("never set up or import again a toolchain or SDK listed here. A project with"))
+
+        // The record as a version before scheme 3 wrote it.
+        let registry = home.dataRoot.url.appendingPathComponent("Environment/Toolchains/registry.json")
+        let text = try String(contentsOf: registry, encoding: .utf8)
+        let scheme = #""retargetScheme":\#(ToolchainRecord.currentRetargetScheme),"#
+        #expect(text.contains(scheme))
+        try text.replacingOccurrences(of: scheme, with: "").write(to: registry, atomically: true, encoding: .utf8)
+        let earlier = try AgentSession.systemPrompt(configuration, root: ScopedRoot(home.projectURL), skills: [])
+        #expect(earlier.contains("Default, this project's, prepared, set up by an earlier version of Apelin. Tools: "))
+        #expect(earlier.contains("\n  - A toolchain marked set up by an earlier version of Apelin: it builds as before, but it lacks otool-classic and ranlib"))
+        #expect(earlier.components(separatedBy: InstalledToolchain.earlierRetargetFacts).count == 2, "said once")
+        #expect(earlier.contains("never set up or import again a toolchain or SDK listed here, but for a toolchain an earlier version of Apelin set up when the tools it lacks are needed."))
     }
 
     @Test
