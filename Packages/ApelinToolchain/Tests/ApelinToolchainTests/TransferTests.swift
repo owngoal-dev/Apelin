@@ -6,10 +6,10 @@ import Testing
 /// checked again where it lands.
 struct ToolchainTransferTests {
     /// A tree of a reviewed release and source, so only the files can be wrong.
-    private static func installedTree(at root: URL) throws -> ToolchainManifest {
+    private static func installedTree(at root: URL, scheme: Int = ToolchainSetup.schemeVersion) throws -> ToolchainManifest {
         let release = try #require(CommandLineToolsSupport.releases.first { !$0.sources.isEmpty })
         let (productID, digest) = try #require(release.sources.sorted { $0.key < $1.key }.first)
-        let id = String(sha256(Data("\(digest):\(ToolchainSetup.schemeVersion):16.0:base".utf8)).prefix(24))
+        let id = String(sha256(Data("\(digest):\(scheme):16.0:base".utf8)).prefix(24))
         let tool = Data("#!/bin/sh\necho ok\n".utf8)
         try directory(root.appendingPathComponent("usr/bin"))
         try directory(root.appendingPathComponent("usr/lib/swift/iphoneos"))
@@ -20,7 +20,7 @@ struct ToolchainTransferTests {
             id: id,
             source: ToolchainSource(productID: productID, version: release.version, url: URL(string: "https://example.invalid/clt.pkg")!, size: 1),
             sourceSHA256: digest,
-            retargetSchemeVersion: ToolchainSetup.schemeVersion,
+            retargetSchemeVersion: scheme,
             minimumOS: "16.0",
             components: [.base],
             files: ["usr/bin/tool": sha256(tool)],
@@ -97,11 +97,27 @@ struct ToolchainTransferTests {
         #expect(throws: (any Error).self) { try ToolchainTransfer.verifyImported(tree) }
     }
 
+    /// A tree scheme 2 made, before otool-classic and ranlib: still installed
+    /// on devices, exported from them, and taken under its own ID, which is
+    /// what setup gave it then.
+    @Test func `an earlier schemes tree travels under its own id`() throws {
+        let root = try Self.scratch(); defer { try? FileManager.default.removeItem(at: root) }
+        let installed = root.appendingPathComponent("installed")
+        let manifest = try Self.installedTree(at: installed, scheme: 2)
+        #expect(manifest.id != ToolchainSetup.identity(sourceSHA256: manifest.sourceSHA256, minimumOS: "16.0", components: [.base]))
+        try ToolchainSetup.verify(manifest, at: installed)
+        let copy = root.appendingPathComponent("copy")
+        #expect(try ToolchainTransfer.exportCopy(installed: installed, to: copy).id == manifest.id)
+        #expect(try ToolchainTransfer.verifyImported(copy).retargetSchemeVersion == 2)
+    }
+
     @Test func `releases sources and schemes this apelin does not take are refused`() throws {
         let release = try #require(CommandLineToolsSupport.releases.first { !$0.sources.isEmpty })
         let (productID, digest) = try #require(release.sources.first)
         #expect(ToolchainTransfer.refusal(version: release.version, productID: productID, sourceSHA256: digest, scheme: ToolchainSetup.schemeVersion, swift: false) == nil)
+        #expect(ToolchainTransfer.refusal(version: release.version, productID: productID, sourceSHA256: digest, scheme: 2, swift: false) == nil)
         #expect(ToolchainTransfer.refusal(version: release.version, productID: productID, sourceSHA256: digest, scheme: 1, swift: false) != nil)
+        #expect(ToolchainTransfer.refusal(version: release.version, productID: productID, sourceSHA256: digest, scheme: ToolchainSetup.schemeVersion + 1, swift: false) != nil)
         #expect(ToolchainTransfer.refusal(version: release.version, productID: productID, sourceSHA256: String(repeating: "0", count: 64), scheme: 2, swift: false) != nil)
         #expect(ToolchainTransfer.refusal(version: "1.0", productID: productID, sourceSHA256: digest, scheme: 2, swift: false) != nil)
     }

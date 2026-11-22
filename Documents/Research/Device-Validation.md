@@ -198,6 +198,95 @@ console now goes on after a restart only past a successful respring.
 
 ## Still to run on the owner's devices
 
+- [ ] The lessons of a GitHub Actions release (2026-11-22, issue #79;
+      the Mac harness holds the wording, the tools' answers and the
+      committed file mode).
+      In a tweak project's chat, ask it to import a public repository:
+      apelin_project_create makes an Empty workspace, and
+      apelin_conversation_create names it with `project`, so the new
+      conversation is in the workspace's sidebar and its git_clone runs;
+      the call's answer names the workspace with `isThisProject` false.
+      Agree to feedback whose body has a full commit hash in it: the tool
+      refuses before any card, quoting the hash and its line. In a
+      new General Chat, ask how to read why a GitHub Actions run failed:
+      the model reads `apelin-github-actions`, then fetches a public
+      repository's `check-runs` and `jobs` with apelin_web_fetch.
+
+- [ ] `otool` and `ar rcs` on a toolchain set up with retarget scheme 3
+      (2026-11-22, issue #75, AGENTS.md ▸ Toolchains ▸ scheme 3). On the
+      Mac the tools of 14.2, 15.3 and 27.2 ran with and without
+      otool-classic and ranlib beside them, and their setup ran offline
+      from the reviewed packages (`LivePackageTests`); nothing of it has
+      run on a device. On a roothide iPhone on iOS 17.3.1 (where #75 came
+      from) with 15.3 and Swift, and on the iOS 26.4 iPhone vphone with
+      27.2, each starting from the 0.4.9 package with its scheme 2
+      toolchain set up and a project bound to it:
+      1. Install this round's package. The scheme 2 toolchain is still
+         listed, its row says "From an earlier setup. Set it up again to
+         add otool and ar." under its name (after "Default" when it is the
+         default; a 27.0 one names 27.2 instead) and VoiceOver reads it
+         with the row, its detail page says it in full under the first
+         section, the project bound to it builds and installs
+         (`make device-run SCRIPT=i1-smoke`), Self-Tests ▸ Run Again
+         passes the cases it had, and in a chat `apelin_toolchain_list`
+         shows it with `outdated` and `# Environment` names what it lacks.
+      2. Settings ▸ Toolchains ▸ +: the release is no longer ticked. Set
+         it up again: a second toolchain of that release is listed, under
+         another ID and with no such line, and is now the Default; its
+         self-test passes every
+         case, the last two `ar arm64` and `otool arm64` (15.3 with Swift:
+         16 cases). On a device with no toolchain,
+         `make device-run SCRIPT=t1-toolchain-setup` checks the two cases
+         and `retargetScheme` 3 too.
+      3. Bind the project to it (in its chat, apelin_project_set_environment)
+         and build; then through shell_run `otool -L`, `otool -l` and
+         `otool -hv` on the build's dylib
+         (`~/Documents/wiki.qaq.apelin/Builds/*/*/*/products/*.dylib`),
+         and `ar rcs` of an object, each succeed; on the scheme 2
+         toolchain the same fail as #75 says, and `libtool -static -o`
+         makes the archive. Try `otool -tv` too: otool-classic dlopens
+         the tree's libLTO to disassemble, which no self-test case does.
+      4. Remove the scheme 2 toolchain once nothing binds it; the new one
+         stays the default.
+      5. A `.apetc` exported by 0.4.9 (scheme 2) imports under its own ID
+         on a device that lacks it, and is listed with `outdated`.
+
+- [ ] A load check that waits for its target, stops with its call and
+      says whether the target ran (2026-11-22, issue #76, AGENTS.md ▸
+      Diagnostics). On the Mac only so far: `ConfirmLoadedTests`, the
+      worker's `DiagnosticsWorkerTests` (window bounds, the process
+      evidence with a fake process list, a cancel before and after the
+      trigger), `ChannelHostBackendTests` (the stop sends
+      `confirmLoadedCancel`) and `LoadCheckCancelChecks`. The marker is now
+      heard through icli's `SyslogStream` rather than `captureSyslog`, and
+      the process list is icli's `listProcesses` read as mobile, neither of
+      them run from a load check on a device yet. On an iPhone and the iPad
+      vphone, then on the reporter's kind of device (iOS 17.3.1, roothide):
+      1. `make device-run SCRIPT=diagnostics`: the loaded check's
+         `result.process.runningAtStart` holds SpringBoard's pid (the
+         process list reads as mobile), and the ten-minute check of a
+         process that does not exist ends `cancelled` within about two
+         seconds of `confirmLoadedCancel`.
+      2. A wait across a process start: in a chat, a tweak filtered to an
+         app by bundle id, the app not running (no longer `notFound`);
+         `apelin_package_confirm_loaded` with `wait_seconds: 120`, the app
+         opened about 20 s in. The call answers `loaded` as soon as the
+         app starts, not at 120 s, and `targetProcess` says it started
+         while the call listened, with its pid. Then the reporter's case:
+         a tweak filtered by `Executables` to `dtremotedisplayd`, the Mac
+         connected (Xcode's Devices window) while the call listens.
+      3. Not started: the same call with `wait_seconds: 20` and nothing
+         started: `targetProcess` says `dtremotedisplayd` never ran while
+         the call listened, and the `process` evidence is `absent`; with
+         the target already running and not restarted, it says it was
+         already running when the call began and to restart it while the
+         call listens.
+      4. Stop mid-listen: `wait_seconds: 180`, Stop about 10 s in. The turn
+         ends within the stop's two seconds, and the check's task, read
+         with `Scripts/device.py call confirmLoadedAttach` and its task id
+         from the session's log, ended `cancelled` within a second or two
+         of the Stop, not at 180 s.
+
 - [ ] Why Irisin did not answer, and who holds the package database
       (2026-11-21, issue #66, AGENTS.md ▸ Install bridge; all four cases
       ran on the iOS 26.4 iPad vphone, and the first in a chat on the iPhone
@@ -994,6 +1083,17 @@ console now goes on after a restart only past a successful respring.
       devices below); the project chain did not, as neither has the
       development extensions installed.
 - [ ] The iOS 16.0 floor (oldest supported system).
+- [ ] A project at the deployment-target floor, 15.0 (issue #71), on the
+      oldest iOS a jailbroken device here runs, ideally iOS 15 under a
+      rootless bootstrap (Dopamine or palera1n) and under a roothide one:
+      the tweak template built at 15.0 on an Apelin device, its rootless
+      and roothide packages carried over (Apelin itself needs 16.0) and
+      installed with that device's package manager (`firmware (>= 15.0)`
+      met), the tweak's `ApelinLoaded` marker in that device's log after a
+      respring, and a C and an Objective-C command-line tool built at 15.0
+      run there. Only the Mac has built at 15.0 so far (AGENTS.md ▸ The
+      deployment target; `2026-10-17-Toolchain-Retarget.md` ▸ iOS 15
+      products); no vphone runs below iOS 26.4.
 - [ ] On iOS 16, 17 or 18: an agent session starts (`agentList`, then
       `agentOpen`). apelin-agent links `@rpath/libswiftCompatibilitySpan.dylib`.
       The OS has that library only from iOS 26, so on older systems it loads

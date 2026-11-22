@@ -57,7 +57,10 @@ elapsed seconds, success/failure and executable/dSYM UUID. The matrix
 is C (with `__builtin_available`), C++, ObjC × arm64, arm64e; with Swift,
 also Swift, Swift dylib (a library module and a client that loads it),
 Swift async and Swift macro (`@Observable`), for each architecture the
-SDK has Swift interfaces for, sharing one module cache. It retains `.o` files through dsymutil, signs
+SDK has Swift interfaces for, sharing one module cache; last, for a scheme 3
+tree, `ar` (`ar rcs`, which execs ranlib, then a program linked from the
+archive and run) and `otool` (`-hv`, `-L` and `-l` on that program, which
+exec otool-classic) on arm64. It retains `.o` files through dsymutil, signs
 only after linking, executes each hello, and requires its expected output.
 The SDK is canonicalized with `realpath`; `-isysroot` receives that physical
 path. The caller registers the SDK first. Tests use explicit `posix_spawn`
@@ -102,7 +105,14 @@ library iOS lacks (`libxar` for bitcode in 14.2, `libcodedirectory`
 for linker signatures in 15.x) gets that load weakened, with every
 launch-time bind from it marked weak (`MachOImage.weakenLoads`); Apelin
 never takes the paths that call them. Entry points
-are clang, ld, lipo, dsymutil, strip, ar, libtool, nm, otool and llvm-otool;
+are clang, ld, lipo, dsymutil, strip, ar, ranlib, libtool, nm, otool,
+llvm-otool and otool-classic: from retarget scheme 3, the siblings two tools
+exec by path beside themselves, which no load command names — otool-classic,
+which `otool` (llvm-otool) execs for every flag, and ranlib (libtool by that
+name), which `ar` execs for its `s` (`ar rcs`). llvm-otool's `-objdump`
+(llvm-objdump) and ld-classic (15.3's strip of an object file with `-x`,
+`-S`, `-u` or `-r`, and `ld -ld_classic`) stay out: 14.2's and 15.3's
+llvm-objdump and 15.3's ld-classic load libxar, which iOS lacks;
 resources come from `usr/lib/clang` (only iOS target runtime libraries),
 libraries from their dependency closure. Target compiler runtimes are preserved
 as resource bytes; they are not host executables to retarget.
@@ -134,8 +144,11 @@ symbol pool to `_stdlib_isOSVersionAtLeast` (`MachOImage.renameImports`;
 from iOS 26). The CLT has no iphoneos compatibility libraries: code whose
 parameter packs need runtime metadata binds `swift_allocateMetadataPack`
 from the system and needs iOS 17 to load. Retarget scheme 2 also keeps
-`libclang_rt.ios.a`, the builtins `@available` links against. Evidence is
-in the research document (▸ Swift, ▸ Retarget scheme 2).
+`libclang_rt.ios.a`, the builtins `@available` links against; scheme 3 adds
+otool-classic and ranlib. A scheme 2 tree is still verified, self-tested,
+exported and imported under its own ID (`ToolchainSetup.readableSchemes`).
+Evidence is in the research document (▸ Swift, ▸ Retarget scheme 2,
+▸ Retarget scheme 3).
 Other CLT versions are discoverable but refused by setup with their reason.
 Both tested vphones pass the base-language matrix with 27.0; the iOS 26.6.2
 iPhone vphone with every other reviewed release. Setup peak RSS is measured

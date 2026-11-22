@@ -7,6 +7,15 @@ import ConfirmLoaded
 import Foundation
 import XCTest
 
+/// A row of icli's process list.
+private func process(_ pid: Int, _ path: String) -> [String: Any] {
+    ["pid": pid, "name": String(decoding: (path as NSString).lastPathComponent.utf8.prefix(16), as: UTF8.self), "executable": path]
+}
+
+private var springBoardProcess: [String: Any] {
+    process(55, "/System/Library/CoreServices/SpringBoard.app/SpringBoard")
+}
+
 /// icli in icli's own shapes: a bounded read hands out one batch, a stream
 /// hears every batch's lines as soon as it opens.
 private final class FakeIcli: IcliSurface, @unchecked Sendable {
@@ -122,6 +131,26 @@ private final class FakeIcli: IcliSurface, @unchecked Sendable {
 
     func runningApps() throws -> [String: Any] {
         ["apps": [["pid": 77, "name": "Preferences", "executable": "/Applications/Preferences.app/Preferences", "bundle_id": "com.apple.Preferences"]]]
+    }
+
+    /// The process list, one answer per look, the last one repeated:
+    /// SpringBoard running unless a test says otherwise.
+    var processAnswers: [[[String: Any]]] = [[springBoardProcess]]
+    var processLooks = 0
+
+    func processes() throws -> [String: Any] {
+        lock.withLock {
+            processLooks += 1
+            let rows = processAnswers.count > 1 ? processAnswers.removeFirst() : processAnswers.first ?? []
+            return ["processes": rows]
+        }
+    }
+
+    /// icli's app list: each `bundle_id` and `bundle_path`.
+    var installed: [[String: Any]] = []
+
+    func installedApps() throws -> [String: Any] {
+        lock.withLock { ["apps": installed] }
     }
 
     func respring() throws -> [String: Any] {
@@ -304,10 +333,13 @@ final class DiagnosticsWorkerTests: XCTestCase {
         )
         let response = try await service.confirmLoaded(ApelinProtocol.ConfirmLoadedRequest(buildID: "B-1", targetID: "SpringBoard", projectID: "proj-1", logWindowSeconds: 1))
         XCTAssertFalse(response.loaded)
-        XCTAssertEqual(response.evidence.map(\.kind), ["log", "image", "filter"])
-        XCTAssertEqual(response.evidence.map(\.passed), [false, false, true])
+        XCTAssertEqual(response.evidence.map(\.kind), ["log", "image", "filter", "process"])
+        XCTAssertEqual(response.evidence.map(\.passed), [false, false, true, true])
         XCTAssertTrue(response.evidence[0].detail.hasPrefix("absent"))
         XCTAssertTrue(response.evidence[1].detail.hasPrefix("notRead:"), response.evidence[1].detail)
+        XCTAssertEqual(response.evidence[3].detail, "confirmed: SpringBoard was running when the check began (pid 55).")
+        XCTAssertEqual(response.process?.runningAtStart, [55])
+        XCTAssertEqual(response.process?.startedDuring, [])
         XCTAssertNil(response.evidence[1].detail.range(of: #"iOS \d"#, options: .regularExpression), response.evidence[1].detail)
     }
 
@@ -338,8 +370,170 @@ final class DiagnosticsWorkerTests: XCTestCase {
         XCTAssertEqual(final.1, TaskEvent.stateKind)
         let answer = try ApelinProtocol.ConfirmLoadedResponse.from(finalState: TaskEvent(seq: EventSeq(UInt64(all.count)), kind: final.1, payload: final.2))
         XCTAssertTrue(answer.loaded)
-        XCTAssertEqual(answer.evidence.map(\.kind), ["log", "image", "filter"])
+        XCTAssertEqual(answer.evidence.map(\.kind), ["log", "image", "filter", "process"])
         XCTAssertTrue(answer.evidence[1].detail.hasPrefix("notRead:"))
+        XCTAssertEqual(answer.process?.runningAtStart, [55])
+    }
+
+    private func service(
+        _ icli: FakeIcli,
+        home: URL,
+        root: URL,
+        host: any ApelinTransport = NoHost(),
+        events: TaskEvents? = nil,
+    ) -> DiagnosticsService {
+        var service = DiagnosticsService(
+            diagnostics: Diagnostics(icli: icli),
+            host: ApelinService(transport: host),
+            home: home.path,
+            installRoot: root.path,
+            emit: events?.emit ?? { _, _, _ in },
+        )
+        service.processLookInterval = 0.05
+        return service
+    }
+
+    /// The window is `logStream`'s: up to ten minutes, 15 s by default, 30 s
+    /// with a respring.
+    func testTheWindowIsUpToTenMinutes() async throws {
+        let (home, root, _) = try makeProject()
+        let service = service(FakeIcli(), home: home, root: root)
+        func window(_ seconds: Double?, _ trigger: LoadTrigger? = nil) async throws -> Double {
+            try await service.prepareConfirmLoaded(ApelinProtocol.ConfirmLoadedRequest(
+                buildID: "B-1",
+                targetID: "SpringBoard",
+                trigger: trigger,
+                logWindowSeconds: seconds,
+            )).confirmation.logWindow
+        }
+        let defaultWindow = try await window(nil)
+        let respringWindow = try await window(nil, .respring)
+        let longest = try await window(600)
+        XCTAssertEqual(defaultWindow, 15)
+        XCTAssertEqual(respringWindow, 30)
+        XCTAssertEqual(longest, 600)
+        for bad in [0, 0.5, 601, .infinity, .nan] {
+            do {
+                _ = try await window(bad)
+                XCTFail("accepted a window of \(bad) s")
+            } catch let error as ApelinError {
+                XCTAssertEqual(error.code, .badRequest)
+                XCTAssertTrue(error.message.contains("1–600"), error.message)
+            }
+        }
+    }
+
+    /// A long window costs a hit nothing: the listen ends with the marker.
+    func testTheListenEndsAsSoonAsTheMarkerIsHeard() async throws {
+        let (home, root, _) = try makeProject()
+        let icli = FakeIcli()
+        icli.batches = [[line("ApelinLoaded B-1 in SpringBoard")]]
+        let started = Date()
+        let response = try await service(icli, home: home, root: root)
+            .confirmLoaded(ApelinProtocol.ConfirmLoadedRequest(buildID: "B-1", targetID: "SpringBoard", projectID: "proj-1", logWindowSeconds: 600))
+        XCTAssertTrue(response.loaded)
+        XCTAssertLessThan(Date().timeIntervalSince(started), 5)
+    }
+
+    /// The target that starts while the check listens is seen starting; one
+    /// that never runs is said never to have run, apart from a marker that
+    /// was not heard.
+    func testTheProcessEvidenceTellsNotStartedFromNotLoaded() async throws {
+        let (home, root, _) = try makeProject()
+        let daemon = process(812, "/usr/libexec/dtremotedisplayd")
+
+        let starting = FakeIcli()
+        starting.processAnswers = [[springBoardProcess], [springBoardProcess], [springBoardProcess, daemon]]
+        let started = try await service(starting, home: home, root: root)
+            .confirmLoaded(ApelinProtocol.ConfirmLoadedRequest(buildID: "B-1", targetID: "dtremotedisplayd", projectID: "proj-1", logWindowSeconds: 2))
+        XCTAssertFalse(started.loaded)
+        XCTAssertEqual(started.process?.runningAtStart, [])
+        XCTAssertEqual(started.process?.startedDuring, [812])
+        XCTAssertEqual(started.process?.ran, true)
+        let ran = try XCTUnwrap(started.evidence.first { $0.kind == "process" })
+        XCTAssertTrue(ran.passed)
+        XCTAssertEqual(ran.detail, "confirmed: dtremotedisplayd was not running when the check began and started during it (pid 812).")
+        XCTAssertGreaterThan(starting.processLooks, 3, "the list is looked at again while the check listens")
+
+        let never = FakeIcli()
+        let absent = try await service(never, home: home, root: root)
+            .confirmLoaded(ApelinProtocol.ConfirmLoadedRequest(buildID: "B-1", targetID: "dtremotedisplayd", projectID: "proj-1", logWindowSeconds: 2))
+        XCTAssertFalse(absent.loaded)
+        XCTAssertEqual(absent.process?.ran, false)
+        let none = try XCTUnwrap(absent.evidence.first { $0.kind == "process" })
+        XCTAssertFalse(none.passed)
+        XCTAssertTrue(none.detail.hasPrefix("absent: No process named dtremotedisplayd ran while the check looked"), none.detail)
+
+        // A process list that cannot be read says so, and answers no process.
+        let unreadable = try await DiagnosticsService(
+            diagnostics: Diagnostics(icli: UnavailableIcli()),
+            host: ApelinService(transport: NoHost()),
+            home: home.path,
+            installRoot: root.path,
+        ).confirmLoaded(ApelinProtocol.ConfirmLoadedRequest(buildID: "B-1", targetID: "dtremotedisplayd", logWindowSeconds: 1))
+        XCTAssertNil(unreadable.process)
+        XCTAssertTrue(unreadable.evidence.first { $0.kind == "process" }?.detail.hasPrefix("unavailable: ") == true)
+    }
+
+    /// The host's cancel ends a long listen at once, as `cancelled`; one
+    /// that comes before the trigger runs it not.
+    func testACancelledCheckEndsAtOnceAndDoesNotRespring() async throws {
+        let (home, root, _) = try makeProject()
+        let host = RespringHost()
+
+        let events = TaskEvents()
+        let early = service(FakeIcli(), home: home, root: root, host: host, events: events)
+        let taskID = TaskID("confirm-cancelled")
+        try await early.startConfirmLoaded(ApelinProtocol.ConfirmLoadedRequest(buildID: "B-1", targetID: "SpringBoard", trigger: .respring, logWindowSeconds: 600), taskID: taskID)
+        let asked = Date()
+        early.loadChecks.cancel(taskID)
+        XCTAssertEqual(events.done.wait(timeout: .now() + 5), .success)
+        XCTAssertLessThan(Date().timeIntervalSince(asked), 3)
+        XCTAssertEqual(events.all.last?.2?["state"]?.stringValue, "cancelled")
+        XCTAssertNil(events.all.last?.2?[ApelinProtocol.ConfirmLoadedResponse.stateMember])
+        XCTAssertFalse(events.all.contains { $0.2?["stage"]?.stringValue == "trigger" }, "a stopped check does not respring")
+        XCTAssertEqual(host.operations, [])
+
+        // Stopped while it listens, after the trigger.
+        let later = TaskEvents()
+        let listening = service(FakeIcli(), home: home, root: root, host: host, events: later)
+        let listeningID = TaskID("confirm-listening")
+        try await listening.startConfirmLoaded(ApelinProtocol.ConfirmLoadedRequest(buildID: "B-1", targetID: "SpringBoard", logWindowSeconds: 600), taskID: listeningID)
+        try await Task.sleep(nanoseconds: 1_500_000_000)
+        let stopped = Date()
+        listening.loadChecks.cancel(listeningID)
+        XCTAssertEqual(later.done.wait(timeout: .now() + 5), .success)
+        XCTAssertLessThan(Date().timeIntervalSince(stopped), 1)
+        XCTAssertEqual(later.all.last?.2?["state"]?.stringValue, "cancelled")
+
+        // A cancel for a check that is not running does nothing.
+        listening.loadChecks.cancel(TaskID("no-such-check"))
+    }
+
+    /// A bundle id names a running app's executable, else an installed
+    /// one's, so a check can wait for the app to be opened; an id no app has
+    /// is not found.
+    func testABundleIDTargetIsTheRunningOrInstalledApp() async throws {
+        let (home, root, _) = try makeProject()
+        let bundle = home.appendingPathComponent("Applications/Hello.app")
+        try FileManager.default.createDirectory(at: bundle, withIntermediateDirectories: true)
+        let info: NSDictionary = ["CFBundleIdentifier": "wiki.qaq.hello.app", "CFBundleExecutable": "HelloApp"]
+        XCTAssertTrue(info.write(to: bundle.appendingPathComponent("Info.plist"), atomically: true))
+        let icli = FakeIcli()
+        icli.installed = [["bundle_id": "wiki.qaq.hello.app", "name": "Hello", "bundle_path": bundle.path]]
+        let service = service(icli, home: home, root: root)
+
+        let running = try await service.resolveTarget("com.apple.Preferences")
+        XCTAssertEqual(running.executable, "Preferences")
+        let installed = try await service.resolveTarget("wiki.qaq.hello.app")
+        XCTAssertEqual(installed.executable, "HelloApp")
+        XCTAssertEqual(installed.bundleIdentifier, "wiki.qaq.hello.app")
+        do {
+            _ = try await service.resolveTarget("com.example.missing")
+            XCTFail("a bundle id no app has was resolved")
+        } catch let error as ApelinError {
+            XCTAssertEqual(error.code, .notFound)
+        }
     }
 
     func testABadLoadCheckIsTheReplyNotAFailedTask() async throws {

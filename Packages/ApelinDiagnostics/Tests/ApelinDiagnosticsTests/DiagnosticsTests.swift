@@ -130,6 +130,27 @@ final class FakeIcli: IcliSurface, @unchecked Sendable {
         answer("runningApps")
     }
 
+    func processes() throws -> [String: Any] {
+        answer("processes")
+    }
+
+    /// Where the fixture's app bundles are, when a test made them on disk.
+    var appsRoot: URL?
+
+    func installedApps() throws -> [String: Any] {
+        var raw = answer("installedApps")
+        if let appsRoot, let apps = raw["apps"] as? [[String: Any]] {
+            raw["apps"] = apps.map { app in
+                var app = app
+                if let path = app["bundle_path"] as? String {
+                    app["bundle_path"] = appsRoot.appendingPathComponent((path as NSString).lastPathComponent).path
+                }
+                return app
+            }
+        }
+        return raw
+    }
+
     func respring() throws -> [String: Any] {
         answer("respring")
     }
@@ -489,6 +510,36 @@ final class DiagnosticsTests: XCTestCase {
         XCTAssertEqual(diagnostics.foregroundApp(), ForegroundApp(bundleIdentifier: "com.apple.springboard", verified: true, source: "runningboard"))
         XCTAssertEqual(try diagnostics.runningApps().first?.bundleIdentifier, "wiki.qaq.apelin")
         XCTAssertEqual(try diagnostics.respring(), RespringResult(method: "frontboard_relaunch", previousPID: 800, pid: 1200))
+    }
+
+    /// The process list names each process by pid, the kernel's name and
+    /// its executable's path; kernel_task's pid 0 is no process to watch.
+    func testProcessesDecodeAndMatchByExecutableName() throws {
+        let rows = try Diagnostics(icli: FakeIcli()).processes()
+        XCTAssertEqual(rows.map(\.pid), [800, 812, 901])
+        XCTAssertEqual(rows.filter { $0.runs("dtremotedisplayd") }.map(\.pid), [812])
+        XCTAssertEqual(rows.filter { $0.runs("springboard") }.map(\.pid), [800], "case aside, as the log's process names")
+        XCTAssertTrue(rows.filter { $0.runs("Board") }.isEmpty, "the whole name, never a part of it")
+        // A process with no path is known by the kernel's name, cut at 16
+        // bytes for a longer executable name.
+        XCTAssertEqual(rows.filter { $0.runs("com.apple.WebKit.WebContent") }.map(\.pid), [901])
+        XCTAssertTrue(rows.filter { $0.runs("com.apple.WebKi") }.isEmpty, "a shorter name is not a cut one")
+    }
+
+    /// A bundle id names the executable its installed bundle's Info.plist
+    /// gives, running or not; an id no app has is none.
+    func testAnInstalledAppIsResolvedFromItsBundle() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("apelin-apps-\(UUID().uuidString)")
+        let bundle = root.appendingPathComponent("Apelin.app")
+        try FileManager.default.createDirectory(at: bundle, withIntermediateDirectories: true)
+        addTeardownBlock { try? FileManager.default.removeItem(at: root) }
+        let info: NSDictionary = ["CFBundleIdentifier": "wiki.qaq.apelin", "CFBundleExecutable": "Apelin"]
+        XCTAssertTrue(info.write(to: bundle.appendingPathComponent("Info.plist"), atomically: true))
+        let icli = try FakeIcli()
+        icli.appsRoot = root
+        let diagnostics = Diagnostics(icli: icli)
+        XCTAssertEqual(try diagnostics.installedAppExecutable(bundleIdentifier: "wiki.qaq.apelin"), "Apelin")
+        XCTAssertNil(try diagnostics.installedAppExecutable(bundleIdentifier: "com.example.missing"))
     }
 
     func testAnUnverifiedForegroundIsReportedAsSuch() {

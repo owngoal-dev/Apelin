@@ -69,8 +69,13 @@ extension BuiltInSkills {
         - From any other chat, a repository goes into a new workspace, whatever
           it holds: `apelin_project_create` with
           `wiki.qaq.apelin.workspace/empty`, then `apelin_conversation_create`
-          naming it, the URL and branch in its prompt; that conversation runs
-          `git_clone`. New Project does the same with a repository address.
+          with `project` set to the new workspace — its projectID (or folder
+          name) from `apelin_project_create`'s answer — and the URL and branch
+          in its prompt; that conversation runs `git_clone`. `project` is
+          required here: without it the conversation opens in this chat's own
+          project, which cannot take the repository, and a conversation
+          cannot be moved to another project; the answer names the project
+          it opened in. New Project does the same with a repository address.
         - Push only when asked: `git_status` and `git_diff` first, then
           `git_push` to the branch it is on. A rejected push is `git_fetch`
           and `git_pull`, then the push again; a branch that has diverged is

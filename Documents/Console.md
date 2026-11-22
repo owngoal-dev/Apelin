@@ -394,8 +394,11 @@ error, or on `ok: false` where the exact refusal is the worker's to choose.
   `locked` false, `devicePasscodeState`, `captureScreen`,
   `readUITree`, one `uiAction` tap in
   the status bar at (200, 4) — not its corner, where iPadOS 26 puts a
-  window's close control —, and a `confirmLoaded` for a build that does not
-  exist (allowed to fail).
+  window's close control —, a `confirmLoaded` for a build that does not
+  exist (allowed to fail), whose answer must say SpringBoard was running
+  (`result.process`, the process list read as mobile), and a ten-minute
+  `confirmLoaded` of a process that does not exist, stopped at once with
+  `confirmLoadedCancel` and read back `cancelled`.
 - `agent.json` — needs the tweak extension; a Copilot credential in
   `inbox/credentials/` for the prompt to be answered.
   `agentCredentialImport`, `agentList`, a Confirm `agentOpen` unfollowed,

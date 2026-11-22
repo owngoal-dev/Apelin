@@ -392,6 +392,72 @@ struct ChannelHostBackendTests {
             _ = try await fixture.backend.confirmLoaded(ApelinAgent.ConfirmLoadedRequest(context: fixture.context(), buildID: "B-42", target: "SpringBoard"))
         }
         #expect(fixture.host.requests(ApelinProtocol.ConfirmLoadedRequest.self).first?.trigger == nil)
+        #expect(fixture.host.requests(ApelinProtocol.ConfirmLoadedRequest.self).first?.logWindowSeconds == nil, "the host's default window")
+    }
+
+    @Test
+    func `apelin_package_confirm_loaded listens as long as asked and says the target never ran`() async throws {
+        let fixture = try Fixture()
+        let answer = ApelinProtocol.ConfirmLoadedResponse(loaded: false, evidence: [
+            LoadEvidence(kind: "log", passed: false, detail: "absent: No line containing \"ApelinLoaded B-42\" from dtremotedisplayd in 180 s."),
+            LoadEvidence(kind: "image", passed: false, detail: "notRead: The image list was not read."),
+            LoadEvidence(kind: "filter", passed: true, detail: "confirmed: Executables names dtremotedisplayd."),
+            LoadEvidence(kind: "process", passed: false, detail: "absent: No process named dtremotedisplayd ran while the check looked."),
+        ], process: LoadTargetProcess(runningAtStart: [], startedDuring: [], watchedSeconds: 180.2))
+        fixture.host.on(.confirmLoaded, reply: TaskHandle(taskID: TaskID("confirm-task"), kind: .confirmLoaded))
+        try fixture.host.on(.confirmLoadedAttach, reply: batch("confirm-task", [
+            (TaskEvent.stateKind, .object(["state": .string("succeeded"), ApelinProtocol.ConfirmLoadedResponse.stateMember: JSONValue(encoding: answer)])),
+        ]))
+        let response = try await fixture.backend.confirmLoaded(ApelinAgent.ConfirmLoadedRequest(context: fixture.context(), buildID: "B-42", target: "dtremotedisplayd", waitSeconds: 180))
+        #expect(fixture.host.requests(ApelinProtocol.ConfirmLoadedRequest.self).first?.logWindowSeconds == 180)
+        #expect(!response.loaded)
+        #expect(response.targetProcess?.hasPrefix("dtremotedisplayd never ran while the call listened (180 s)") == true, "\(response.targetProcess ?? "nil")")
+        #expect(response.notes.contains("process: absent: No process named dtremotedisplayd ran"))
+    }
+
+    @Test
+    func `the target process is told plainly: never ran, ran before the call, started during it`() {
+        func sentence(loaded: Bool = false, _ start: [Int32], _ started: [Int32]) -> String? {
+            ChannelHostBackend.targetProcess(
+                "dtremotedisplayd",
+                loaded: loaded,
+                process: LoadTargetProcess(runningAtStart: start, startedDuring: started, watchedSeconds: 30),
+            )
+        }
+        #expect(ChannelHostBackend.targetProcess("dtremotedisplayd", loaded: false, process: nil) == nil, "a process list the host could not read says nothing")
+        #expect(sentence([], [])?.contains("never ran while the call listened (30 s)") == true)
+        #expect(sentence([], [])?.contains("call again with wait_seconds") == true)
+        #expect(sentence([55], [])?.contains("was already running when the call began (pid 55) and did not start again") == true)
+        #expect(sentence([55], [])?.contains("restart it while the call listens") == true)
+        #expect(sentence([], [812]) == "dtremotedisplayd started while the call listened (pid 812) and logged no marker: the tweak did not load into it, or no longer logs its marker.")
+        #expect(sentence(loaded: true, [55], [812, 900]) == "dtremotedisplayd started while the call listened (pids 812, 900) and logged the marker.")
+    }
+
+    /// Stop ends the call, and the listen of minutes it was waiting on with
+    /// it, as it does a build.
+    @Test
+    func `a stopped apelin_package_confirm_loaded stops its load check`() async throws {
+        let fixture = try Fixture()
+        fixture.host.on(.confirmLoaded, reply: TaskHandle(taskID: TaskID("confirm-task"), kind: .confirmLoaded))
+        fixture.host.on(.confirmLoadedAttach) { _ in
+            Thread.sleep(forTimeInterval: 0.01)
+            return (TaskEventBatch(taskID: TaskID("confirm-task"), events: [], state: .running, lastSeq: .start, finished: false), [])
+        }
+        fixture.host.on(.confirmLoadedCancel, reply: Acknowledged())
+        let backend = fixture.backend
+        let context = fixture.context()
+        let call = Task {
+            try await backend.confirmLoaded(ApelinAgent.ConfirmLoadedRequest(context: context, buildID: "B-42", target: "dtremotedisplayd", waitSeconds: 180))
+        }
+        try await Task.sleep(for: .milliseconds(200))
+        call.cancel()
+        await #expect(throws: CancellationError.self) {
+            _ = try await call.value
+        }
+        for _ in 0 ..< 200 where fixture.host.requests(ConfirmLoadedCancelRequest.self).isEmpty {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        #expect(fixture.host.requests(ConfirmLoadedCancelRequest.self).map(\.taskID) == [TaskID("confirm-task")])
     }
 
     @Test

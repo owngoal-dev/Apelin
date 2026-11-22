@@ -234,6 +234,8 @@ struct FeedbackEditToolTests {
             (["number": 12, "revision": .string(Self.revision), "title": "The build log stops early", "body": "It ends before the link step."], "neither the title nor the body"),
             (["number": 12, "revision": .string(Self.revision)], "neither the title nor the body"),
             (["number": 12, "revision": .string(Self.revision), "body": "From 192.168.1.20"], "local network"),
+            (["number": 12, "revision": .string(Self.revision), "body": "Steps:\nFrom 192.168.1.20"],
+             "What matched: `192.168.1.20` (a local network address or name) on line 2 of the body."),
             (["number": 12, "revision": .string(Self.revision), "body": "Body\n\n---\nSent with Apelin 0.3.0 (23) · iOS 26.0 · roothide"], "leave it out"),
             (["number": 0, "revision": .string(Self.revision), "body": "Broadened."], "by its number"),
         ]
