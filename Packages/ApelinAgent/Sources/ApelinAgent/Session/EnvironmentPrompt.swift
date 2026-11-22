@@ -194,6 +194,9 @@ enum EnvironmentPrompt {
             if record.id == environment.toolchain?.record.id {
                 marks.append("prepared")
             }
+            if record.predatesCurrentRetarget {
+                marks.append(earlierRetargetMark)
+            }
             var line = "  - \(record.id): " + facts.joined(separator: "; ") + "."
             if !marks.isEmpty {
                 line += " " + sentence(marks) + "."
@@ -202,8 +205,15 @@ enum EnvironmentPrompt {
             line += bin.map { " Tools: \($0)" } ?? " Its folder is missing: reinstall it in Settings ▸ Toolchains."
             lines.append(line)
         }
+        if toolchains.contains(where: \.predatesCurrentRetarget) {
+            lines.append("  - A toolchain marked \(earlierRetargetMark): " + InstalledToolchain.earlierRetargetFacts)
+        }
         return lines
     }
+
+    /// The mark of a toolchain an earlier retarget scheme made, which the
+    /// line after the list explains once.
+    static let earlierRetargetMark = "set up by an earlier version of Apelin"
 
     private static func sdkLines(_ inputs: Inputs, environment: DevelopmentEnvironment) -> [String] {
         let sdks = inputs.registered.sdks
@@ -291,8 +301,11 @@ enum EnvironmentPrompt {
         line += swiftPassed(toolchain.record)
             ? "; swiftc takes the SDK too but needs -target arm64-apple-ios\(target). "
             : ". "
-        line += "So do not look for compilers, SDKs or paths, and never set up or import again a toolchain or SDK listed here. "
-            + "A project with an Apelin build description builds with apelin_project_build."
+        line += "So do not look for compilers, SDKs or paths, and never set up or import again a toolchain or SDK listed here"
+        line += inputs.registered.toolchains.contains(where: \.predatesCurrentRetarget)
+            ? ", but for a toolchain an earlier version of Apelin set up when the tools it lacks are needed. "
+            : ". "
+        line += "A project with an Apelin build description builds with apelin_project_build."
         return line
     }
 

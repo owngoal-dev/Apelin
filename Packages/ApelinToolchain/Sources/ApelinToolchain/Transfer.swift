@@ -108,6 +108,7 @@ public enum ToolchainTransfer {
         }
         let expected = ToolchainSetup.identity(
             sourceSHA256: manifest.sourceSHA256,
+            scheme: manifest.retargetSchemeVersion,
             minimumOS: manifest.minimumOS,
             components: manifest.components,
         )
@@ -165,7 +166,10 @@ public enum ToolchainTransfer {
     }
 
     /// Why this device would not take a toolchain of this release, source,
-    /// scheme and components; nil when it would.
+    /// scheme and components; nil when it would. A tree an earlier scheme
+    /// Apelin still reads made is taken under its own ID, as it is installed
+    /// on the device it came from: 27.0 can no longer be downloaded, so a
+    /// transfer file is the one way to bring it to another device.
     public static func refusal(
         version: String,
         productID: String,
@@ -173,7 +177,7 @@ public enum ToolchainTransfer {
         scheme: Int,
         swift: Bool,
     ) -> String? {
-        guard scheme == ToolchainSetup.schemeVersion else {
+        guard ToolchainSetup.readableSchemes.contains(scheme) else {
             return "This toolchain was prepared by a different version of Apelin. Set it up again on this device."
         }
         if let reason = CommandLineToolsSupport.refusal(for: version, productID: productID) {
