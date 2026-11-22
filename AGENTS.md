@@ -320,7 +320,7 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   `installationList`, `respring`, `approvalDigestState`;
   `fileRead`, `protectedEditOpen`, `protectedEditCommit`; `ptyOpen`,
   `ptyAttach`, `ptyResize`, `ptyClose`; `logStream`, `crashList`,
-  `crashOpen`, `crashSymbolicate`; `confirmLoaded`, `confirmLoadedAttach`, `captureScreen`,
+  `crashOpen`, `crashSymbolicate`; `confirmLoaded`, `confirmLoadedAttach`, `confirmLoadedCancel`, `captureScreen`,
   `readUITree`, `uiAction`, `devicePasscodeState`, `devicePasscodeSave`,
   `devicePasscodeRemove`; `agentOpen`, `agentPrompt`, `agentSteer`,
   `agentAbort`, `agentCompact`, `agentApprove`, `agentAttach`, `agentList`, `agentClose`,
@@ -406,6 +406,8 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   `gitIssueCreate`, narrowed by `AgentIssueCreateRules`;
   `gitResetToRemote`, narrowed in every mode by `AgentResetToRemoteRules`,
   with `gitResetPreview`;
+  `confirmLoadedCancel`, for a load check its own session started
+  (`LoadCheckCancelRules`);
   `distributionPublish`, narrowed by `AgentPublishRules`, the rest of the
   package repository's operations staying the app's), the
   environment worker `installPackage`, `removePackage`
@@ -1126,9 +1128,63 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   each architecture the SDK has Swift interfaces for (arm64e only in the
   iOS 27 SDK). apelin-build hands Swift 5.9+ `swiftc` `-nonlib-dependency-scanner` (the
   tree has no libSwiftScan) and one module cache per toolchain and SDK,
-  `Builds/.swift-module-cache/<toolchain>-<sdk>`. The retarget scheme (2)
+  `Builds/.swift-module-cache/<toolchain>-<sdk>`. The retarget scheme (3)
   is part of the ID; scheme 2 keeps `libclang_rt.ios.a`, which `@available`
-  links against. Per-release Swift requirements and clang-module CPU
+  links against. Scheme 3 (2026-11-22, issue #75: `otool -L` failed "can't
+  find or exec … otool-classic" on a 15.3 toolchain) adds the siblings two
+  tools exec by path beside themselves, which no load command names, so
+  the dependency closure never found them: otool-classic, which `otool`
+  (llvm-otool, cctools 1001.2 in 14.2 to 1040 in 27.x) execs for every
+  flag, and `ranlib` (libtool by that name), which `ar` execs for its `s`
+  (`ar rcs`). The entry points are clang, ld, lipo, dsymutil, strip, ar,
+  ranlib, libtool, nm, otool, llvm-otool and otool-classic
+  (`DependencyClosure.entryTools`); every reviewed release has both new
+  ones (their package BOMs), and 14.2's, 15.3's and 27.2's were run on the
+  Mac with and without them. Left out: llvm-otool's `-objdump` execs
+  llvm-objdump, 15.3's strip execs ld-classic for `-x`, `-S`, `-u` or `-r`
+  on an object file, and its ld (by its strings) for `-ld_classic` (15.0
+  and 16.4 ship one too); 14.2's and 15.3's llvm-objdump and 15.3's
+  ld-classic load libxar, which iOS lacks. A scheme 3 tree's self-test ends
+  with two cases on arm64, after the Swift ones so neither keeps a Swift
+  case from running: `ar` (`ar rcs`, then a program linked from the
+  archive and run) and `otool` (`-hv`, `-L` and `-l` on that program).
+  *Toolchains set up before scheme 3*: setting the release up again is a
+  new toolchain beside the old one, under its own ID and package. A repair
+  in place would change the tree's content digest under the same ID, and
+  every project bound to it (by ID and digest) would stop building. The
+  scheme 2 toolchain keeps its ID, files, package, record and bindings: it
+  builds as before, Run Again self-tests it (without the scheme 3 cases),
+  it exports, and a scheme 2 transfer file imports under its own ID
+  (`ToolchainSetup.readableSchemes`; 27.0 can no longer be downloaded, so a
+  transfer file is the one way to bring it to another device). The record
+  keeps the scheme (`ToolchainRecord.retargetScheme`, absent for scheme 2:
+  `predatesCurrentRetarget`, held to `ToolchainSetup.schemeVersion` by
+  `RetargetSchemeTests`). Settings ▸ Toolchains says so on the toolchain's
+  row, under the name (after Default; VoiceOver reads it with the row), and
+  in full under its detail page's first section: from an earlier setup,
+  set it up again to add otool and ar, or, for a release Apple no longer
+  serves, the one that replaced it (`ToolchainRecord.replacedReleases`,
+  27.0 → 27.2, held to the withdrawn packages by `RetargetSchemeTests`;
+  `ToolchainDetailController.earlierSetupNote`, Argon's words). The app's
+  catalog does not tick such a release and apelin_toolchain_setup does not
+  refuse it, so it can be set up again;
+  the new toolchain takes over as the default from the one it supersedes
+  (`supersedes`: the same release, no fewer components), and every project
+  keeps the toolchain it binds until it is bound to the new one
+  (apelin_project_set_environment, or the user); the old one is removed in
+  Settings once nothing binds it. 27.0 cannot be set up again (Apple no
+  longer serves it): its toolchain gets otool from 27.2 set up beside it,
+  or stays as it is. apelin_toolchain_list (`outdated`) and
+  `# Environment` (a mark on its line, explained once after the list) tell
+  the agent what fails, that `libtool -static -o <name>.a <objects>` makes
+  the same indexed archive (run without ranlib on 14.2, 15.3 and 27.2),
+  and that setting the release up again fixes it
+  (`InstalledToolchain.earlierRetargetFacts`). A setup an earlier scheme
+  staged (one that failed or stopped before Apelin was updated) keeps its
+  verified download and makes the tree again (`Request.retargeted`), and
+  an install of the earlier tree its job made and never registered goes to
+  that tree's record or is removed through the bridge first
+  (`releaseEarlierTree`). Per-release Swift requirements and clang-module CPU
   requirements are carried in the manifest, catalog and registered record.
   The release table in `ApelinToolchain/Support.swift` also records the
   reviewed Apple product IDs and package SHA-256 values, recommended SDK and
@@ -1245,8 +1301,8 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   SHA-256 the manifest's; links relative and staying inside; no hard link
   or special file; nothing missing; ≤ 32 GB and 1,000,000 members) and only
   then runs the kind's path. A toolchain: `importTree` verifies its own
-  manifest (identity, the ID setup derives from source, scheme, minimum OS
-  and components, a release `CommandLineToolsSupport` still lists from a
+  manifest (identity, the ID setup derives from source, the tree's scheme
+  (2 or 3), minimum OS and components, a release `CommandLineToolsSupport` still lists from a
   source it reviewed, host and Swift requirements, exactly the files and
   links it lists, each matching), the record's `contentDigest` must match,
   a registered one of that ID is refused (`conflict`); then setup's path —
@@ -1446,9 +1502,11 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   approval denied, a command's output up to where the host killed it) and
   then left, its answer unread, with `ToolStoppedError` as the result the
   model reads, which says the work it started on the device may still
-  finish; a build the call was reading is cancelled with it
-  (`ChannelHostBackend.read`, `buildCancel`), while an install, a
-  toolchain setup, an SDK import and a git transfer go on by themselves.
+  finish; a build or a load check the call was reading is cancelled with
+  it (`ChannelHostBackend.read`, `buildCancel`, `confirmLoadedCancel`: a
+  check's listen of minutes would otherwise hold its stream and apelind),
+  while an install, a toolchain setup, an SDK import and a git transfer go
+  on by themselves.
   The worker then gives the stopped run 20 s to end (`WorkerState.stop`,
   `AgentSession.StoppedWork`): one that has not, a model request, a
   sign-in's renewal or a compaction that does not answer its
@@ -1677,8 +1735,18 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   apelin_device_respring, apelin_package_confirm_loaded → a
   `confirmLoaded` task with the session's project read to its end (with
   `respring: true` it carries `trigger: respring` and is gated as apelin_device_respring;
+  `wait_seconds`, 1 to 180, is its `logWindowSeconds` (issue #76: a
+  target that starts on demand, such as a daemon CoreDevice starts only
+  when a Mac connects, is set going by the user while the call listens;
+  three minutes, as apelin_conversation_read waits, under the provider's
+  five-minute cache, and called again rather than longer), and a stopped
+  call stops the check (`confirmLoadedCancel`);
   it never asks for `imageCheck`, and answers the host's `loaded` with a
-  `basis` saying it rests on the marker alone, no image field beside it),
+  `basis` saying it rests on the marker alone, no image field beside it,
+  and `targetProcess`, from the host's `process`, saying plainly whether
+  the target never ran while it listened, was already running when it
+  began and did not start again (its marker came before the call), or
+  started meanwhile),
   apelin_log_read → a `logStream` of
   at most 10 s, list/read/symbolicate crashes → `crashList`, `crashOpen`
   (descriptor), `crashSymbolicate`, screen/UI → `captureScreen` (only
@@ -1698,6 +1766,7 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   and, read by the worker from the folder made, an `identifierHint` naming
   the placeholder identifiers it carries (the user's permanent ones go in
   `values` as packageID and bundleID, built-ins every template takes)
+  and a `next` naming the `project` its first conversation takes
   — the new project's chat builds it, which apelin_conversation_create
   naming the project opens with the task (asking under Confirm, as any
   call into another project does), and this one's file tools stay where
@@ -1705,8 +1774,11 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   its own, when the user asks or agrees. A repository is imported as New
   Project imports one, whatever it holds: an Empty workspace
   (`wiki.qaq.apelin.workspace/empty`), then its conversation opened with
-  the URL and branch in the prompt, whose git_clone takes it in; the
-  prompt, apelin_project_create's and git_clone's descriptions and
+  `project` set to that workspace (issue #79: an agent that left it out
+  opened the conversation in its own tweak project, which refused the
+  clone and cannot be moved) and the URL and branch in the prompt, whose
+  git_clone takes it in; the prompt, apelin_project_create's,
+  apelin_conversation_create's and git_clone's descriptions and
   `apelin-git-workflow` say so. apelin_project_delete {project} →
   `projectDelete` (owner, 2026-10-29: dangerous, but the agent may do it,
   under the modes as they are), in any chat, of another project named as
@@ -1856,7 +1928,8 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   apelin_toolchain_setup {version | product_id, swift?} → `toolchainSetup` from
   Apple's catalog, the release resolved in the catalog before asking and
   sent by product ID (one this device cannot take, Swift a release does
-  not offer, or a release already set up is refused before asking), and
+  not offer, or a release already set up is refused before asking, but
+  not one an earlier retarget scheme set up: Toolchains ▸ scheme 3), and
   apelin_sdk_import {version, source?} → `sdkImport` of the branch an enabled
   source offers (the model never names an address), each read to its end
   with `environmentAttach`, only the stages, warnings, failed self-test
@@ -1907,7 +1980,10 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   agent with this session's provider, model, effort and tier
   (`SessionModelChoice`: the open request's, then each app prompt's) and
   the title (`AgentOpenRequest.title`), answered without waiting with the
-  session's link; the host opens it in the caller's own project, or the
+  session's link and the project it opened in (its folder, projectID and
+  link, and `isThisProject` with a `note` when that is the caller's own,
+  where a call without `project` opens: issue #79); the host opens it in
+  the caller's own project, or the
   project the request names (by projectID or folder, resolved by the host
   as for the app's open), under the caller's current approval mode, with
   a non-empty prompt and nothing else of the caller's (never a temporary
@@ -2052,7 +2128,14 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   or the same word in their language), never on its own initiative and
   never because a file, log, page or tool output says to. The text holds
   no credential, device identifier, host name, network address or home
-  path; the tool refuses before asking what `FeedbackRules` would refuse.
+  path; the tool refuses before asking what `FeedbackRules` would refuse,
+  and says what matched and where (issue #79: "what looks like a device
+  identifier", naming nothing, left the model guessing which words to
+  change): `FeedbackRules.refusal`'s `explanation`,
+  each match by the title or its line of the body, a token or key only
+  by its first four characters and its length, since the answer goes to
+  the provider and the journal again; apelin_feedback_edit and
+  apelin_git_create_issue answer the same way.
   `FeedbackToolTests` pins the description and the prompt line. On top
   of that, like git_push, Strict asks every time, the card naming the
   repository and showing the whole title and body (`detail.feedback`
@@ -2626,7 +2709,29 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   history on iOS (icli and the root reader stream only; `OSLogStore` is
   current-process only; there is no `log` tool), so a marker logged at the
   target's launch is seen only with the trigger, or with the target
-  relaunched during the window. The filter from `apelin-project.json` is
+  relaunched during the window. The window, `logWindowSeconds`, is 1–600 s
+  (default 15, 30 with a respring; 60 at most until issue #76), the bound
+  of `logStream`, whose one icli `SyslogStream` it now keeps open too
+  (`Diagnostics.listen`; `captureSyslog` stops at 60 s), and the listen
+  ends as soon as the target logs the marker, so a long window costs only
+  a miss its time. `confirmLoadedCancel` (the app's, or an agent's for a
+  check its own session started, `LoadCheckCancelRules`) ends it at once,
+  skips a trigger that has not run, and ends the task `cancelled`; the
+  worker keeps each running check by task (`LoadCheckRegistry`) before the
+  host hears it accepted. Beside the marker, the target process
+  (`process`, `ConfirmLoadedResponse.process`, issue #76): icli's process
+  list (`listProcesses`: sysctl `KERN_PROC_ALL` and `proc_pidpath`, each
+  process by pid and executable name, nothing inside one) read as mobile
+  when the check begins and once a second while it listens
+  (`ProcessWatch`), so "not started" is told from "not loaded": running
+  when the check began, started during it, or never seen; a pid that
+  logged the marker counts as seen, a process that starts and exits
+  between two looks without logging it is not, and a list unreadable at
+  the start is `unavailable` and read no more. `loaded` is still the
+  marker's alone. A bundle-ID target is the running app's executable, else
+  the installed app's (icli's `listApps` and its bundle's Info.plist), so
+  a check can wait for the app to be opened; an id no app has is
+  `notFound`. The filter from `apelin-project.json` is
   checked statically. The image list is **never read** (the evidence says
   `notRead`, naming no iOS version, since it holds on every one): reading
   SpringBoard's image list panicked the iOS 27.0.1
@@ -3267,7 +3372,8 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   to `local.apelin.<name as a slug>`, an `identifier` parameter named
   `productName` to the name's words joined and capitalised (`I3 Chain Tweak`
   → `I3ChainTweak`, so two projects never install the same file),
-  `deploymentTarget` to 16.0,
+  `deploymentTarget` to 16.0 (a request may name 15.0 or later: The
+  deployment target, below),
   `architectures` to the manifest's, toolchain and SDK to the registry's
   defaults. The answer carries `descriptionDigests` {build, packaging},
   which the session host's approval ledger records as the template baseline
@@ -3289,6 +3395,46 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   binding — which
   is how the agent's apelin_project_set_environment is judged before it writes
   (`ProjectCheck.binding`, `run(projectID:environment:)`).
+- **The deployment target** (issue #71, 2026-11-22) is the oldest iOS a
+  project's package runs on, never Apelin's own: the app stays at
+  `IPHONEOS_DEPLOYMENT_TARGET` (16.0), while a project may name 15.0 or
+  later — the schema's `iosVersion`, the reference's and
+  `TemplateParameters`' `deploymentTarget` type, held to each other by the
+  fixtures (`valid/tweak-oldest-ios.json`, `invalid/deployment-below-floor.json`)
+  and `testTheDeploymentTargetGoesDownTo15`.
+  15.0 because nothing older has a rootless or roothide bootstrap: iOS 15's
+  sealed system volume is why the layout exists, Dopamine, Dopamine-roothide,
+  roothide's Bootstrap (`firmware (>= 15.0)`), palera1n (which refuses
+  below 15.0), XinaA15 and Fugu15 all start there, and Procursus has no
+  rootless suite before 1800. The packager writes it as `firmware (>= …)`,
+  the build as `-mios-version-min`, Swift's `-target` and an app's or
+  bundle's `MinimumOSVersion`. A new project keeps 16.0, so no template's
+  baseline digests move, and an existing project file stays valid with its
+  digests. Every reviewed release builds C and Objective-C there: on the
+  Mac, CLT 14.2, 15.0, 15.3, 16.4, 27.0 and 27.2's own clang and ld, with
+  apelin-build's flags (`-Werror=unguarded-availability-new` included)
+  against an SDK each reads, linked the tweak template's source and a C
+  executable at 15.0 for arm64 and arm64e without a warning, stamped
+  `LC_BUILD_VERSION` minos 15.0, with the chained fixups and pointer-auth
+  ABI they write at 16.0 (`Documents/Research/2026-10-17-Toolchain-Retarget.md`
+  ▸ iOS 15 products); `MacPipelineTests.testCFamilyTemplatesBuildForTheOldestIOS`
+  builds every C and Objective-C template at 15.0 through apelin-build for
+  both bootstraps, with Xcode's tools or, given `APELIN_TEST_TOOLCHAIN` and
+  `APELIN_TEST_SDK`, a release's own, which passed for all six. Swift
+  stays at 16.0 (`ProjectCheck.swiftDeploymentTarget`): below it the Swift frontend
+  force-loads `swiftCompatibility56` (every frontend from CLT 15.0 to 27.2
+  names it), which only Xcode carries for iOS, and the retargeted tree's
+  `usr/lib/swift/iphoneos` is empty, so the link fails
+  (`__swift_FORCE_LOAD_$_swiftCompatibility56`, CLT 27.0's swiftc on the
+  Mac); 14.2's Swift 5.7.2 names no such library, but no Swift product of
+  it has run on iOS 15, so one floor holds for all. `projectCheck` says so as
+  `project.swift.deploymentTarget`, an error on `/deploymentTarget`, not an
+  `environment.*` one: no toolchain or SDK switch helps, so
+  apelin_project_set_environment does not refuse a switch over it.
+  Apelin itself does not run on iOS 15: a package for iOS 15 is built on a
+  device running 16.0 or later and installed on the older device with its
+  own package manager, which nothing has done yet (Device-Validation ▸
+  Still to run).
 - **The environment** apelin-build reads through `EnvironmentRegistry`
   (`ApelinProject/Environment`); on the device that is `EnvironmentStores`,
   apelin-environment's own files read as they are — `Environment/Toolchains/registry.json`
@@ -3506,7 +3652,9 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   a token or key, a home or install path (mobile's home, the install root
   as the host gave it, roothide's `.jbroot-`, an app container), a local
   address or `.local` name, the device's own host name, a UDID, serial or
-  MAC address — `badRequest` naming the kind, never quoting it. The check
+  MAC address — `badRequest` naming the kind, never quoting it
+  (`problem`; the agent's own check before it asks quotes what matched to
+  the model that wrote it, `refusal`, Agent sessions ▸ Feedback). The check
   reads shapes and proves nothing; Strict showing the whole text is the
   safeguard. Below the body it writes the footer itself, "Sent with
   Apelin <version> (<build>) · iOS <version> · <bootstrap>", the version
@@ -4099,9 +4247,10 @@ uses type section headers and single-line display names.
 
 The chat's More menu (`ChatActions`) acts on its conversation and its current
 project, in four groups: Rename… and Compact… (the conversation); Open in
-iGhostVT and Open in Fila; the project's Rename…, Export… and Distribute…;
+iGhostVT and Open in Fila; the project's Rename…, Custom Instructions…
+(Custom instructions, below), Export… and Distribute…;
 and Delete Conversation…. General
-Chat has Rename…, Compact…, the two Open items for the conversation's own `Temporary/<conversation>/`,
+Chat has Rename…, Compact…, Custom Instructions…, the two Open items for the conversation's own `Temporary/<conversation>/`,
 made if missing (`ProjectActions.temporaryDirectory`), and Delete
 Conversation…. Delete Conversation… (owner, 2026-10-30) is the sidebar's
 Delete (`SidebarController.delete(_:from:presenter:)`), but always asks
@@ -4289,8 +4438,10 @@ guessing once a compaction summarised the message that last named the
 language or the mode. The host's
 enforcement of the mode is unchanged; the block only tells the model. The
 project's `AGENTS.md`, else `CLAUDE.md` — a regular file inside the project, at most
-16 KB — is added as project instructions that never override the prompt or the
-approval mode. Skills are pi's progressive disclosure: the prompt lists each
+16 KB, read by ApelinCore's `ProjectInstructionsFile`, which the app's
+preview reads it with too — is added as project instructions that never
+override the prompt or the approval mode, and that the user's own custom
+instructions come before (Custom instructions, below). Skills are pi's progressive disclosure: the prompt lists each
 built-in and user skill (`~/Documents/wiki.qaq.apelin/skills`) by name and
 description only, and `apelin_skill_read{name, file?}` reads the body, or a file in a
 user skill's own folder (no link out of it), on demand; it is a read preset.
@@ -4362,7 +4513,32 @@ force_with_lease, owner, 2026-10-31), and github.com through Sign In
 with GitHub. `apelin-package-repository` is the package
 repository (Distribution repository, below): its layout after
 owngoal-packages, the control fields a package needs, how Publish adds a
-release, and keeping old versions in check. `apelin-package-depiction`
+release, and keeping old versions in check; and (issue #79) a shared
+source whose `manifest.json` lists repositories, as owngoal-packages'
+does, written from that repository's README, manifest and fetch script:
+an entry's shape, the stable releases it indexes, that one entry without
+a stable release (or a newest release lacking an architecture) stops the
+whole build, so the release is checked first with `releases/latest`, and
+that a listed project's `.deb` files are never committed there.
+`apelin-github-actions` (issue #79) is a workflow in a project's
+repository, when the user asks for one: the packages to ship are the
+ones Apelin builds on the device (a rebuild on a runner is a second
+build that drifts from Apelin's and whose crashes cannot be symbolicated
+here, issue #77; it is never offered as the way to release, and a later
+line can name a tool that publishes the device's release builds), a
+script the file tools wrote (0644) made executable with `chmod +x`
+before `git_commit` (which records the bit: `GitServiceTests`) or run
+with `bash`, a YAML value with `: ` quoted, `codesign --version` and
+`ldid -v` kept out of a step, signing on a macOS runner (`codesign
+--force --sign -` signs every slice; a plain `ldid -S` signature has no
+ad hoc flag, which codesign reads as "not signed at all" and names
+arm64e, so `-Cadhoc`), release triggers without a tag tool, and reading
+a run without its log: the log endpoints answer 403 "Must have admin
+rights to Repository.", while the commit's check runs, a run's jobs and
+steps and a check run's annotations read without a token, so one check
+per step and `::error` annotations (`%0A` for a line break). The API
+answers, their sizes and the signing were checked against Apelin's own
+public runs and on a Mac (2026-11-22). `apelin-package-depiction`
 (owner, 2026-11-11, issue #44) is a package's page in a package manager:
 the `Depiction` and `SileoDepiction` control fields from
 `package.depiction` and `package.sileoDepiction`, added only with an
@@ -4515,10 +4691,12 @@ kernel's FEAT_LRCPC, FEAT_SHA3 and FEAT_DotProd —, the bootstrap and install
 root (from the assignment, `BuildBootstrap.resolve`), every registered
 toolchain (ID, CLT release, components with the Swift version, the minimum
 iOS, the newest SDK it reads, its self-test count, default / this project's /
-prepared, its tool directory) and SDK (ID, version, path, the same marks, and
-"too new" for the prepared toolchain), a binding this device lacks, and that
-shell_run and the terminal already have the prepared toolchain and SDK, so the
-model neither probes nor sets up again what is installed. It also says that
+prepared, for one an earlier retarget scheme made what it lacks and what does
+the same (Toolchains ▸ scheme 3), its tool directory) and SDK (ID, version,
+path, the same marks, and "too new" for the prepared toolchain), a binding
+this device lacks, and that shell_run and the terminal already have the
+prepared toolchain and SDK, so the model neither probes nor sets up again
+what is installed, a toolchain of an earlier scheme aside. It also says that
 shell_run needs no login shell (whose profile builds `PATH` again), on roothide
 that a path a bootstrap tool prints (`/var/mobile/…` with the bootstrap as
 `/`, or `/rootfs/…`) is not the name the toolchain's compilers know, so they
@@ -4593,16 +4771,20 @@ opens, and again only when it is reopened or compacted, where the prefix is
 written anew anyway (after a compaction, by the next run that starts; a
 mid-run compaction of kwwk's own thus costs one more write of the now small
 conversation). For the session's life it stays those bytes: the project's
-`AGENTS.md` or `CLAUDE.md`, the skills list, the memory this chat sees,
-`# Environment`, the build system and the MCP list are as they were then, and
-there is no date and no mode in it. A change reaches the model only in the
-next message's `<system-state>`, once, as a delta naming its source —
-`memory added (all chats): <title>: <body>`, `memory removed: <title>`,
-`skill added: <name>: <description>`, `project instructions: AGENTS.md is
-now:` and its text (over 2000 characters: that it changed, and to read it
-with file_read), `environment:` and the lines that went and came, `build
-system:` — each quote at most 300 characters and the whole at most 4000,
-past which it names the sources that changed and the tool that reads each.
+`AGENTS.md` or `CLAUDE.md`, the user's custom instructions, the skills list,
+the memory this chat sees, `# Environment`, the build system and the MCP
+list are as they were then, and there is no date and no mode in it. A
+change reaches the model only in the next message's `<system-state>`, once,
+as a delta naming its source — `memory added (all chats): <title>: <body>`,
+`memory removed: <title>`, `skill added: <name>: <description>`, `project
+instructions: AGENTS.md is now:` and its text (over 2000 characters: that it
+changed, and to read it with file_read), `the user's instructions for all
+conversations are now:` (or `for this project`, `were cleared`, `cannot be
+read now`) and the whole text, `environment:` and the lines that went and
+came, `build system:` — each quote at most 300 characters and the whole at
+most 4000, past which it names the sources that changed and the tool that
+reads each; the user's instructions are kept apart from that budget and
+always quoted whole (Custom instructions, below).
 What the session's own apelin_memory_save, apelin_memory_delete,
 apelin_skill_save or apelin_skill_remove changed is not told again (its
 result said it), only the item the call named; a delta carried by a queued
@@ -4643,6 +4825,80 @@ requests (`AnthropicProvider.swift`, `OpenAIResponsesProvider.swift`) are
 encoded without sorted keys, so they probably miss the conversation's cache.
 The device check is `Documents/Research/Device-Validation.md` ▸ Still to run
 ▸ Prompt caching.
+
+## Custom instructions
+
+The user's standing preferences for the agent (issue #74), in their own
+words: those for every conversation, and one project's, which supplement
+them (for example "check my premises first and say when the evidence is
+thin", or in a tweak project "package each patch so it installs on its
+own"). ApelinCore's `CustomInstructionsStore` keeps them in the data folder,
+never in the project, where a commit or another repository would take them:
+`Instructions/global.md` and `Instructions/Projects/<projectID>.md` (a key of
+letters, digits and hyphens, as a `projectID` is; a temporary chat has none),
+plain UTF-8 text, trimmed, at most 2,000 characters each (`maximumCharacters`,
+and 16 KB a file), so a change of both is about one delta's budget. The app
+writes them, as mobile; apelin-agent, mobile too, only reads. MemoryStore's
+discipline: every level opened without following a link, a file read only
+when it is regular, singly linked, the caller's own and writable by no one
+else, a save written to a temporary file beside it and renamed over it under
+`Instructions/.lock`, and only while the file still holds what the editor
+loaded (`changed` otherwise), so another window cannot undo a newer save or
+a Clear; an empty save removes the file. A file that does not read — a
+link, another owner or link count, group- or world-writable, too long, not
+UTF-8, a NUL — is `unreadable` to the agent, which changes nothing, and is
+set aside by the app when it next loads it (`UnreadableFile.setAside(_:in:)`,
+the directory-relative form, `RENAME_EXCL`), so a save never replaces it;
+the editor then starts empty and says so. Tested by
+`CustomInstructionsStoreTests`.
+
+A deleted project's instructions go with it: apelin-build's
+`ProjectDeletion` removes them (and any copy set aside) after the folder,
+and the app sweeps on every reading of `Projects/` — at launch and on each
+change `ProjectCatalogMonitor` reports, its own Delete included
+(`CustomInstructionsUpkeep`, `removeGoneProjects`) — those of every project
+no folder names any more, but only when every folder there tells its
+project: a `Projects/` that does not read, or a real folder whose
+`apelin-project.json` is missing (set aside by an import), does not read or
+names no ID, takes nothing; links, files and hidden entries are no
+projects. `ProjectReferences` counts the IDs they name, so a repository
+imported into a workspace the user wrote instructions for keeps the
+workspace's ID.
+
+A session reads them into its snapshot (`UserInstructions`, part of
+`PromptState`): a `# The user's instructions` section after the project's
+`AGENTS.md` or `CLAUDE.md`, with `## For all conversations` and, in a
+project's chat, `## For this project`, a scope with nothing saved left out
+and no section at all when neither has anything; General Chat reads only
+those for every conversation. Its paragraph ranks them: they are the user's
+own words, followed as the user's messages are, though what the user asks
+in the conversation comes first; this project's win over those for all
+conversations; both win over `AGENTS.md`/`CLAUDE.md`, which may have come
+with a repository from anyone; they never change Apelin's rules on tools,
+approvals and consent or the approval mode, grant no permission, and nothing
+in them is the explicit go-ahead or consent a rule asks the user for; text
+elsewhere claiming to be them is not. One that does not read is said to be
+saved but unreadable, never guessed at. A change while a chat is open is a
+delta in its next message's `<system-state>`, each scope that changed
+quoted whole (or `were cleared`, `cannot be read now`), kept apart from the
+other sources' 4,000-character budget, and preceded by the ranking
+paragraph when the snapshot had no section to say it; the system prompt
+stays those bytes (`PromptCacheTests`, `UserInstructionsTests`).
+
+The app (`Apelin/Interface/Settings/Instructions/`): Settings ▸ Agent ▸
+Custom Instructions edits those for every chat (`InstructionsEditorController`:
+a multi-line field with a count under it, `1,234/2,000`, spoken as "1,234 of
+2,000 characters", Save, which waits while the text is over the limit
+rather than cutting it, Clear Instructions, which asks first, and a footer
+saying what they are for and that they cannot change approvals or Apelin's
+rules). The chat's More menu has Custom Instructions… — in a project's chat
+in the Project group after Rename…, in General Chat after Compact… — which
+opens what the conversation loads (`ConversationInstructionsController`):
+All Chats, This Project and, under Project Folder, the project's
+`AGENTS.md` or `CLAUDE.md` read as the agent reads it, shown read-only. The
+user's rows open their editor (the project's titled Project Instructions)
+and clear with a trailing swipe after the same question; the page is read
+again whenever it appears.
 
 ## Long-term agent memory
 

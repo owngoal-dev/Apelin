@@ -1,5 +1,5 @@
 {
-  "name": "diagnostics: needs nothing (confirmLoaded asks about a build that does not exist and may fail); a wake, which leaves the screen on, an unlock of the awake device, which does nothing, the device passcode's state, a screenshot, the UI tree, one tap in the status bar clear of an iPad window's controls, and a loaded check that finds nothing, and the attach of a load check that does not exist refused",
+  "name": "diagnostics: needs nothing (confirmLoaded asks about a build that does not exist and may fail); a wake, which leaves the screen on, an unlock of the awake device, which does nothing, the device passcode's state, a screenshot, the UI tree, one tap in the status bar clear of an iPad window's controls, a loaded check that finds nothing and sees SpringBoard running, a ten-minute check of a process that does not exist stopped at once, and the attach of a load check that does not exist refused",
   "steps": [
     {"op": "hello"},
     {"op": "uiAction", "label": "wake", "request": {"action": {"press": {"button": "wake"}}}},
@@ -15,6 +15,14 @@
     {"op": "uiAction", "label": "tap", "request": {"action": {"tap": {"x": 200, "y": 4}}}},
     {"op": "confirmLoaded", "label": "loaded", "allowError": true,
      "request": {"buildID": "no-such-build", "targetID": "com.apple.springboard", "logWindowSeconds": 2}},
+    {"op": "expect", "request": {"step": "loaded", "path": "lastEvent.payload.result.process.runningAtStart", "exists": true}},
+    {"op": "confirmLoaded", "label": "long", "follow": false,
+     "request": {"buildID": "no-such-build", "targetID": "apelin-no-such-process", "logWindowSeconds": 600}},
+    {"op": "expect", "request": {"step": "long", "path": "response.kind", "equals": "confirmLoaded"}},
+    {"op": "confirmLoadedCancel", "label": "stop", "request": {"taskID": "${long.response.taskID}"}},
+    {"op": "confirmLoadedAttach", "label": "stopped", "allowError": true, "timeoutSeconds": 30,
+     "request": {"taskID": "${long.response.taskID}", "afterSeq": 0, "waitMilliseconds": 20000}},
+    {"op": "expect", "request": {"step": "stopped", "state": "cancelled"}},
     {"op": "confirmLoadedAttach", "label": "attach", "allowError": true,
      "request": {"taskID": "00000000-0000-0000-0000-000000000000", "afterSeq": 0, "waitMilliseconds": 0}},
     {"op": "expect", "request": {"step": "attach", "ok": false}}

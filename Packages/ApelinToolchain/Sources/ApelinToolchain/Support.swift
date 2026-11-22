@@ -73,7 +73,7 @@ public struct CommandLineToolsPackage: Sendable, Equatable {
     /// from it: it is offered only while Apple's catalog lists it. The
     /// review stands, so an installed toolchain and a transfer file of the
     /// release still read.
-    var withdrawn = false
+    public internal(set) var withdrawn = false
 
     /// The package as a catalog entry.
     func source(version: String) -> ToolchainSource? {

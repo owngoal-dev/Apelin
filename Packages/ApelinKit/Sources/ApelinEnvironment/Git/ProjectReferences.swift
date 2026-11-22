@@ -4,11 +4,12 @@ import Foundation
 
 /// The project IDs something on this device names besides a project's own
 /// folder: a conversation (its `sessions/<id>/session.json`, which a
-/// reopened session must match), a build (`Builds/<id>/`) and a memory
-/// record. A repository's `apelin-project.json` brings an ID of its own into
-/// a new workspace; the workspace takes it only where neither that ID nor
-/// the workspace's is named by any of them, so no conversation, build or
-/// memory ends up belonging to a project it was not made for.
+/// reopened session must match), a build (`Builds/<id>/`), a memory record
+/// and the user's custom instructions (`CustomInstructionsStore`). A
+/// repository's `apelin-project.json` brings an ID of its own into a new
+/// workspace; the workspace takes it only where neither that ID nor the
+/// workspace's is named by any of them, so no conversation, build, memory
+/// or instructions end up belonging to a project they were not made for.
 ///
 /// The host's approval ledger is root's and not read here: a new workspace
 /// has nothing in it (`projectCreate` answers no description digests for
@@ -28,6 +29,11 @@ struct ProjectReferences {
         do {
             try ids.formUnion(MemoryStore(root: data.root).read().records.compactMap(\.projectID))
         } catch {
+            uncertain = true
+        }
+        if let instructions = CustomInstructionsStore(root: data.root).projectIDs() {
+            ids.formUnion(instructions)
+        } else {
             uncertain = true
         }
     }

@@ -22,20 +22,34 @@ public struct ConversationCreateToolRequest: Sendable, Hashable, Codable {
     }
 }
 
+/// Names the project the conversation opened in every time, and says so
+/// when that is the caller's own: a call that leaves `project` out opens
+/// there, which a model following "create a workspace, then open its
+/// conversation" read as the new workspace (issue #79).
 public struct ConversationCreateToolResponse: Sendable, Hashable, Codable {
     public var sessionID: String
     public var taskID: String
     /// `apelin://conversation/<session id>`, which opens it in the app.
     public var link: String
-    /// The project it opened in, when not the session's own, and its link.
-    public var project: String?
-    public var projectLink: String?
-    public init(sessionID: String, taskID: String, project: ProjectIdentity? = nil) {
+    /// The project it opened in, by folder, its projectID and its link.
+    public var project: String
+    public var projectID: String
+    public var projectLink: String
+    /// It opened in the caller's own project.
+    public var isThisProject: Bool
+    /// What that means, when it did: set only then.
+    public var note: String?
+    public init(sessionID: String, taskID: String, project: ProjectIdentity, isThisProject: Bool) {
         self.sessionID = sessionID
         self.taskID = taskID
         link = ApelinLink.conversation(sessionID)
-        self.project = project?.name.rawValue
-        projectLink = project.map { ApelinLink.project($0.id) }
+        self.project = project.name.rawValue
+        projectID = project.id
+        projectLink = ApelinLink.project(project.id)
+        self.isThisProject = isThisProject
+        note = isThisProject
+            ? "It opened in this conversation's own project, \(project.name.rawValue). For another project, such as a workspace apelin_project_create just made, pass project (its folder name or projectID)."
+            : nil
     }
 }
 

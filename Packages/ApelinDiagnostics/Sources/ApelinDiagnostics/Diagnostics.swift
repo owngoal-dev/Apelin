@@ -8,7 +8,7 @@ import Foundation
 ///
 /// Calls are synchronous and may block for their window; run them off the
 /// main thread.
-public struct Diagnostics: LogEvidenceSource, LiveLogSource {
+public struct Diagnostics: LogEvidenceSource, LiveLogSource, ProcessListSource {
     let icli: any IcliSurface
     /// How long a UI read or element tap waits for the foreground to settle
     /// (`settledForegroundApp`), and how often it asks.
@@ -493,6 +493,42 @@ public struct Diagnostics: LogEvidenceSource, LiveLogSource {
                 bundleIdentifier: row["bundle_id"] as? String ?? "",
             )
         }
+    }
+
+    // MARK: Processes and installed apps
+
+    /// Every process running now, through icli's process list: its pid, the
+    /// kernel's name and its executable's path, nothing from inside it.
+    public func processes() throws -> [ProcessRow] {
+        try Self.decodeProcesses(icli.processes())
+    }
+
+    static func decodeProcesses(_ raw: [String: Any]) -> [ProcessRow] {
+        (raw["processes"] as? [[String: Any]] ?? []).compactMap { row in
+            guard let pid = (row["pid"] as? NSNumber)?.int32Value, pid > 0 else { return nil }
+            return ProcessRow(
+                pid: pid,
+                name: row["name"] as? String ?? "",
+                executable: row["executable"] as? String ?? "",
+                bundleIdentifier: "",
+            )
+        }
+    }
+
+    /// The executable an installed app runs, by its bundle id: icli's app
+    /// list (LaunchServices' records and the application folders) names the
+    /// bundle, and its Info.plist the executable. Nil when no installed app
+    /// has the bundle id.
+    public func installedAppExecutable(bundleIdentifier: String) throws -> String? {
+        let apps = try icli.installedApps()["apps"] as? [[String: Any]] ?? []
+        guard let app = apps.first(where: { $0["bundle_id"] as? String == bundleIdentifier }),
+              let bundle = app["bundle_path"] as? String, !bundle.isEmpty
+        else { return nil }
+        let info = NSDictionary(contentsOfFile: (bundle as NSString).appendingPathComponent("Info.plist"))
+        guard let executable = info?["CFBundleExecutable"] as? String, !executable.isEmpty,
+              !executable.contains("/")
+        else { return nil }
+        return executable
     }
 
     // MARK: Respring

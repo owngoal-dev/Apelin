@@ -185,8 +185,10 @@ public struct LogReadResult: Codable, Hashable, Sendable {
     }
 }
 
-/// Anything that can answer a `LogFilter`: the icli-backed diagnostics worker
-/// and the root log reader both do. `ConfirmLoaded` takes one of these.
+/// Anything that can answer a `LogFilter` in one bounded read: the
+/// icli-backed diagnostics worker and the root log reader both do.
+/// `ConfirmLoaded` listens through a `LiveLogSource` instead, so its window
+/// can outlast a bounded read and end as soon as the marker is heard.
 public protocol LogEvidenceSource: Sendable {
     func readLogs(_ filter: LogFilter) throws -> LogReadResult
 }

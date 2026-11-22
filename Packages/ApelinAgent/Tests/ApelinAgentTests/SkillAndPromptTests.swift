@@ -144,7 +144,7 @@ struct SkillAndPromptTests {
         for name in ["apelin-tweak-development", "apelin-bootstrap-paths", "apelin-tweak-runtime", "apelin-preference-bundle",
                      "apelin-project-description", "apelin-external-build", "apelin-packaging-and-install",
                      "apelin-package-dependencies", "apelin-crash-triage", "apelin-icli", "apelin-device-executables",
-                     "apelin-package-depiction"]
+                     "apelin-package-depiction", "apelin-github-actions"]
         {
             #expect(names.contains(name), "no built-in skill \(name)")
             #expect(prompt.contains("<skill name=\"\(name)\">"), "the prompt does not list \(name)")
@@ -244,6 +244,54 @@ struct SkillAndPromptTests {
             "DepictionSubheaderView", "DepictionMarkdownView", "DepictionSubheaderView", "DepictionMarkdownView",
         ])
         #expect(changelog.compactMap { $0["title"] as? String } == ["1.0.1", "1.0.0"])
+    }
+
+    /// Issue #79: what bit a release through GitHub Actions and its
+    /// debugging from a conversation. The skill is listed by name and
+    /// description and read on demand; it keeps the packages Apelin builds
+    /// on the device the ones to ship, says what fails on a runner, and
+    /// what of a run can be read without a token, its log not among it.
+    @Test
+    func `the apelin-github-actions skill ships the device's packages and reads a run without its log`() throws {
+        let home = try TemporaryHome()
+        defer { home.remove() }
+        let skill = try #require(BuiltInSkills.all.first { $0.name == "apelin-github-actions" })
+        let prompt = SystemPrompt.make(project: home.project, projectRoot: home.projectURL.path,
+                                       skills: BuiltInSkills.all, mcpServers: [])
+        #expect(prompt.contains("<skill name=\"apelin-github-actions\">\(skill.description)</skill>"))
+        #expect(!prompt.contains("# GitHub Actions in a project's repository"), "the body is read on demand")
+        func words(_ text: String) -> String {
+            text.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        }
+        let body = words(skill.body)
+        for kept in [
+            "The packages to ship are the ones Apelin builds on this device",
+            "Never offer one as the way to release an Apelin package",
+            "`chmod +x Scripts/release.sh` with `shell_run`, then `git_commit`, which records the executable bit",
+            "`run: bash Scripts/release.sh`",
+            "`name: Audit: control`",
+            "`codesign --version` exits 2",
+            "`codesign --force --sign - --entitlements <file> <binary>` signs every slice",
+            "`codesign -d --entitlements - --xml <binary>`",
+            "`ldid -S<file> -Cadhoc`",
+            "\"Must have admin rights to Repository.\"",
+            "`/commits/<sha>/check-runs`", "`/actions/runs/<run id>/jobs`", "`/check-runs/<id>/annotations`",
+            "`echo \"::error title=Control file::$message\"`", "`%0A`",
+            "`/actions/runs?head_sha=<sha>`",
+        ] {
+            #expect(body.contains(kept), "the skill no longer says \(kept)")
+        }
+        // A shared source indexes releases; the package repository's skill
+        // says how a project gets into one, and reads a run as this one does.
+        let repository = words(BuiltInSkills.packageRepository.body)
+        for kept in [
+            "## A shared source that lists repositories", "owngoal-dev/owngoal-packages", "`\"allPackages\": true`",
+            "One entry that fails stops the whole build",
+            "`https://api.github.com/repos/<owner>/<repo>/releases/latest`",
+            "Never commit a listed project's `.deb` files there", "apelin-github-actions",
+        ] {
+            #expect(repository.contains(kept), "the apelin-package-repository skill no longer says \(kept)")
+        }
     }
 
     /// On a device, a VideoToolbox converter the agent built in shell_run

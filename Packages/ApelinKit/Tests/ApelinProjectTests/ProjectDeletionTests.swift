@@ -23,11 +23,17 @@ final class ProjectDeletionTests: XCTestCase {
             withDestinationURL: outside,
         )
 
+        let instructions = CustomInstructionsStore(root: folder.root)
+        try instructions.save("Package each patch alone.", for: .project(doomed.projectID), replacing: "")
+        try instructions.save("Keep the alarm loud.", for: .project(kept.projectID), replacing: "")
+
         let deleted = try ProjectDeletion.delete(ProjectDeleteRequest(projectID: doomed.projectID, projectName: "Weather"), in: folder)
         XCTAssertEqual(deleted, ProjectDeleteResponse(projectID: doomed.projectID, projectName: "Weather"))
         XCTAssertFalse(FileManager.default.fileExists(atPath: doomed.path))
         XCTAssertEqual(try Data(contentsOf: outside), Data("keep".utf8), "what a link inside named stays")
         XCTAssertTrue(FileManager.default.fileExists(atPath: kept.path))
+        XCTAssertEqual(instructions.read(.project(doomed.projectID)), SavedInstructions.none, "the user's custom instructions for it went with it")
+        XCTAssertEqual(instructions.read(.project(kept.projectID)), .text("Keep the alarm loud."))
 
         // By id alone, the folder that holds it.
         _ = try ProjectDeletion.delete(ProjectDeleteRequest(projectID: kept.projectID), in: folder)

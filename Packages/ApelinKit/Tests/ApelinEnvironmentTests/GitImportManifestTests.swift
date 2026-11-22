@@ -115,10 +115,23 @@ final class GitImportManifestTests: XCTestCase {
         XCTAssertEqual(try manifest(root), description(id: workspaceID))
     }
 
-    /// An ID this device knew — a deleted project's builds, conversation or
-    /// memory — is not taken again.
+    /// The user's custom instructions for the workspace, written before the
+    /// import, name it too: it keeps its ID, and they stay its own.
+    func testAWorkspaceWithCustomInstructionsKeepsItsID() throws {
+        let home = try TemporaryHome(self)
+        let url = try remote(home, ["apelin-project.json": description(id: theirID)])
+        let (workspaceID, root) = try workspace(home)
+        try CustomInstructionsStore(root: home.layout.data.root).save("Package patches alone.", for: .project(workspaceID), replacing: "")
+
+        let result = try importing(url, into: workspaceID, service(home))
+        XCTAssertEqual(result["projectFile"]?.stringValue, "repositoryWithProjectID")
+        XCTAssertEqual(try manifest(root), description(id: workspaceID))
+    }
+
+    /// An ID this device knew — a deleted project's builds, conversation,
+    /// memory or custom instructions — is not taken again.
     func testAnIDLeftByADeletedProjectIsNotTakenAgain() throws {
-        for leftover in ["builds", "session", "memory"] {
+        for leftover in ["builds", "session", "memory", "instructions"] {
             let home = try TemporaryHome(self)
             let url = try remote(home, ["apelin-project.json": description(id: theirID)])
             switch leftover {
@@ -131,6 +144,8 @@ final class GitImportManifestTests: XCTestCase {
                 let session = home.layout.data.sessions.appendingPathComponent("old", isDirectory: true)
                 try FileManager.default.createDirectory(at: session, withIntermediateDirectories: true)
                 try Data(#"{"project":{"id":"\#(theirID)","name":"Gone"}}"#.utf8).write(to: session.appendingPathComponent("session.json"))
+            case "instructions":
+                try CustomInstructionsStore(root: home.layout.data.root).save("Hooks SpringBoard.", for: .project(theirID), replacing: "")
             default:
                 let store = MemoryStore(root: home.layout.data.root)
                 _ = try store.save(MemoryRecord(title: "Hooks", body: "SpringBoard", projectID: theirID), revision: store.read().revision)

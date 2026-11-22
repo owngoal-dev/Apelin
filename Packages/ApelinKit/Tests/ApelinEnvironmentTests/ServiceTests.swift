@@ -1,6 +1,7 @@
 import ApelinCore
 @testable import ApelinEnvironment
 import ApelinGit
+@testable import ApelinProject
 @testable import ApelinProtocol
 import Foundation
 import XCTest
@@ -45,6 +46,44 @@ final class GitServiceTests: XCTestCase {
         try Data(#"{"authorName": "Settings Person", "authorEmail": "settings@apelin.invalid"}"#.utf8).write(to: home.layout.gitSettings)
         let commit = try git.commit(GitCommitRequest(projectID: "Hello", message: "From settings"))
         XCTAssertEqual(commit.commitID.count, 40)
+    }
+
+    /// The apelin-github-actions skill tells the agent that a script the
+    /// file tools wrote (0644) runs on a runner only once `chmod +x` and
+    /// `git_commit` have recorded its executable bit (issue #79): in a new
+    /// project's repository, `all` stages a mode change as git does.
+    func testCommitAllRecordsTheExecutableBit() throws {
+        let home = try TemporaryHome(self)
+        let root = home.layout.data.projects.appendingPathComponent("Hello", isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        try EmptyRepository.make(in: root)
+        let script = root.appendingPathComponent("Scripts/release.sh")
+        try FileManager.default.createDirectory(at: script.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try Data("#!/bin/sh\necho release\n".utf8).write(to: script)
+        XCTAssertEqual(chmod(script.path, 0o644), 0)
+        let git = GitService(layout: home.layout)
+        let request = GitCommitRequest(projectID: "Hello", message: "Add the release script", authorName: "A", authorEmail: "a@apelin.invalid", all: true)
+        _ = try git.commit(request)
+        XCTAssertEqual(try committedMode("Scripts/release.sh", in: root), "100644")
+
+        XCTAssertEqual(chmod(script.path, 0o755), 0)
+        XCTAssertEqual(try git.status(GitStatusRequest(projectID: "Hello")).entries.map(\.path), ["Scripts/release.sh"], "a mode change is a change")
+        _ = try git.commit(GitCommitRequest(projectID: "Hello", message: "Make it executable", authorName: "A", authorEmail: "a@apelin.invalid", all: true))
+        XCTAssertEqual(try committedMode("Scripts/release.sh", in: root), "100755")
+    }
+
+    /// The mode HEAD's tree records for `path`, as git itself reads it.
+    private func committedMode(_ path: String, in root: URL) throws -> String {
+        let git = Process()
+        git.executableURL = URL(fileURLWithPath: "/usr/bin/git")
+        git.arguments = ["-C", root.path, "ls-tree", "HEAD", "--", path]
+        let output = Pipe()
+        git.standardOutput = output
+        git.standardError = FileHandle.nullDevice
+        try git.run()
+        let data = output.fileHandleForReading.readDataToEndOfFile()
+        git.waitUntilExit()
+        return String(decoding: data, as: UTF8.self).split(separator: " ").first.map(String.init) ?? ""
     }
 
     func testPathsAndProjectsStayInside() throws {

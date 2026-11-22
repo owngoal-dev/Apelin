@@ -29,7 +29,7 @@ Operations by area (the full list is `AGENTS.md` ▸ The wire):
 | Files | `fileRead`, `protectedEditOpen/Commit` | editor; protected edit with confirmation |
 | Terminal | `ptyOpen/Attach/Resize/Close` (`ptyAttach{wantsDescriptor}` hands over a live socket) | terminal |
 | Logs and crashes | `logStream`, `crashList`, `crashOpen` (descriptor), `crashSymbolicate` | logs, crash list and detail |
-| Diagnostics | `confirmLoaded`, `confirmLoadedAttach`, `captureScreen`, `readUITree`, `uiAction` | "is it loaded", manual UI check |
+| Diagnostics | `confirmLoaded`, `confirmLoadedAttach`, `confirmLoadedCancel`, `captureScreen`, `readUITree`, `uiAction` | "is it loaded", manual UI check |
 | Agent | `agentOpen/Prompt/Steer/Abort/Approve/Attach/List/Close`, `agentCredentialImport`, `agentAccountList`, `agentSignIn/SignInRespond/SignInCancel/SignOut` | agent panel, approvals, Settings ▸ Model Providers |
 | Tool extensions | `toolHostOpen/Call/Close` | (agent-side; the UI lists extensions) |
 | Git | `gitStatus/Diff/Stage/Unstage/Commit/Clone` | git |

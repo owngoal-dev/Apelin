@@ -196,6 +196,14 @@ private final class TimelineIcli: IcliSurface, @unchecked Sendable {
         throw unused()
     }
 
+    func processes() throws -> [String: Any] {
+        throw unused()
+    }
+
+    func installedApps() throws -> [String: Any] {
+        throw unused()
+    }
+
     func respring() throws -> [String: Any] {
         throw unused()
     }

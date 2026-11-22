@@ -30,7 +30,20 @@
     "count": 1,
     "source": "runningboard"
   },
-  "respring": {"restarted": true, "method": "frontboard_relaunch", "previous_pid": 800, "pid": 1200},
+  "processes": {
+    "processes": [
+      {"pid": 0, "name": "kernel_task", "executable": ""},
+      {"pid": 800, "name": "SpringBoard", "executable": "/System/Library/CoreServices/SpringBoard.app/SpringBoard"},
+      {"pid": 812, "name": "dtremotedisplayd", "executable": "/private/var/run/com.apple.security.cryptexd/mnt/Developer/usr/libexec/dtremotedisplayd"},
+      {"pid": 901, "name": "com.apple.WebKit", "executable": ""}
+    ],
+    "count": 4
+  },
+  "installedApps": {
+    "apps": [{"bundle_id": "wiki.qaq.apelin", "name": "Apelin", "bundle_path": "/var/jb/Applications/Apelin.app"}],
+    "count": 1
+  },
+  "respring":{"restarted": true, "method": "frontboard_relaunch", "previous_pid": 800, "pid": 1200},
   "crashLogs": {
     "crashes": [
       "/var/mobile/Library/Logs/CrashReporter/SpringBoard-2026-10-17-101500.ips",

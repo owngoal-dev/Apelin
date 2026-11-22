@@ -371,6 +371,38 @@ public struct ProcessRow: Codable, Hashable, Sendable {
         self.executable = executable
         self.bundleIdentifier = bundleIdentifier
     }
+
+    /// The most bytes of a process's name the kernel keeps (`MAXCOMLEN`); a
+    /// longer name is cut there.
+    public static let kernelNameBytes = 16
+
+    /// Whether this process runs the executable called `executableName`:
+    /// the last component of its path, compared as the log's process names
+    /// are (case aside), or, when the kernel gave no path (the file was
+    /// replaced while it ran, or the path was not this process's to read),
+    /// the kernel's name, which for a longer executable name is its first
+    /// 16 bytes.
+    public func runs(_ executableName: String) -> Bool {
+        if !executable.isEmpty {
+            return (executable as NSString).lastPathComponent.caseInsensitiveCompare(executableName) == .orderedSame
+        }
+        guard !name.isEmpty else { return false }
+        if name.caseInsensitiveCompare(executableName) == .orderedSame {
+            return true
+        }
+        let cut = Self.kernelNameBytes
+        guard executableName.utf8.count > cut, name.utf8.count == cut else { return false }
+        return String(decoding: executableName.utf8.prefix(cut), as: UTF8.self).caseInsensitiveCompare(name) == .orderedSame
+    }
+}
+
+/// Anything that lists the processes running now, by pid, the kernel's
+/// name and the executable's path: `Diagnostics`, through icli's process
+/// list (sysctl `KERN_PROC_ALL` and `proc_pidpath`). Nothing inside a
+/// process is read: never its image list, its task port or its memory map.
+public protocol ProcessListSource: Sendable {
+    /// Every process now; each row's `bundleIdentifier` is empty.
+    func processes() throws -> [ProcessRow]
 }
 
 public struct RespringResult: Codable, Hashable, Sendable {

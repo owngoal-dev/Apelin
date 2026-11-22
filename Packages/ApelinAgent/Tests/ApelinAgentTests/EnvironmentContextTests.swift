@@ -32,7 +32,7 @@ struct EnvironmentContextTests {
         let toolchains = home.dataRoot.url.appendingPathComponent("Environment/Toolchains")
         try manager.createDirectory(at: toolchains, withIntermediateDirectories: true)
         try """
-        {"defaultID":"\(toolchainID)","toolchains":[{"id":"\(toolchainID)","version":"27.0",
+        {"defaultID":"\(toolchainID)","toolchains":[{"id":"\(toolchainID)","version":"27.0","retargetScheme":3,
         "components":[{"kind":"c","selfCheckPassed":true},{"kind":"swift","selfCheckPassed":true}],
         "path":"\(toolchain.path)","contentDigest":"abc","installationID":"secret-installation-id",
         "selfTests":[{"language":"C","architecture":"arm64","passed":true,"detail":"","seconds":1.25},

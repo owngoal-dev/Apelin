@@ -533,6 +533,8 @@ do {
     check(!CallerPolicy.allows(.worker(.environment, instance: nil), .installationList) && !CallerPolicy.allows(.worker(.diagnostics, instance: nil), .installationList), "no other worker lists installations")
     check(CallerPolicy.allows(.worker(.agent, instance: "s"), .toolHostCall), "the agent may call tools")
     check(CallerPolicy.allows(.worker(.agent, instance: "s"), .confirmLoaded) && CallerPolicy.allows(.worker(.agent, instance: "s"), .confirmLoadedAttach), "the agent starts and reads a load check")
+    check(CallerPolicy.allows(.worker(.agent, instance: "s"), .confirmLoadedCancel), "and stops one with the call that waited on it")
+    check(!CallerPolicy.allows(.worker(.environment, instance: nil), .confirmLoadedCancel), "no other worker stops one")
     // Accounts are the app's alone: a session's agent never starts, answers
     // or reads a sign-in, and never lists or forgets an account.
     for operation: AppOperation in [.protectedEditOpen, .protectedEditCommit, .ptyOpen, .ptyAttach, .agentApprove, .agentSteer, .agentCompact,
@@ -1401,6 +1403,10 @@ await screenConsentChecks(scratch: scratch, scratchPath: scratchPath)
 // MARK: - A reset to a remote (ResetToRemoteChecks.swift)
 
 await resetToRemoteChecks(scratch: scratch, scratchPath: scratchPath)
+
+// MARK: - Stopping a load check (LoadCheckCancelChecks.swift)
+
+await loadCheckCancelChecks(scratch: scratch, scratchPath: scratchPath)
 
 // MARK: - Install bridge against a fake irisind
 

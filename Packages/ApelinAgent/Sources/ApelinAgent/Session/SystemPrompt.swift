@@ -1,11 +1,12 @@
+import ApelinCore
 import Foundation
 import KWWKAgent
 
 enum SystemPrompt {
     /// Project instructions are read from the first of these at the
-    /// project's root, as pi and kwwk read them from the working directory.
-    static let instructionFiles = ["AGENTS.md", "CLAUDE.md"]
-    static let maxInstructionBytes = 16 * 1024
+    /// project's root (`ProjectInstructionsFile`).
+    static let instructionFiles = ProjectInstructionsFile.names
+    static let maxInstructionBytes = ProjectInstructionsFile.maximumBytes
 
     static func make(
         project: ProjectIdentity,
@@ -13,6 +14,7 @@ enum SystemPrompt {
         skills: [SkillDocument],
         mcpServers: [MCPServerConfiguration],
         projectInstructions: ProjectInstructions? = nil,
+        userInstructions: String = "",
         buildSystem: ProjectBuildSystem = .apelin,
         memory: String = "",
         environment: String = "",
@@ -106,6 +108,10 @@ enum SystemPrompt {
             \(projectInstructions.text)
             """)
         }
+        // the user's own (`UserInstructions`), after the file they rank above
+        if !userInstructions.isEmpty {
+            sections.append(userInstructions)
+        }
         if !mcpServers.isEmpty {
             let list = mcpServers.map { "- \($0.name)\($0.description.map { ": \($0)" } ?? "")" }
                 .joined(separator: "\n")
@@ -130,8 +136,8 @@ enum SystemPrompt {
     static let conversationsSection = """
     # Conversations
     - apelin_conversation_create hands an independent subtask to another agent: a new conversation, under the same approval mode, that the user sees in the sidebar. Open one only when the work can truly run beside yours, and never let two conversations edit the same files at once.
-    - Work that is a project of its own, such as a separate tweak or tool, gets one when the user asks for it or agrees: apelin_template_list, then apelin_project_create, then apelin_conversation_create naming it, never this chat's folder.
-    - A git repository to import goes into a workspace, whatever it holds, never into a project made from another template: in a workspace's own chat with git_clone; from any other chat, apelin_project_create with wiki.qaq.apelin.workspace/empty, then apelin_conversation_create naming it with the repository's URL and branch in the prompt, and that conversation imports it with git_clone.
+    - Work that is a project of its own, such as a separate tweak or tool, gets one when the user asks for it or agrees: apelin_template_list, then apelin_project_create, then apelin_conversation_create with project set to the projectID it answered, never this chat's folder.
+    - A git repository to import goes into a workspace, whatever it holds, never into a project made from another template: in a workspace's own chat with git_clone; from any other chat, apelin_project_create with wiki.qaq.apelin.workspace/empty, then apelin_conversation_create with project set to the new workspace's projectID and the repository's URL and branch in the prompt, and that conversation imports it with git_clone. Without project, apelin_conversation_create opens in this chat's own project, and its answer says which project it opened in.
     - Another project's work belongs in that project's conversation: name it with project (its projectID or folder name, which apelin_project_list answers) on apelin_conversation_create, apelin_conversation_send, apelin_conversation_list or apelin_conversation_read.
     - What apelin_conversation_create and apelin_conversation_send say reads as the user's words to that agent: state the task, the files involved and the deliverable, and what to leave alone. Ask for a package as an apelin_project_build that succeeds, never as a .deb file in the project.
     - Collect the answer with apelin_conversation_read; pass wait_seconds to wait for its turn to end, and last_seq as after_seq the next time. When it waits on an approval, tell the user; only they can give it. Stop one you opened with apelin_conversation_stop.
@@ -153,25 +159,11 @@ enum SystemPrompt {
     """
 
     /// The project's own instructions, read again for every prompt so an
-    /// edit applies to the next one. Only a regular file inside the project
-    /// counts; a link out of it is not followed.
+    /// edit applies to the next one, by the reader the app's preview uses
+    /// too (`ProjectInstructionsFile`). Only a regular file inside the
+    /// project counts; a link out of it is not followed.
     static func projectInstructions(in root: ScopedRoot) -> ProjectInstructions? {
-        for file in instructionFiles {
-            guard let path = try? root.resolveExisting(file),
-                  let attributes = try? FileManager.default.attributesOfItem(atPath: path),
-                  attributes[.type] as? FileAttributeType == .typeRegular,
-                  let handle = FileHandle(forReadingAtPath: path) else { continue }
-            defer { try? handle.close() }
-            let data = (try? handle.read(upToCount: maxInstructionBytes + 1)) ?? Data()
-            var text = String(decoding: data.prefix(maxInstructionBytes), as: UTF8.self)
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !text.isEmpty else { continue }
-            if data.count > maxInstructionBytes {
-                text += "\n… (truncated)"
-            }
-            return ProjectInstructions(file: file, text: text)
-        }
-        return nil
+        ProjectInstructionsFile.read(projectRoot: root.path).map { ProjectInstructions(file: $0.file, text: $0.text) }
     }
 }
 

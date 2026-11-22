@@ -377,9 +377,10 @@ public actor AgentSession {
     /// compaction), and keeps byte for byte: the provider's cache of the
     /// conversation, which starts at the tools and this prompt, holds only
     /// while it does (`PromptCacheTests`). What changes later — the
-    /// project's instructions, a skill, memory, the environment — reaches
-    /// the model as a delta in the next message's `<system-state>`, and
-    /// the approval mode and the time are each message's.
+    /// project's instructions, the user's own, a skill, memory, the
+    /// environment — reaches the model as a delta in the next message's
+    /// `<system-state>`, and the approval mode and the time are each
+    /// message's.
     static func systemPrompt(_ configuration: AgentSessionConfiguration, root: ScopedRoot, state: PromptState) -> String {
         SystemPrompt.make(
             project: configuration.project,
@@ -387,6 +388,7 @@ public actor AgentSession {
             skills: state.skills,
             mcpServers: configuration.mcpServers,
             projectInstructions: state.instructions,
+            userInstructions: state.userInstructions.section,
             buildSystem: state.buildSystem,
             memory: MemoryTools.prompt(state.memory),
             environment: state.environment,

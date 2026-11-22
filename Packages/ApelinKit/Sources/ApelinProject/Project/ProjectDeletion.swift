@@ -6,9 +6,10 @@ import Foundation
 /// A project deleted for good (`projectDelete`), as mobile: the real
 /// folder directly under `Projects/` whose `apelin-project.json` names the
 /// id asked for, removed by `DataFolder.removeProject`, the app's own
-/// Delete, so a link inside it is removed and never followed. The session
-/// host has closed the project's conversations first; the app takes their
-/// histories away when it sees the folder gone.
+/// Delete, so a link inside it is removed and never followed, and the
+/// user's custom instructions for it with it. The session host has closed
+/// the project's conversations first; the app takes their histories away
+/// when it sees the folder gone.
 public enum ProjectDeletion {
     private static let maximumManifestBytes = 1 << 20
 
@@ -30,6 +31,9 @@ public enum ProjectDeletion {
         } catch {
             throw ApelinError(.internal, "Projects/\(name) could not be removed whole: \(error.localizedDescription)")
         }
+        // the user's custom instructions for it go with it; one left behind
+        // is taken by the app's next sweep (`removeGoneProjects`)
+        try? CustomInstructionsStore(root: folder.root).removeProject(request.projectID)
         return ProjectDeleteResponse(projectID: request.projectID, projectName: name)
     }
 

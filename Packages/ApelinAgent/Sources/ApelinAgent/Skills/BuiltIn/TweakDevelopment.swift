@@ -12,7 +12,8 @@ extension BuiltInSkills {
 
         ## The project
         - `apelin-project.json` is the build description: sources, compile and
-          link flags, frameworks, the deployment target (16.0) and build steps.
+          link flags, frameworks, the deployment target (16.0 by default,
+          15.0 at the lowest for Objective-C and C) and build steps.
           Changing it, or a build script it names, makes the next `apelin_project_build` ask the
           user once (Strict mode); editing sources never does. Change it only
           when the task needs it, and say why. The apelin-project-description skill
@@ -122,6 +123,10 @@ extension BuiltInSkills {
         3. `apelin_project_build`. Fix every error diagnostic by file and line, rebuild.
            Treat warnings as work unless they are in the template.
         4. Install and confirm as the apelin-packaging-and-install skill describes.
+           A target that starts only on demand (a daemon launched when a Mac
+           connects, an app the user opens) is confirmed while it starts: tell
+           the user what to start, then call `apelin_package_confirm_loaded`
+           with `wait_seconds` and have them start it while the call listens.
         5. Check the behaviour itself, not only that it loaded: bring up what
            you changed, read it with `apelin_screen_read_tree`, drive it with
            `apelin_screen_interact`, and read it again after each action;

@@ -17,7 +17,7 @@ and registered, is in `Device-Validation.md`.
 | Package size | 350,457,031 bytes |
 | Catalog digest | `xar-toc-sha1`: `910fb71482f4d044112c226b03e33122c17920ce` |
 | Local package SHA256 | `d1a517e663d7ba169296683255bcf5b498802b843603cee40ec4b6fb7c991bea` |
-| Retarget scheme / target floor | 1 / iOS 16.0 (the floor was not runtime-tested; scheme 2 since 2026-10-19, below) |
+| Retarget scheme / target floor | 1 / iOS 16.0 (the floor was not runtime-tested; scheme 2 since 2026-10-19 and 3 since 2026-11-22, below) |
 | Toolchain ID | `4d6b25eba45adc2bf317de90`, base component, 319 manifest files |
 | SDK | `xybp888/iOS-SDKs`, revision `ad607cb07fe4ad1c9b91cf970bd228c2a9253207`, `iPhoneOS27.0.sdk` |
 
@@ -215,6 +215,66 @@ case now calls `__builtin_available(iOS 13.0, *)`. The scheme is part of
 the toolchain ID, so every release has a new ID under scheme 2; a scheme 1
 toolchain stays installed and registered under its own until removed.
 
+## Retarget scheme 3: what otool and ar exec (2026-11-22)
+
+Issue #75: on a roothide iPhone with a scheme 2 CLT 15.3 toolchain,
+`otool -L` and `otool -hv` failed with `can't find or exec:
+<toolchain>/usr/bin/otool-classic`. The dependency closure follows load
+commands from the entry tools; a tool another tool execs by path is in no
+load command, so it was never selected.
+
+Every reviewed package lays its tools out alike (read from each package's
+BOM: 14.2, 15.0, 15.3, 16.4, 27.2; 27.0 from the Mac's install of it):
+`otool` is a link to `llvm-otool`, `otool-classic` and `llvm-objdump` are
+files, and `ranlib` is a link to `libtool`. The tools of 14.2, 15.3 and
+27.2 (and the Mac's 27.0) were run on the Mac from a folder holding only
+some of them:
+
+| Command | Execs, beside itself | Without it |
+|---|---|---|
+| `otool` / `llvm-otool`, any flag (`-L`, `-l`, `-h`, `-hv`, `-D`, `-f`, `-t`, `-tv`, `-o`, `-I`, `-r`, `-T`, `-G`, `-C`, `-P`, `-d`, `-a`, `-S`, `-H`, `-M`, `-R`, `-c`, `-s`) | `otool-classic` | fails, "can't find or exec" |
+| `otool -objdump …` | `llvm-objdump` | fails the same way |
+| `ar rcs`, `ar -s`, `ar qs` (any `s`) | `ranlib` | fails, "internal ranlib command failed" |
+| `libtool -static -o` | nothing | works; the archive has its `__.SYMDEF SORTED` index |
+| 15.3 `strip -x`, `-S`, `-u`, `-r` on an object file | `ld-classic` (then `xcrun`) | fails, "internal link edit command failed" |
+| 15.3 `ld -ld_classic`, or a 32-bit or watch architecture (read from ld's strings, not run) | `ld-classic` | — |
+
+The llvm-otool drivers are cctools 1001.2 (14.2), 1010.6 (15.3) and 1040
+(27.0, 27.2); every one takes otool-classic for each flag, so no otool
+invocation works without it. strip and lipo worked on an executable and
+a dylib with only the tree's other tools beside them, and 15.3's nm
+(llvm-nm) alone; 14.2's and 27.2's strip handled an object file that way
+too.
+
+Scheme 3 selects otool-classic and ranlib as entry tools (ranlib is
+libtool's bytes, signed under its own name, which libtool reads to act as
+ranlib). otool-classic loads only libc++ and libSystem, and dlopens
+`../lib/libLTO.dylib` from beside itself only to disassemble (`-tv`; the
+15.3 and 27.2 trees have it, since their ld loads it), which nothing has
+run on a device; its 75 to 77 libSystem imports and one libc++ import
+are ordinary ones. Its static inventory (14.2, 15.3, 27.2, `--cpu apple-a11
+apple-a12 apple-a13`) finds no LRCPC, SHA3 or DotProd instruction and
+nothing any of those CPUs rejects, so no release's requirements change;
+`compatibility-audit.json` still counts scheme 2's images (two fewer,
+ranlib being libtool's code again).
+llvm-objdump (20 to 33 MB) and ld-classic stay out: 14.2's and 15.3's
+llvm-objdump and 15.3's ld-classic load libxar strongly, which iOS lacks,
+and would need the weak-load review 14.2's ld64 had, and a device check.
+
+The setup of 14.2, 15.3 and 27.2 ran on the Mac offline from their
+reviewed packages, staged as a scheme 2 setup had left them
+(`LivePackageTests`): the request moved to scheme 3, the scheme 2 output
+was made again, and the tree had otool-classic and ranlib, each retargeted,
+signed and verified. The self-test's two new cases' expected output (`ar
+rcs`, then `otool -hv`, `-L` and `-l` on the program linked from the
+archive) was read from those releases' own tools on the Mac, on an iOS
+arm64 program; on a device they wait for Device-Validation ▸ Still to run.
+
+A scheme 2 toolchain keeps its ID and builds as before; its release set up
+again is a scheme 3 toolchain beside it (AGENTS.md ▸ Toolchains has the
+rest of what that means for records, defaults, bindings and transfer
+files).
+
 ## Swift (2026-10-19)
 
 `toolchainSetup` with `components: ["c", "swift"]` sets CLT 27.0 up with
@@ -329,6 +389,50 @@ and are excluded from this source. A configured source list, including an empty
 list or a disabled source, replaces that default. Source failures and a source
 with no compatible version are reported before installing a toolchain package. A release the catalog marks
 as unavailable for Swift is refused before resolving or downloading an SDK.
+
+## iOS 15 products (2026-11-22, issue #71)
+
+A project may target iOS 15.0, the oldest iOS any rootless or roothide
+bootstrap runs on (AGENTS.md ▸ The deployment target). Each kept release
+was taken from Apple's package (SHA-256 checked, only its C tools
+extracted) and run as it is on the Mac — the device runs the same code,
+retargeted — with apelin-build's compile and link flags
+(`-Werror=unguarded-availability-new`, `-Wall -Wextra`, `-fobjc-arc`, the
+`APELIN_*` defines) at `-mios-version-min=15.0`, against an SDK the release
+reads: the tweak template's `Tweak.m` linked as a dylib against its
+rootless substrate stub and Foundation, and a C executable, for arm64 and
+arm64e.
+
+| CLT | clang | ld | SDK | Every image |
+|---|---|---|---|---|
+| 14.2 | clang-1400.0.29.202 | ld64-820.1 | 16.2 | no warning; `LC_BUILD_VERSION` iOS, minos 15.0 |
+| 15.0 | clang-1500.0.40.1 | dyld-1015.6 | 17.0 | the same |
+| 15.3 | clang-1500.3.9.4 | ld-1053.12 | 17.4 | the same |
+| 16.4 | clang-1700.0.13.5 | ld-1167.5 | 18.5 | the same |
+| 27.0 | clang-2100.3.34.2 | ld-27037.1 | 27.0 | the same |
+| 27.2 | clang-2100.4.1.1 | ld-27106.1 | 27.0 | the same |
+
+Every release writes chained fixups, `DYLD_CHAINED_PTR_64_OFFSET` for arm64
+and `DYLD_CHAINED_PTR_ARM64E_USERLAND24` (authenticated) for arm64e, whose
+header is `CPU_SUBTYPE_ARM64E` with the pointer-auth ABI flag (caps 0x80):
+the formats each writes at 16.0, the same source linked again there. No
+template, and neither the substrate nor the Preferences stub (`tbd-version
+4`, no minimum OS), needs an API newer than 15.0:
+`MacPipelineTests.testCFamilyTemplatesBuildForTheOldestIOS` builds the five
+C and Objective-C templates there with Xcode's tools, and again with each
+release's own (`APELIN_TEST_TOOLCHAIN`, `APELIN_TEST_SDK`). Whether iOS 15
+loads them is still to run (Device-Validation).
+
+Swift is not offered below 16.0. Linking a Swift executable for
+`arm64(e)-apple-ios15.0` or `15.4` with CLT 27.0's swiftc, which has no
+`usr/lib/swift/iphoneos` as the retargeted tree has none, fails:
+`Undefined symbols … __swift_FORCE_LOAD_$_swiftCompatibility56`, after
+`Could not find or use auto-linked library 'swiftCompatibility56'` and
+`'swiftCompatibilityPacks'`. At 16.0 only `swiftCompatibilityPacks` is
+named, not force-loaded, and the link passes. The frontends of 15.0, 15.3,
+16.4 and 27.2 name `swiftCompatibility56` too; 14.2's (Swift 5.7.2) does
+not. Xcode ships these archives for iOS; the Command Line Tools ship them for
+macOS only.
 
 ## Runtime branding on real RootHide hosts
 
