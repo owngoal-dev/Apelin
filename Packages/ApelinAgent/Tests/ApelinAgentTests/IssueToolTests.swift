@@ -134,6 +134,10 @@ struct IssueToolTests {
             (["repository": "Lakr233/Irisin", "title": "Title", "body": "From 192.168.1.20"], "local network"),
             (["repository": "Lakr233/Irisin", "title": "Title", "body": "Saved in /var/mobile/Documents/wiki.qaq.apelin/Projects/Secret"], "home or install path"),
             (["repository": "Lakr233/Irisin", "title": "Title", "body": .string("token ghp_" + String(repeating: "A1b2", count: 9))], "token or key"),
+            // what matched, and where, for the model that wrote it
+            (["repository": "Lakr233/Irisin", "title": "Title", "body": "Built\nat 3ce304f3577122c6b022c07a44df263cedb36532"],
+             "`3ce304f3577122c6b022c07a44df263cedb36532` (reads as a device identifier; 40 hex digits"),
+            (["repository": "Lakr233/Irisin", "title": "Title", "body": "Built\nat 3ce304f3577122c6b022c07a44df263cedb36532"], "on line 2 of the body"),
         ]
         for (arguments, words) in refused {
             await #expect {

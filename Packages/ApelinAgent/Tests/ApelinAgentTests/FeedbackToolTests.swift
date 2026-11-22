@@ -128,4 +128,32 @@ struct FeedbackToolTests {
         #expect(await harness.backend.calls.isEmpty)
         #expect(await harness.events.events.isEmpty, "nothing is asked")
     }
+
+    /// The model wrote the text, so the refusal says what matched and where
+    /// (issue #79: a refusal that named no words left it guessing), but a
+    /// tool's answer goes to the provider and the journal again, so a token
+    /// is shown by its start and length only.
+    @Test
+    func `a refusal names what matched and where, a token only by its start`() async throws {
+        let harness = try DigestApprovalTests.Harness()
+        defer { harness.home.remove() }
+        func refusal(_ body: String) async -> String {
+            do {
+                _ = try await harness.run(.feedbackSend, ["title": "CI fails", "body": .string(body)])
+                return ""
+            } catch {
+                return (error as? ToolArgumentError)?.message ?? "\(error)"
+            }
+        }
+        let hash = "3ce304f3577122c6b022c07a44df263cedb36532"
+        let commit = await refusal("The run of\n\(hash) failed.")
+        #expect(commit.hasPrefix("Not sent: the title or body holds what looks like a device identifier"), "\(commit)")
+        #expect(commit.contains("What matched: `\(hash)` (reads as a device identifier; 40 hex digits, as a commit hash is written"), "\(commit)")
+        #expect(commit.hasSuffix("on line 2 of the body."), "\(commit)")
+        let token = "ghp_" + String(repeating: "A1b2", count: 9)
+        let secret = await refusal("token \(token)")
+        #expect(secret.contains("`ghp_…` (a token or key; \(token.count) characters; only its start is shown)"), "\(secret)")
+        #expect(!secret.contains(String(token.prefix(5))), "the token is never repeated")
+        #expect(await harness.backend.calls.isEmpty)
+    }
 }

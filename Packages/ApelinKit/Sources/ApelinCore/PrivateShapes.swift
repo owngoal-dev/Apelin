@@ -112,6 +112,11 @@ public enum PrivateShapes {
         expression.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)) != nil
     }
 
+    /// Every range of `text` that `expression` matches, in order.
+    public static func ranges(_ expression: NSRegularExpression, in text: String) -> [NSRange] {
+        expression.matches(in: text, range: NSRange(text.startIndex..., in: text)).map(\.range)
+    }
+
     /// What this device calls itself on the network, without `.local`.
     public static func currentHostName() -> String? {
         var buffer = [CChar](repeating: 0, count: Int(MAXHOSTNAMELEN) + 1)

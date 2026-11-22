@@ -164,8 +164,8 @@ extension ToolRunner {
             guard request.repository.lowercased() != FeedbackRules.repository.lowercased() else {
                 throw ToolArgumentError("Nothing was posted: feedback about Apelin itself goes to \(FeedbackRules.repository) with apelin_feedback_send.")
             }
-            if let problem = FeedbackRules.problem(title: request.title, body: request.body) {
-                throw ToolArgumentError("Nothing was posted: \(problem).")
+            if let refusal = FeedbackRules.refusal(title: request.title, body: request.body) {
+                throw ToolArgumentError("Nothing was posted: \(refusal.explanation).")
             }
             facts.issueCreate = IssueCreateApproval(repository: request.repository, title: request.title, body: request.body)
         case .packageConfirmLoaded where arguments.argBool("respring") == true:
@@ -190,8 +190,8 @@ extension ToolRunner {
             // is sent, which apelin-environment checks again.
             let title = try arguments.requireString("title").trimmingCharacters(in: .whitespaces)
             let body = try arguments.requireString("body")
-            if let problem = FeedbackRules.problem(title: title, body: body) {
-                throw ToolArgumentError("Not sent: \(problem).")
+            if let refusal = FeedbackRules.refusal(title: title, body: body) {
+                throw ToolArgumentError("Not sent: \(refusal.explanation).")
             }
             facts.feedback = FeedbackApproval(repository: FeedbackRules.repository, title: title, body: body)
         case .feedbackEdit:
