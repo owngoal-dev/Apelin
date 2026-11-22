@@ -1,11 +1,12 @@
+import ApelinCore
 import Foundation
 import KWWKAgent
 
 enum SystemPrompt {
     /// Project instructions are read from the first of these at the
-    /// project's root, as pi and kwwk read them from the working directory.
-    static let instructionFiles = ["AGENTS.md", "CLAUDE.md"]
-    static let maxInstructionBytes = 16 * 1024
+    /// project's root (`ProjectInstructionsFile`).
+    static let instructionFiles = ProjectInstructionsFile.names
+    static let maxInstructionBytes = ProjectInstructionsFile.maximumBytes
 
     static func make(
         project: ProjectIdentity,
@@ -13,6 +14,7 @@ enum SystemPrompt {
         skills: [SkillDocument],
         mcpServers: [MCPServerConfiguration],
         projectInstructions: ProjectInstructions? = nil,
+        userInstructions: String = "",
         buildSystem: ProjectBuildSystem = .apelin,
         memory: String = "",
         environment: String = "",
@@ -106,6 +108,10 @@ enum SystemPrompt {
             \(projectInstructions.text)
             """)
         }
+        // the user's own (`UserInstructions`), after the file they rank above
+        if !userInstructions.isEmpty {
+            sections.append(userInstructions)
+        }
         if !mcpServers.isEmpty {
             let list = mcpServers.map { "- \($0.name)\($0.description.map { ": \($0)" } ?? "")" }
                 .joined(separator: "\n")
@@ -153,25 +159,11 @@ enum SystemPrompt {
     """
 
     /// The project's own instructions, read again for every prompt so an
-    /// edit applies to the next one. Only a regular file inside the project
-    /// counts; a link out of it is not followed.
+    /// edit applies to the next one, by the reader the app's preview uses
+    /// too (`ProjectInstructionsFile`). Only a regular file inside the
+    /// project counts; a link out of it is not followed.
     static func projectInstructions(in root: ScopedRoot) -> ProjectInstructions? {
-        for file in instructionFiles {
-            guard let path = try? root.resolveExisting(file),
-                  let attributes = try? FileManager.default.attributesOfItem(atPath: path),
-                  attributes[.type] as? FileAttributeType == .typeRegular,
-                  let handle = FileHandle(forReadingAtPath: path) else { continue }
-            defer { try? handle.close() }
-            let data = (try? handle.read(upToCount: maxInstructionBytes + 1)) ?? Data()
-            var text = String(decoding: data.prefix(maxInstructionBytes), as: UTF8.self)
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !text.isEmpty else { continue }
-            if data.count > maxInstructionBytes {
-                text += "\n… (truncated)"
-            }
-            return ProjectInstructions(file: file, text: text)
-        }
-        return nil
+        ProjectInstructionsFile.read(projectRoot: root.path).map { ProjectInstructions(file: $0.file, text: $0.text) }
     }
 }
 
