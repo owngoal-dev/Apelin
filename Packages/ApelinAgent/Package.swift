@@ -24,7 +24,8 @@ let package = Package(
         // pull request #296, branch `claude/restore-antigravity`, which
         // reverts kwwk's removal (#271) and is not released yet. Pinned by
         // commit, so nothing pushed to the branch changes what is built;
-        // pin a kwwk release once one contains it. Bump deliberately.
+        // pin a kwwk release once one contains it (see #73). Bump
+        // deliberately.
         .package(
             url: "https://github.com/yellowplushq/kwwk.git",
             revision: "fdd68f4ac22d63ce4c68a77d3f66af33ded77bfc",

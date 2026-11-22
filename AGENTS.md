@@ -2450,8 +2450,8 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   2026-11-22: an account Google bans is Google's matter and the user's
   risk, and it serves those who use it): yellowplushq/kwwk#296, which
   reverts the removal and is not released yet, pinned by its head commit
-  until a kwwk release carries it. Whoever used it before 0.4.8 signs in
-  again. Nothing in Apelin deletes the sign-in of a provider it
+  until a kwwk release carries it (#73 tracks the move). Whoever used it
+  before 0.4.8 signs in again. Nothing in Apelin deletes the sign-in of a provider it
   offers: only Sign Out does, and it removes the keychain item alone,
   revoking nothing at the provider, so an Antigravity sign-in made from a
   token another client holds leaves that client signed in.
