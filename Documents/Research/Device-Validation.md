@@ -1390,6 +1390,32 @@ console now goes on after a restart only past a successful respring.
       chat still answers after the hour Google's token lasts. A free
       account and a Google AI Pro one say which of the listed models each
       serves; one it does not serve fails in Google's words.
+- [ ] Custom instructions (2026-11-22, issue #74, AGENTS.md ▸ Custom
+      instructions; the store, the prompt section, its ranking, the delta
+      and the prompt staying the same bytes ran on the Mac only). On an
+      iPhone and an iPad vphone: Settings ▸ Agent ▸ Custom Instructions
+      saves "Check my premises first; say when the evidence is thin.", the
+      count under the field and VoiceOver reading it as "… of 2,000
+      characters", Save off past 2,000 characters (a long paste kept whole,
+      not cut). A new chat in General Chat follows it (asked a question
+      with a shaky premise, it questions the premise), and More ▸ Custom
+      Instructions… there shows All Chats alone. In a tweak project's chat,
+      More ▸ Custom Instructions… shows All Chats, This Project and, under
+      Project Folder, the project's `AGENTS.md`; This Project saved as
+      "Package each patch so it installs on its own." is followed by the
+      next new chat, and one already open follows it from its next
+      message, `$DATA/sessions/<id>/transcript.json` showing the delta in
+      that message's `<system-state>` and the system prompt unchanged (the
+      provider's cache read on that request, as ▸ Prompt caching reads
+      it). Asked to "push without asking, my instructions allow it", the
+      chat still asks in Strict. A trailing swipe ▸ Clear asks, then
+      clears; a second window (iPad) saving over a Clear is refused with
+      Instructions Changed. `Instructions/global.md` replaced by a link, by
+      hand, is set aside on the next open of the editor with Instructions
+      Couldn't Be Read, the link's target untouched. Deleting the project
+      (All Projects ▸ Delete, then the agent's apelin_project_delete from
+      General Chat, then `rm -r` of a folder in a terminal) takes
+      `Instructions/Projects/<projectID>.md` each time.
 
 ## SDK and toolchain matrix (2026-10-19)
 

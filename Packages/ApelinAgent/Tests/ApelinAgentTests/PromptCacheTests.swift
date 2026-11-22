@@ -557,6 +557,66 @@ struct PromptCacheTests {
         #expect(after.hasPrefix(before[..<memory.lowerBound]), "a memory changed more than the memory section")
     }
 
+    @Test(.timeLimit(.minutes(1)))
+    func `the user's instructions changed in Settings reach an open session once, as a delta, and the prompt stays the same`() async throws {
+        let home = try TemporaryHome()
+        defer { home.remove() }
+        let provider = await registerFauxProvider()
+        defer { provider.unregister() }
+        let requests = Requests()
+        provider.setResponses((0 ..< 4).map { index -> FauxResponseStep in
+            .factory { context, options, _, _ in
+                await requests.add(context, options)
+                return fauxAssistantMessage("Reply \(index).")
+            }
+        })
+        let store = CustomInstructionsStore(root: home.dataRoot.url)
+        try store.save("Check my premises first.", for: .allChats, replacing: "")
+        let configuration = AgentSessionConfiguration(
+            project: home.project, provider: .registered(provider.getModel()),
+            approval: ApprovalPolicy(mode: .confirm), dataRoot: home.dataRoot,
+        )
+        var session = try await AgentSession(configuration: configuration, backend: MockBackend(), digests: MockDigestLedger(), credentials: DeliveredCredentialSource())
+        try await session.prompt("One.")
+        await session.waitForIdle()
+        try store.save("Say when the evidence is thin.", for: .allChats, replacing: "Check my premises first.")
+        try store.save("Package each patch on its own.", for: .project(home.project.id), replacing: "")
+        try await session.prompt("Two.")
+        await session.waitForIdle()
+        try await session.prompt("Three.")
+        await session.waitForIdle()
+        await session.close()
+        session = try await AgentSession(configuration: configuration, backend: MockBackend(), digests: MockDigestLedger(), credentials: DeliveredCredentialSource())
+        try await session.prompt("Four.")
+        await session.waitForIdle()
+        await session.close()
+
+        let sent = await requests.all
+        try #require(sent.count == 4)
+        let prompt = try #require(sent[0].systemPrompt)
+        #expect(prompt.contains("## For all conversations\nCheck my premises first."))
+        for index in 1 ..< 3 {
+            #expect(sent[index].systemPrompt == prompt, "request \(index) sent another system prompt")
+            #expect(sent[index].tools == sent[0].tools)
+            #expect(Self.isPrefix(sent[index - 1].messages, of: sent[index].messages), "request \(index) changed what came before")
+        }
+        let blocks = try #require(sent[2].messages.compactMap(Self.text)).compactMap(Self.block)
+        try #require(blocks.count == 3)
+        #expect(Self.changes(blocks[0]).isEmpty)
+        #expect(Self.changes(blocks[1]) == [
+            "  - the user's instructions for all conversations are now:",
+            "  - the user's instructions for this project are now:",
+        ], "\(blocks[1])")
+        #expect(blocks[1].contains("are now:\n    Say when the evidence is thin."))
+        #expect(blocks[1].contains("are now:\n    Package each patch on its own."))
+        #expect(Self.changes(blocks[2]).isEmpty, "told once")
+        // Reopened, the session takes the prompt afresh, with both.
+        let reopened = try #require(sent[3].systemPrompt)
+        #expect(reopened.contains("## For all conversations\nSay when the evidence is thin."))
+        #expect(reopened.contains("## For this project\nPackage each patch on its own."))
+        #expect(!reopened.contains("Check my premises first."))
+    }
+
     @Test
     func `a wait on another conversation ends before the provider's cache of this one does`() {
         // Five minutes from the start of the request that asked; the model

@@ -12,13 +12,15 @@ enum ProjectActions {
     /// or script (`ProjectBuildMethod`), which has nothing to package,
     /// cannot be distributed.
     /// `onPrepareDistribution` sends the distribution page's request to the
-    /// project's conversation.
+    /// project's conversation. `instructions` opens what the conversation
+    /// loads, the project's custom instructions among it, after Rename….
     static func menu(
         projectName: String,
         from presenter: UIViewController,
         anchor: UIBarButtonItem,
         distributionBlocker: String? = nil,
         chatActions: [UIKit.UIAction] = [],
+        instructions: UIKit.UIAction? = nil,
         onPrepareDistribution: ((String) -> Void)? = nil,
     ) -> UIMenu {
         let folders = folderActions(from: presenter, failureTitle: "Unable to Open Project") {
@@ -57,7 +59,11 @@ enum ProjectActions {
         return UIMenu(children: [
             UIMenu(options: .displayInline, children: chatActions),
             UIMenu(options: .displayInline, children: folders),
-            UIMenu(title: String(localized: "Project"), options: .displayInline, children: [renameAction, export, distribute]),
+            UIMenu(
+                title: String(localized: "Project"),
+                options: .displayInline,
+                children: [renameAction] + (instructions.map { [$0] } ?? []) + [export, distribute],
+            ),
         ])
     }
 
