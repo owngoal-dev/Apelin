@@ -24,20 +24,7 @@ extension DistributionService {
         guard !request.files.isEmpty, request.files.count <= maximum else {
             throw ApelinError(.badRequest, "Publish between 1 and \(maximum) packages at a time.")
         }
-        let builds = CanonicalPath.resolve(layout.data.root.appendingPathComponent("Builds").path)
-        let files = try request.files.map { path -> URL in
-            guard let builds, !path.utf8.contains(0), let resolved = CanonicalPath.resolve(path),
-                  resolved.hasPrefix(builds + "/"), resolved.hasSuffix(".deb")
-            else { throw ApelinError(.badRequest, "Only a package Apelin built can be published.") }
-            var metadata = stat()
-            guard lstat(resolved, &metadata) == 0, metadata.st_mode & S_IFMT == S_IFREG else {
-                throw ApelinError(.notFound, "\((resolved as NSString).lastPathComponent) is not there.")
-            }
-            guard metadata.st_size <= Self.maximumPackageBytes else {
-                throw ApelinError(.badRequest, "\((resolved as NSString).lastPathComponent) is over 100 MB, which GitHub refuses.")
-            }
-            return URL(fileURLWithPath: resolved)
-        }
+        let files = try builtPackages(request.files, doing: "published")
         if let digests = request.digests {
             guard digests.count == files.count else {
                 throw ApelinError(.badRequest, "Name one digest for each package: \(files.count) packages, \(digests.count) digests.")
@@ -128,19 +115,43 @@ extension DistributionService {
         return .object(result)
     }
 
-    /// One package as it goes into `debs/`: its copy in the task's staging
-    /// and the name its control file gives it there.
+    /// Each of `paths` as a package Apelin built: a regular `.deb` under the
+    /// data folder's `Builds/`, of at most 100 MB, canonical.
+    func builtPackages(_ paths: [String], doing what: String) throws -> [URL] {
+        let builds = CanonicalPath.resolve(layout.data.root.appendingPathComponent("Builds").path)
+        return try paths.map { path -> URL in
+            guard let builds, !path.utf8.contains(0), let resolved = CanonicalPath.resolve(path),
+                  resolved.hasPrefix(builds + "/"), resolved.hasSuffix(".deb")
+            else { throw ApelinError(.badRequest, "Only a package Apelin built can be \(what).") }
+            var metadata = stat()
+            guard lstat(resolved, &metadata) == 0, metadata.st_mode & S_IFMT == S_IFREG else {
+                throw ApelinError(.notFound, "\((resolved as NSString).lastPathComponent) is not there.")
+            }
+            guard metadata.st_size <= Self.maximumPackageBytes else {
+                throw ApelinError(.badRequest, "\((resolved as NSString).lastPathComponent) is over 100 MB, which GitHub refuses.")
+            }
+            return URL(fileURLWithPath: resolved)
+        }
+    }
+
+    /// One package as it goes into `debs/` or onto a release: its copy in
+    /// the task's staging, what its control file says and the name it
+    /// gives it there.
     struct StagedPackage {
         let staged: URL
         let name: String
         /// `<Package> <Version>`, for the commit's message.
         let title: String
+        let package: String
+        let version: String
+        /// `sha256:<hex>` of the copy.
+        let digest: String
     }
 
     /// Each package copied into `staging` while it is hashed and refused
     /// when its bytes are not the digest named for it, then named from its
     /// copy's control file; two packages of one name are refused.
-    private func stagePackages(
+    func stagePackages(
         _ files: [URL],
         digests: [String]?,
         in staging: URL,
@@ -165,7 +176,14 @@ extension DistributionService {
             guard !packages.contains(where: { $0.name == name }) else {
                 throw ApelinError(.badRequest, "Two of these packages are \(name); publish one of them.")
             }
-            packages.append(StagedPackage(staged: staged, name: name, title: "\(package) \(version)"))
+            packages.append(StagedPackage(
+                staged: staged,
+                name: name,
+                title: "\(package) \(version)",
+                package: package,
+                version: version,
+                digest: digest,
+            ))
         }
         return packages
     }

@@ -123,6 +123,13 @@ public enum FeedbackRules {
 
     // MARK: Private data
 
+    /// Nil when `text` holds none of the private data a public issue must
+    /// not carry, else its kind, never quoting it: for other public text,
+    /// such as a release's notes, which says it in its own words.
+    public static func privateData(in text: String, paths: [String] = [], names: [String] = []) -> String? {
+        privateKind(in: text, paths: paths, names: names)
+    }
+
     /// The kind of private data `text` holds, by the shapes every device's
     /// takes (`PrivateShapes`, which a diagnostic log replaces too) and
     /// this device's own paths and names.

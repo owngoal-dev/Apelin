@@ -4,7 +4,8 @@
 // Served by apelin-environment, which holds the github.com credential the
 // user signed in with and calls GitHub's API with it; the app's alone, but
 // for the packages an agent publishes to the linked repository
-// (`DistributionPublishRequest`) and the feedback it files on Apelin's own
+// (`DistributionPublishRequest`) or as a GitHub Release of a project's
+// repository (`DistributionReleaseRequest`), and the feedback it files on Apelin's own
 // repository (`FeedbackSendRequest`), reads and edits there
 // (`FeedbackReadRequest`, `FeedbackEditRequest`). Starring that repository
 // is the app's alone (`FeedbackStarRequest`).
@@ -195,6 +196,195 @@ public struct DistributionPublishRequest: OperationRequest {
         return digest.hasPrefix("sha256:") && hex.count == 64
             && hex.allSatisfy { (48 ... 57).contains($0) || (97 ... 102).contains($0) }
     }
+}
+
+/// A task (owner, 2026-11-22, issue #77): the release builds of one
+/// version, as they were built, published as a GitHub Release of a
+/// repository the caller names, for a source that indexes each
+/// repository's newest stable Release rather than committed packages
+/// (owngoal-dev/owngoal-packages). Served by apelin-environment with the
+/// github.com sign-in; nothing is built again, so the packages are the
+/// device's own, with the dSYMs their builds kept.
+///
+/// The tag is `v<version>` of the packages, which are one package ID at
+/// one version (the roothide and the rootless build of it), at the
+/// project's current commit, which must already be on that repository:
+/// its branches are fetched from it, whatever the project's remotes call
+/// it, and a commit none of them holds is `conflict` with reason
+/// `notPushed`. A tag GitHub has already must name that commit,
+/// else `conflict` naming both; a tag is never moved. The release is made
+/// as a draft, the packages and a `SHA256SUMS` of every package on it are
+/// uploaded, then it is published, never as a pre-release. A release the
+/// tag has already, draft or published, is filled in: a file of the same
+/// name and bytes is skipped, other bytes under that name are `conflict`,
+/// and `SHA256SUMS` is replaced when it changes. Every file is judged
+/// before the first upload, so a refusal uploads nothing.
+///
+/// Stages `fetching`, `checking`, `uploading`, `releasing`; the final
+/// `state` carries `result` (`DistributionReleaseResult`). Not resumed: one
+/// cut off is answered by running it again, which fills in the draft it
+/// left. Without a sign-in, `denied` with reason `authenticationRequired`.
+///
+/// The app's, and an agent's as the host allows it (AgentReleaseRules),
+/// which names `tag` and `commit`.
+public struct DistributionReleaseRequest: OperationRequest {
+    public typealias Response = TaskHandle
+    public static let operation = AppOperation.distributionRelease
+    /// The project whose commit is tagged: its projectID, or its folder.
+    public var projectID: String
+    /// `owner/name` on GitHub.
+    public var repository: String
+    /// `.deb` files under the data folder's `Builds/`, at most
+    /// `maximumFiles`.
+    public var files: [String]
+    /// `sha256:<64 lowercase hex>` of each file, in `files`' order: the
+    /// digests the builds recorded. A file whose bytes are not its digest
+    /// is `conflict`.
+    public var digests: [String]
+    /// The tag the caller showed; nil takes the packages' `v<version>`.
+    /// Another one is `conflict`.
+    public var tag: String?
+    /// The commit the caller showed, 40 hex digits; nil takes the
+    /// project's HEAD. HEAD elsewhere is `conflict`, reason `headChanged`.
+    public var commit: String?
+    /// The release's notes, in Markdown; nil for none. Written on the
+    /// release this makes, or on one that has none; notes a release has
+    /// already are kept.
+    public var notes: String?
+
+    public static let maximumFiles = DistributionPublishRequest.maximumFiles
+    public static let maximumNotesBytes = 16 * 1024
+    /// The checksum file every release carries beside its packages, in
+    /// `sha256sum`'s format.
+    public static let checksumsName = "SHA256SUMS"
+
+    public init(
+        projectID: String,
+        repository: String,
+        files: [String],
+        digests: [String],
+        tag: String? = nil,
+        commit: String? = nil,
+        notes: String? = nil,
+    ) {
+        self.projectID = projectID
+        self.repository = repository
+        self.files = files
+        self.digests = digests
+        self.tag = tag
+        self.commit = commit
+        self.notes = notes
+    }
+
+    /// `v<version>`, nil for a version that cannot be one: a tag and a
+    /// release file's name both take only letters, digits, `.`, `-` and
+    /// `_` here, since git refuses `:` and `~` in a tag and GitHub renames
+    /// a release file whose name has other characters.
+    public static func tag(forVersion version: String) -> String? {
+        let tag = "v" + version
+        guard (2 ... 128).contains(tag.count), isPlainName(tag), !tag.contains(".."),
+              !tag.hasSuffix("."), !tag.hasSuffix(".lock")
+        else { return nil }
+        return tag
+    }
+
+    /// Whether GitHub keeps `name` as it is for a release file: letters,
+    /// digits, `.`, `-` and `_`, with no period at either end.
+    public static func isAssetName(_ name: String) -> Bool {
+        (1 ... 255).contains(name.count) && isPlainName(name) && !name.hasPrefix(".") && !name.hasSuffix(".")
+    }
+
+    /// 40 lowercase hex digits: a full commit ID.
+    public static func isCommit(_ text: String) -> Bool {
+        text.utf8.count == 40 && text.utf8.allSatisfy { (48 ... 57).contains($0) || (97 ... 102).contains($0) }
+    }
+
+    private static func isPlainName(_ text: String) -> Bool {
+        text.utf8.allSatisfy {
+            (48 ... 57).contains($0) || (65 ... 90).contains($0) || (97 ... 122).contains($0) || "._-".utf8.contains($0)
+        }
+    }
+
+    /// Nil when the request is shaped as one, else why not; what needs the
+    /// device or GitHub is checked after.
+    public var problem: String? {
+        guard GitHubName.isFullName(repository) else {
+            return "Name the GitHub repository as owner/name, such as octocat/hello-world."
+        }
+        guard !files.isEmpty, files.count <= Self.maximumFiles else {
+            return "Release between 1 and \(Self.maximumFiles) packages at a time."
+        }
+        guard digests.count == files.count else {
+            return "Name one digest for each package: \(files.count) packages, \(digests.count) digests."
+        }
+        guard digests.allSatisfy(DistributionPublishRequest.isDigest) else {
+            return "A package's digest is sha256: and 64 lowercase hex digits, as its build recorded it."
+        }
+        if let tag, !tag.hasPrefix("v") || Self.tag(forVersion: String(tag.dropFirst())) != tag {
+            return "\(tag) is not a tag Apelin makes: it makes v and the packages' version, such as v1.0.2."
+        }
+        if let commit, !Self.isCommit(commit) {
+            return "Name the commit by its full 40-digit ID."
+        }
+        if let notes {
+            guard notes.utf8.count <= Self.maximumNotesBytes else {
+                return "The release notes are at most \(Self.maximumNotesBytes / 1024) KB."
+            }
+            guard !notes.unicodeScalars.contains("\0") else { return "The release notes hold a NUL character." }
+        }
+        return nil
+    }
+}
+
+/// What `distributionRelease` did, in its final `state`'s `result`.
+public struct DistributionReleaseResult: Codable, Sendable, Equatable {
+    /// `owner/name`.
+    public var repository: String
+    public var tag: String
+    /// The commit the tag names.
+    public var commit: String
+    /// The release's page on GitHub.
+    public var url: String
+    /// The package files this task uploaded, as GitHub names them.
+    public var uploaded: [String]
+    /// Those the release had already, with the same bytes.
+    public var skipped: [String]
+    /// What became of `SHA256SUMS`: `added`, `replaced` or `unchanged`.
+    public var checksums: String
+    /// Whether this task made the release.
+    public var created: Bool
+    /// What did not stop the release but should be told, such as a release
+    /// published before as a pre-release, which stays one.
+    public var warnings: [String]
+
+    public init(
+        repository: String,
+        tag: String,
+        commit: String,
+        url: String,
+        uploaded: [String],
+        skipped: [String],
+        checksums: String,
+        created: Bool,
+        warnings: [String] = [],
+    ) {
+        self.repository = repository
+        self.tag = tag
+        self.commit = commit
+        self.url = url
+        self.uploaded = uploaded
+        self.skipped = skipped
+        self.checksums = checksums
+        self.created = created
+        self.warnings = warnings
+    }
+}
+
+public extension ApelinError.Reason {
+    /// `distributionRelease`, `conflict`: the commit to tag is on no branch
+    /// of the GitHub repository, or the project has no commit at all.
+    /// Nothing was released; the commit is pushed there first.
+    static let notPushed = ApelinError.Reason(rawValue: "notPushed")
 }
 
 /// Files feedback as a public issue on Apelin's own repository
@@ -388,6 +578,11 @@ public extension ApelinService {
     /// Starts publishing; follow it with `events(of:)`.
     func distributionPublish(files: [String], digests: [String]? = nil, repository: String? = nil) async throws -> TaskHandle {
         try await send(DistributionPublishRequest(files: files, digests: digests, repository: repository))
+    }
+
+    /// Starts the release; follow it with `events(of:)`.
+    func distributionRelease(_ request: DistributionReleaseRequest) async throws -> TaskHandle {
+        try await send(request)
     }
 
     func feedbackSend(title: String, body: String) async throws -> FeedbackSendResponse {

@@ -5,8 +5,9 @@ import UIKit
 /// The first step of distributing a project. The release packages builds
 /// already made of its current version, roothide and rootless, come first
 /// (`DistributionPackages`), each Built, Shared or Published: the selected
-/// ones are published together in one commit, and any one is shared from
-/// its row, as its build made it, so a version already packaged needs no
+/// ones are published together in one commit, or as one GitHub Release of
+/// the project's repository, and any one is shared from its row, as its
+/// build made it, so a version already packaged needs no
 /// second build. Below them, pick a target, see what the package should not
 /// carry yet, then build on its own page (`DistributionBuildController`).
 /// What the check finds is advice: Build still goes ahead after a
@@ -26,7 +27,8 @@ final class ProjectDistributionController: TableController {
     }
 
     private enum Row: Hashable {
-        case project, package(BuildBootstrap), publish, target(BuildBootstrap), checking, ready, blocker(Int), issue(Int), prepare, unavailable
+        case project, package(BuildBootstrap), publish, release, target(BuildBootstrap), checking, ready, blocker(Int), issue(Int),
+             prepare, unavailable
     }
 
     private struct RowContent: Equatable {
@@ -106,7 +108,7 @@ final class ProjectDistributionController: TableController {
         dataSource.footerTitle = { [weak self] section in
             switch section {
             case .packages:
-                String(localized: "Publish the selected packages to your package repository together, or share one. Each is the file its build made, unchanged.")
+                String(localized: "Publish the selected packages together to your package repository or as a GitHub release, or share one. Each is the file its build made, unchanged.")
             case .target: String(localized: "Choose one target, then tap “Build”. To build the other target, come back and build again.")
             case .readiness:
                 self?.blockers.isEmpty == false
@@ -149,6 +151,8 @@ final class ProjectDistributionController: TableController {
             updateRows()
         case .publish:
             publish()
+        case .release:
+            publishRelease()
         case let .target(target) where target != selectedTarget:
             selectedTarget = target
             refreshCheck()
@@ -193,7 +197,7 @@ final class ProjectDistributionController: TableController {
                     return true
                 },
             ]
-        case .publish:
+        case .publish, .release:
             content.textProperties.color = value.enabled ? .tintColor : .tertiaryLabel
             cell.selectionStyle = value.enabled ? .default : .none
             cell.accessibilityTraits = value.enabled ? .button : [.button, .notEnabled]
@@ -296,7 +300,8 @@ final class ProjectDistributionController: TableController {
             }
             let canPublish = !isPreparingPackage && listed.contains { selectedPackages.contains($0.artifactID) }
             let publish = RowContent(row: .publish, text: String(localized: "Publish to Repository"), enabled: canPublish)
-            sections.append((.packages, rows + [publish]))
+            let release = RowContent(row: .release, text: String(localized: "Publish to GitHub Release"), enabled: canPublish)
+            sections.append((.packages, rows + [publish, release]))
         }
         if canBuild {
             sections.append((.target, BuildBootstrap.allCases.map { target in
@@ -429,6 +434,20 @@ final class ProjectDistributionController: TableController {
         Task { [weak self] in
             guard let self else { return }
             await DistributionPublishing.publish(chosen.map(\.item), from: self)
+            isPreparingPackage = false
+            updateRows()
+        }
+    }
+
+    /// The selected packages, roothide's first, as one GitHub Release.
+    @objc private dynamic func publishRelease() {
+        let chosen = BuildBootstrap.allCases.compactMap { packages[$0] }.filter { selectedPackages.contains($0.artifactID) }
+        guard !chosen.isEmpty, !isPreparingPackage else { return }
+        isPreparingPackage = true
+        updateRows()
+        Task { [weak self] in
+            guard let self else { return }
+            await DistributionPublishing.release(chosen.map(\.item), projectName: projectName, from: self)
             isPreparingPackage = false
             updateRows()
         }

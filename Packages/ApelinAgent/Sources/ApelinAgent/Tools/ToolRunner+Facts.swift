@@ -212,6 +212,12 @@ extension ToolRunner {
             let ids = try PackagePublish.buildIDs(arguments)
             let publication = try await backend.packagePublication(PackagePublicationRequest(context: probeContext, buildIDs: ids))
             facts.packagePublish = try PackagePublish.approval(for: ids, publication: publication)
+        case .packageRelease:
+            // Read and checked before anyone is asked; the card names what
+            // is sent, which the host and apelin-environment check again.
+            let ids = try PackageRelease.buildIDs(arguments)
+            let read = try await backend.packageReleaseFacts(PackageReleaseFactsRequest(context: probeContext, buildIDs: ids))
+            facts.packageRelease = try PackageRelease.approval(for: ids, arguments: arguments, facts: read, project: project)
         case .projectSetEnvironment:
             facts.pathCheck = check { _ = try root.resolveForWrite(ProjectEnvironmentEdit.fileName, findingGitPointers: false) }
         default:

@@ -10,13 +10,18 @@ import Foundation
 /// indexes and GitHub Pages serves. GitHub's API is called with the
 /// github.com credential the user signed in with; the clone fetches and
 /// pushes with it as any remote does. The link is
-/// `Settings/distribution.json`.
+/// `Settings/distribution.json`. A project's release builds published as a
+/// GitHub Release of a repository the caller names go through here too
+/// (`DistributionService+Release.swift`), with the same sign-in.
 public struct DistributionService: Sendable {
     let layout: EnvironmentLayout
     let git: GitService
     let credentials: any GitCredentialStore
-    /// GitHub's API; a test answers for it.
+    /// GitHub's API, a release's uploads and the files read back from one;
+    /// a test answers for all three.
     var exchange: GitHubAPI.Exchange = GitHubAPI.live
+    var upload: GitHubAPI.Upload = GitHubAPI.liveUpload
+    var download: GitHubAPI.Download = GitHubAPI.liveDownload
     /// Where `owner/name` is cloned from and pushed to; a test points it at a
     /// bare repository on disk.
     var remoteURL: @Sendable (String) -> String = { "https://github.com/\($0).git" }
@@ -287,7 +292,7 @@ public struct DistributionService: Sendable {
     // MARK: Helpers
 
     func api() throws -> GitHubAPI {
-        try GitHubAPI.signedIn(credentials, exchange: exchange)
+        try GitHubAPI.signedIn(credentials, exchange: exchange, upload: upload, download: download)
     }
 
     /// The commit author Apelin's settings name, else the repository's, else

@@ -159,6 +159,13 @@ public protocol AgentHostBackend: Sendable {
     /// Builds' packages published to the linked package repository as they
     /// were built, read to the end; the host checks they were approved.
     func publishPackages(_ request: PackagePublishToolRequest) async throws -> PackagePublishToolResponse
+    /// The project's commit and its remotes on github.com, the GitHub
+    /// sign-in and each build's package record, read before
+    /// apelin_package_release asks.
+    func packageReleaseFacts(_ request: PackageReleaseFactsRequest) async throws -> PackageReleaseFacts
+    /// Builds' packages published as a GitHub Release as they were built,
+    /// read to the end; the host checks they were approved.
+    func releasePackages(_ request: PackageReleaseToolRequest) async throws -> PackageReleaseToolResponse
 }
 
 /// A backend without the device's toolchains, SDKs, installations or other
@@ -248,6 +255,14 @@ public extension AgentHostBackend {
 
     func publishPackages(_: PackagePublishToolRequest) async throws -> PackagePublishToolResponse {
         throw ToolDeniedError(message: "publishing packages is not available here")
+    }
+
+    func packageReleaseFacts(_: PackageReleaseFactsRequest) async throws -> PackageReleaseFacts {
+        throw ToolDeniedError(message: "releasing packages is not available here")
+    }
+
+    func releasePackages(_: PackageReleaseToolRequest) async throws -> PackageReleaseToolResponse {
+        throw ToolDeniedError(message: "releasing packages is not available here")
     }
 }
 

@@ -105,7 +105,7 @@ extension ChannelHostBackend {
 
     /// What a build recorded of its package; nil for an id no build left a
     /// whole record under.
-    private func packageRecord(_ buildID: String) -> PackageBuildRecord? {
+    func packageRecord(_ buildID: String) -> PackageBuildRecord? {
         guard !buildID.isEmpty, buildID.count <= 128,
               buildID.allSatisfy({ $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "-") }),
               let record = Self.boundedJSON(dataFolder.appendingPathComponent("Builds/artifacts/\(buildID).json")),

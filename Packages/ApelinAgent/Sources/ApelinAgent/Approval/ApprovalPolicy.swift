@@ -125,6 +125,9 @@ public struct InvocationFacts: Sendable, Hashable {
     /// For apelin_package_publish: the repository and the packages,
     /// checked before asking, as they are sent.
     public var packagePublish: PackagePublishApproval?
+    /// For apelin_package_release: the repository, the tag, the commit and
+    /// the packages, checked before asking, as they are sent.
+    public var packageRelease: PackageReleaseApproval?
     /// For apelin_screen_read_tree, apelin_screen_interact and a shell_run
     /// that runs icli (or another of `ScreenConsent.programs`): what it does
     /// on the screen, as the host is asked for it.
@@ -544,6 +547,15 @@ public struct ApprovalPolicy: Sendable, Hashable {
             }
             return .ask(reason: Self.publishReason(publication), detail: .packagePublish(publication))
 
+        // A GitHub Release, which a source that indexes releases hands to
+        // everyone who adds it: every one asks, the card naming the
+        // repository, the tag, the commit and each package's digest.
+        case .packageRelease:
+            guard let release = facts.packageRelease else {
+                return .ask(reason: "The packages to release could not be read.", detail: .none)
+            }
+            return .ask(reason: Self.releaseReason(release), detail: .packageRelease(release))
+
         // The device's git settings, for every project: each change asks,
         // and a saved token is never on the card.
         case .gitSetAuthor, .gitSaveCredential, .gitRemoveCredential:
@@ -673,6 +685,15 @@ public struct ApprovalPolicy: Sendable, Hashable {
         let what = one ? "this package" : "these \(packages.count) packages"
         let source = publication.sourceURL.map { " (\($0))" } ?? ""
         return "Publishes \(what) to your package repository \(publication.repository) on GitHub, as \(one ? "its build" : "their builds") made \(one ? "it" : "them"): \(packages.joined(separator: "; ")). Anyone who adds its source\(source) can install \(one ? "it" : "them"), and a version published there cannot be published again with other contents. Each publication needs your approval."
+    }
+
+    static func releaseReason(_ release: PackageReleaseApproval) -> String {
+        let packages = release.packages.map { package in
+            "\(package.packageID) \(package.version) for \(package.bootstrap) (\(package.architecture))"
+        }
+        let one = packages.count == 1
+        let what = one ? "this package" : "these \(packages.count) packages"
+        return "Publishes \(what) on GitHub as the release \(release.tag) of \(release.repository), tagged at commit \(release.commit.prefix(7)), as \(one ? "its build" : "their builds") made \(one ? "it" : "them"): \(packages.joined(separator: "; ")). Anyone who can see the repository can download \(one ? "it" : "them"), a source that indexes its releases offers \(one ? "it" : "them") to everyone who adds it, and a release's files are never replaced. Each release needs your approval."
     }
 
     static func repositoryReason(_ repository: RepositoryCreateApproval) -> String {

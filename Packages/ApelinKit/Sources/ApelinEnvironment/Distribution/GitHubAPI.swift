@@ -6,22 +6,35 @@ import Foundation
 /// github.com credential the user signed in with: the account, its own
 /// repositories, making one, and GitHub Pages; the issue feedback files,
 /// reads and edits, and the star the reader gives Apelin; and the empty
-/// repository a project is pushed to (`gitRepositoryCreate`). The token
-/// goes in the `Authorization` header to api.github.com and nowhere else;
-/// no message quotes it.
+/// repository a project is pushed to (`gitRepositoryCreate`); and a
+/// release with its files (`GitHubAPI+Releases.swift`). The token goes in
+/// the `Authorization` header to api.github.com, and to uploads.github.com
+/// with a release's files, and nowhere else; no message quotes it.
 struct GitHubAPI: Sendable {
     static let base = URL(string: "https://api.github.com")!
     typealias Exchange = @Sendable (URLRequest) async throws -> (Data, HTTPURLResponse)
+    /// A request whose body is the file at the URL, sent as it is read.
+    typealias Upload = @Sendable (URLRequest, URL) async throws -> (Data, HTTPURLResponse)
+    /// The bytes a request answers, hashed as they come: `sha256:<hex>`
+    /// and how many there were.
+    typealias Download = @Sendable (URLRequest) async throws -> (digest: String, size: Int)
 
     let token: String
     let exchange: Exchange
+    var upload: Upload = GitHubAPI.liveUpload
+    var download: Download = GitHubAPI.liveDownload
 
     /// The API with the github.com sign-in, or the refusal that names it.
-    static func signedIn(_ credentials: any GitCredentialStore, exchange: @escaping Exchange) throws -> GitHubAPI {
+    static func signedIn(
+        _ credentials: any GitCredentialStore,
+        exchange: @escaping Exchange,
+        upload: @escaping Upload = GitHubAPI.liveUpload,
+        download: @escaping Download = GitHubAPI.liveDownload,
+    ) throws -> GitHubAPI {
         guard let credential = try credentials.credential(forHost: GitHubHost.name), !credential.token.isEmpty else {
             throw ApelinError(.denied, "Sign in with GitHub in Settings ▸ Git first.", reason: .authenticationRequired)
         }
-        return GitHubAPI(token: credential.token, exchange: exchange)
+        return GitHubAPI(token: credential.token, exchange: exchange, upload: upload, download: download)
     }
 
     static let live: Exchange = { request in
@@ -30,6 +43,43 @@ struct GitHubAPI: Sendable {
             throw ApelinError(.unavailable, "GitHub's answer could not be read.")
         }
         return (data, response)
+    }
+
+    /// The file read from disk as it is sent, never held in memory whole;
+    /// URLSession sets the `Content-Length` GitHub's upload needs.
+    static let liveUpload: Upload = { request, file in
+        let (data, response) = try await URLSession.shared.upload(for: request, fromFile: file)
+        guard let response = response as? HTTPURLResponse else {
+            throw ApelinError(.unavailable, "GitHub's answer could not be read.")
+        }
+        return (data, response)
+    }
+
+    /// A release file's bytes from the API, hashed. GitHub answers 200 with
+    /// them or 302 to where it keeps them ("API clients should handle both"),
+    /// so the redirect is held and followed without the sign-in, which that
+    /// signed address does not need and must not be sent to.
+    static let liveDownload: Download = { request in
+        let held = URLSession(configuration: .ephemeral, delegate: GitHubRedirectHold(), delegateQueue: nil)
+        defer { held.finishTasksAndInvalidate() }
+        var (file, response) = try await held.download(for: request)
+        if let redirect = response as? HTTPURLResponse, (300 ..< 400).contains(redirect.statusCode) {
+            try? FileManager.default.removeItem(at: file)
+            guard let location = redirect.value(forHTTPHeaderField: "Location"),
+                  let target = URL(string: location, relativeTo: request.url)?.absoluteURL,
+                  target.scheme?.lowercased() == "https"
+            else { throw ApelinError(.unavailable, "GitHub sent a release file to an address Apelin does not follow.") }
+            var plain = URLRequest(url: target)
+            plain.setValue("application/octet-stream", forHTTPHeaderField: "Accept")
+            (file, response) = try await URLSession.shared.download(for: plain)
+        }
+        defer { try? FileManager.default.removeItem(at: file) }
+        guard let answer = response as? HTTPURLResponse, (200 ..< 300).contains(answer.statusCode) else {
+            let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+            throw ApelinError(.unavailable, "GitHub answered \(status) for a release file.")
+        }
+        let (hex, size) = try TransferDigest.file(file)
+        return ("sha256:" + hex, Int(size))
     }
 
     struct Owner: Decodable, Sendable {
@@ -242,15 +292,16 @@ struct GitHubAPI: Sendable {
 
     // MARK: Requests
 
-    private func request(_ method: String, _ path: String, body: Any?) throws -> URLRequest {
+    /// `path` on api.github.com, with the headers GitHub's REST API asks
+    /// for (`Accept: application/vnd.github+json` and the version it was
+    /// written against); URLSession sends the `User-Agent` GitHub requires.
+    func request(_ method: String, _ path: String, body: Any?) throws -> URLRequest {
         guard let url = URL(string: Self.base.absoluteString + path) else {
             throw ApelinError(.badRequest, "bad GitHub path")
         }
         var request = URLRequest(url: url)
         request.httpMethod = method
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
-        request.setValue("2022-11-28", forHTTPHeaderField: "X-GitHub-Api-Version")
+        authorize(&request)
         if let body {
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             request.httpBody = try JSONSerialization.data(withJSONObject: body, options: [.sortedKeys])
@@ -258,32 +309,52 @@ struct GitHubAPI: Sendable {
         return request
     }
 
-    private func send<T: Decodable>(_ method: String, _ path: String, body: Any? = nil, as _: T.Type) async throws -> T {
+    /// The sign-in and the headers every request to GitHub's REST API
+    /// carries.
+    func authorize(_ request: inout URLRequest) {
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
+        request.setValue("2022-11-28", forHTTPHeaderField: "X-GitHub-Api-Version")
+    }
+
+    func send<T: Decodable>(_ method: String, _ path: String, body: Any? = nil, as _: T.Type) async throws -> T {
         let (data, response) = try await exchange(request(method, path, body: body))
         try Self.check(response, data)
+        return try Self.decode(T.self, data, method, path)
+    }
+
+    func sendExpectingNothing(_ method: String, _ path: String, body: Any? = nil) async throws {
+        let (data, response) = try await exchange(request(method, path, body: body))
+        try Self.check(response, data)
+    }
+
+    static func decode<T: Decodable>(_: T.Type, _ data: Data, _ method: String, _ path: String) throws -> T {
         do {
             return try JSONDecoder().decode(T.self, from: data)
         } catch {
-            throw ApelinError(.unavailable, "GitHub's answer to \(method) \(Self.route(path)) could not be read.")
+            throw ApelinError(.unavailable, "GitHub's answer to \(method) \(route(path)) could not be read.")
         }
     }
 
-    private func sendExpectingNothing(_ method: String, _ path: String, body: Any? = nil) async throws {
-        let (data, response) = try await exchange(request(method, path, body: body))
-        try Self.check(response, data)
-    }
-
     /// The path without its query, for a message.
-    private static func route(_ path: String) -> String {
+    static func route(_ path: String) -> String {
         String(path.prefix { $0 != "?" })
     }
 
-    /// GitHub's refusal in its own words: its message, then each error's.
+    /// GitHub's refusal in its own words: its message, then each error's —
+    /// its own message, else the field and the code GitHub names it by
+    /// (`tag_name already_exists`).
     static func words(_ response: HTTPURLResponse, _ data: Data) -> String {
         let object = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
         var message = object?["message"] as? String ?? "HTTP \(response.statusCode)"
         if let errors = object?["errors"] as? [[String: Any]] {
-            let details = errors.compactMap { $0["message"] as? String }
+            let details = errors.compactMap { error -> String? in
+                if let text = error["message"] as? String {
+                    return text
+                }
+                let named = [error["field"] as? String, error["code"] as? String].compactMap(\.self)
+                return named.isEmpty ? nil : named.joined(separator: " ")
+            }
             if !details.isEmpty {
                 message += ": " + details.joined(separator: "; ")
             }
@@ -311,5 +382,18 @@ struct GitHubAPI: Sendable {
         default:
             throw ApelinError(.unavailable, "GitHub answered \(response.statusCode): \(message)")
         }
+    }
+}
+
+/// Hands a redirect back unfollowed, so a release file's download goes on
+/// to where GitHub keeps it without the sign-in (`liveDownload`).
+private final class GitHubRedirectHold: NSObject, URLSessionTaskDelegate, Sendable {
+    @objc dynamic func urlSession(
+        _: URLSession,
+        task _: URLSessionTask,
+        willPerformHTTPRedirection _: HTTPURLResponse,
+        newRequest _: URLRequest,
+    ) async -> URLRequest? {
+        nil
     }
 }
