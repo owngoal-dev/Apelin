@@ -994,6 +994,17 @@ console now goes on after a restart only past a successful respring.
       devices below); the project chain did not, as neither has the
       development extensions installed.
 - [ ] The iOS 16.0 floor (oldest supported system).
+- [ ] A project at the deployment-target floor, 15.0 (issue #71), on the
+      oldest iOS a jailbroken device here runs, ideally iOS 15 under a
+      rootless bootstrap (Dopamine or palera1n) and under a roothide one:
+      the tweak template built at 15.0 on an Apelin device, its rootless
+      and roothide packages carried over (Apelin itself needs 16.0) and
+      installed with that device's package manager (`firmware (>= 15.0)`
+      met), the tweak's `ApelinLoaded` marker in that device's log after a
+      respring, and a C and an Objective-C command-line tool built at 15.0
+      run there. Only the Mac has built at 15.0 so far (AGENTS.md ▸ The
+      deployment target; `2026-10-17-Toolchain-Retarget.md` ▸ iOS 15
+      products); no vphone runs below iOS 26.4.
 - [ ] On iOS 16, 17 or 18: an agent session starts (`agentList`, then
       `agentOpen`). apelin-agent links `@rpath/libswiftCompatibilitySpan.dylib`.
       The OS has that library only from iOS 26, so on older systems it loads
