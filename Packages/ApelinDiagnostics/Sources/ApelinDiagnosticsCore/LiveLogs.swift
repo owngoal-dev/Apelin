@@ -90,6 +90,14 @@ public final class LiveLogListener: @unchecked Sendable {
         end?()
     }
 
+    /// Whether the listen is over: ended by its source, its receiver, a
+    /// `finish()` or `wait()` past the deadline.
+    @objc public dynamic var isFinished: Bool {
+        condition.lock()
+        defer { condition.unlock() }
+        return done
+    }
+
     /// Blocks until the listen is over or `date` passes, whichever is first.
     @objc public dynamic func settle(until date: Date) {
         condition.lock()

@@ -251,6 +251,42 @@ console now goes on after a restart only past a successful respring.
       5. A `.apetc` exported by 0.4.9 (scheme 2) imports under its own ID
          on a device that lacks it, and is listed with `outdated`.
 
+- [ ] A load check that waits for its target, stops with its call and
+      says whether the target ran (2026-11-22, issue #76, AGENTS.md ▸
+      Diagnostics). On the Mac only so far: `ConfirmLoadedTests`, the
+      worker's `DiagnosticsWorkerTests` (window bounds, the process
+      evidence with a fake process list, a cancel before and after the
+      trigger), `ChannelHostBackendTests` (the stop sends
+      `confirmLoadedCancel`) and `LoadCheckCancelChecks`. The marker is now
+      heard through icli's `SyslogStream` rather than `captureSyslog`, and
+      the process list is icli's `listProcesses` read as mobile, neither of
+      them run from a load check on a device yet. On an iPhone and the iPad
+      vphone, then on the reporter's kind of device (iOS 17.3.1, roothide):
+      1. `make device-run SCRIPT=diagnostics`: the loaded check's
+         `result.process.runningAtStart` holds SpringBoard's pid (the
+         process list reads as mobile), and the ten-minute check of a
+         process that does not exist ends `cancelled` within about two
+         seconds of `confirmLoadedCancel`.
+      2. A wait across a process start: in a chat, a tweak filtered to an
+         app by bundle id, the app not running (no longer `notFound`);
+         `apelin_package_confirm_loaded` with `wait_seconds: 120`, the app
+         opened about 20 s in. The call answers `loaded` as soon as the
+         app starts, not at 120 s, and `targetProcess` says it started
+         while the call listened, with its pid. Then the reporter's case:
+         a tweak filtered by `Executables` to `dtremotedisplayd`, the Mac
+         connected (Xcode's Devices window) while the call listens.
+      3. Not started: the same call with `wait_seconds: 20` and nothing
+         started: `targetProcess` says `dtremotedisplayd` never ran while
+         the call listened, and the `process` evidence is `absent`; with
+         the target already running and not restarted, it says it was
+         already running when the call began and to restart it while the
+         call listens.
+      4. Stop mid-listen: `wait_seconds: 180`, Stop about 10 s in. The turn
+         ends within the stop's two seconds, and the check's task, read
+         with `Scripts/device.py call confirmLoadedAttach` and its task id
+         from the session's log, ended `cancelled` within a second or two
+         of the Stop, not at 180 s.
+
 - [ ] Why Irisin did not answer, and who holds the package database
       (2026-11-21, issue #66, AGENTS.md ▸ Install bridge; all four cases
       ran on the iOS 26.4 iPad vphone, and the first in a chat on the iPhone

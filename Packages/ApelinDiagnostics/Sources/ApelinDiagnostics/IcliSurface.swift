@@ -61,6 +61,13 @@ public protocol IcliSurface: Sendable {
     /// orientation shown, with `locked` and `screen_off`.
     func screenInfo() -> [String: Any]
     func runningApps() throws -> [String: Any]
+    /// icli's `listProcesses` with no filter: `processes`, each `pid`, the
+    /// kernel's `name` and the `executable` path (`proc_pidpath`, empty when
+    /// the kernel gives none). Nothing inside a process is read.
+    func processes() throws -> [String: Any]
+    /// icli's `listApps`: LaunchServices' records and the application
+    /// folders, each `bundle_id`, `name` and `bundle_path`.
+    func installedApps() throws -> [String: Any]
     func respring() throws -> [String: Any]
 }
 

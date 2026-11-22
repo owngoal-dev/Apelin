@@ -11,7 +11,8 @@ import Foundation
 /// `apelin-diagnostics`: logs, crash reports, load confirmation, the screen
 /// and the UI, every one through icli where icli can (the owner's rule), as
 /// mobile. The session host forwards `logStream` and `confirmLoaded` (both
-/// tasks), `crashList`, `crashSymbolicate`, `captureScreen`, `readUITree`,
+/// tasks, which its cancel stops), `crashList`, `crashSymbolicate`,
+/// `captureScreen`, `readUITree`,
 /// `uiAction` and the app's device passcode (`devicePasscodeState`,
 /// `devicePasscodeSave`, `devicePasscodeRemove`, kept in this worker's own
 /// keychain group: `DeviceUnlock`); the worker asks the host for two things
@@ -25,10 +26,12 @@ public enum DiagnosticsWorker {
             let diagnostics = Diagnostics(icli: UnavailableIcli())
         #endif
         let pump = LogStreamPump(source: diagnostics)
+        let loadChecks = LoadCheckRegistry()
         // One for the worker's life: the passcode's uses take turns.
         let passcodeTurns = PthreadLock()
         WorkerMain.run(role: .diagnostics, onCancel: { taskID, _ in
             pump.cancel(taskID)
+            loadChecks.cancel(taskID)
         }) { request, context in
             var service = DiagnosticsService(
                 diagnostics: diagnostics,
@@ -37,6 +40,7 @@ public enum DiagnosticsWorker {
                 installRoot: context.assignment.installRoot,
                 emit: { taskID, kind, payload in context.emit(taskID, kind, payload) },
             )
+            service.loadChecks = loadChecks
             service.deviceUnlock = DeviceUnlock(
                 diagnostics: diagnostics,
                 keybag: IcliPasscodeCommand(installRoot: context.assignment.installRoot, home: context.assignment.home),
@@ -63,6 +67,11 @@ public struct DiagnosticsService: Sendable {
     /// The device passcode and the unlock that uses it; nil where nothing
     /// set it up, which answers `unavailable`.
     var deviceUnlock: DeviceUnlock?
+    /// The load checks running, for the host's cancel. The worker keeps
+    /// one for its life; a service made alone has its own.
+    public var loadChecks = LoadCheckRegistry()
+    /// How often a load check looks at the process list.
+    var processLookInterval = ConfirmLoaded.defaultLookInterval
 
     public init(
         diagnostics: Diagnostics,

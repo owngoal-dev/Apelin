@@ -114,6 +114,14 @@ private final class LockScreenIcli: IcliSurface, @unchecked Sendable {
         ["apps": []]
     }
 
+    func processes() throws -> [String: Any] {
+        ["processes": []]
+    }
+
+    func installedApps() throws -> [String: Any] {
+        ["apps": []]
+    }
+
     func respring() throws -> [String: Any] {
         [:]
     }

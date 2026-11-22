@@ -18,11 +18,18 @@ extension DiagnosticsService {
     /// answer as `result` in the final `state`. The respring it may trigger
     /// takes the app down, not this worker or the host, so the answer is
     /// kept with the task whether or not anyone is attached.
+    ///
+    /// The check is in `loadChecks` before the host hears the task
+    /// accepted, so the host's cancel, which only a caller holding the
+    /// task's handle can ask for, always finds it: the listen ends at once
+    /// and the task ends `cancelled`.
     func startConfirmLoaded(_ request: ApelinProtocol.ConfirmLoadedRequest, taskID: TaskID) async throws {
         let check = try await prepareConfirmLoaded(request)
         let emit = emit
+        let loadChecks = loadChecks
+        let stop = loadChecks.begin(taskID)
         DispatchQueue.global(qos: .userInitiated).async { [self] in
-            let response = runConfirmLoaded(check) { stage in
+            let response = runConfirmLoaded(check, stop: stop) { stage in
                 var payload: [String: JSONValue] = ["stage": .string(stage.rawValue)]
                 switch stage {
                 case .listening:
@@ -34,14 +41,19 @@ extension DiagnosticsService {
                 }
                 emit(taskID, "stage", .object(payload))
             }
+            loadChecks.end(taskID)
             var final: [String: JSONValue] = ["state": .string(TaskState.succeeded.rawValue)]
-            do {
-                final[ApelinProtocol.ConfirmLoadedResponse.stateMember] = try JSONValue(encoding: response)
-            } catch {
-                final = [
-                    "state": .string(TaskState.failed.rawValue),
-                    "message": .string("the answer does not encode: \(error)"),
-                ]
+            if stop.isStopped {
+                final = ["state": .string(TaskState.cancelled.rawValue)]
+            } else {
+                do {
+                    final[ApelinProtocol.ConfirmLoadedResponse.stateMember] = try JSONValue(encoding: response)
+                } catch {
+                    final = [
+                        "state": .string(TaskState.failed.rawValue),
+                        "message": .string("the answer does not encode: \(error)"),
+                    ]
+                }
             }
             emit(taskID, TaskEvent.stateKind, .object(final))
         }
@@ -52,13 +64,11 @@ extension DiagnosticsService {
         _ request: ApelinProtocol.ConfirmLoadedRequest,
     ) async throws -> ApelinProtocol.ConfirmLoadedResponse {
         let check = try await prepareConfirmLoaded(request)
-        return await blocking { runConfirmLoaded(check, stage: nil) }
+        return await blocking { runConfirmLoaded(check, stop: nil, stage: nil) }
     }
 
     static let maximumBuildIDBytes = 200
     static let maximumTargetIDBytes = 256
-    /// Seconds a check may listen for the marker.
-    static let logWindowRange: ClosedRange<Double> = 1 ... 60
 
     func prepareConfirmLoaded(_ request: ApelinProtocol.ConfirmLoadedRequest) async throws -> LoadCheck {
         let buildID = request.buildID
@@ -71,10 +81,10 @@ extension DiagnosticsService {
                 "imageCheck is disabled on every iOS version: reading another process's image list panicked the kernel on a test device.",
             )
         }
-        // A respring has to bring SpringBoard back inside the window.
-        let window = request.logWindowSeconds ?? (request.trigger == .respring ? 30 : 15)
-        guard window.isFinite, Self.logWindowRange.contains(window) else {
-            let range = Self.logWindowRange
+        let window = request.logWindowSeconds
+            ?? ApelinProtocol.ConfirmLoadedRequest.defaultLogWindowSeconds(trigger: request.trigger)
+        guard window.isFinite, ApelinProtocol.ConfirmLoadedRequest.logWindowRange.contains(window) else {
+            let range = ApelinProtocol.ConfirmLoadedRequest.logWindowRange
             throw ApelinError(
                 .badRequest,
                 String(format: "logWindowSeconds must be %g–%g", range.lowerBound, range.upperBound),
@@ -110,9 +120,12 @@ extension DiagnosticsService {
         return LoadCheck(confirmation: confirmation, trigger: request.trigger)
     }
 
-    /// Blocks for the window. The target's image list is never read.
+    /// Blocks until the marker is heard, the window ends or `stop` is told
+    /// to. The target's image list is never read; the process list is, by
+    /// pid and name, to say whether the target ran meanwhile.
     func runConfirmLoaded(
         _ check: LoadCheck,
+        stop: LoadCheckStop?,
         stage: (@Sendable (ConfirmLoaded.Stage) -> Void)?,
     ) -> ApelinProtocol.ConfirmLoadedResponse {
         var trigger: (@Sendable () throws -> Void)?
@@ -121,8 +134,8 @@ extension DiagnosticsService {
             let diagnostics = diagnostics
             trigger = { try DiagnosticsService.respring(host: host, diagnostics: diagnostics) }
         }
-        let confirm = ConfirmLoaded(logs: diagnostics)
-        let result = confirm.run(check.confirmation, trigger: trigger, stage: stage)
+        let confirm = ConfirmLoaded(logs: diagnostics, processes: diagnostics, lookInterval: processLookInterval)
+        let result = confirm.run(check.confirmation, trigger: trigger, stage: stage, stop: stop)
         var evidence = [
             LoadEvidence(
                 kind: "log",
@@ -140,10 +153,25 @@ extension DiagnosticsService {
                 detail: "\(result.filter.status.rawValue): \(result.filter.detail)",
             ),
         ]
+        var process: LoadTargetProcess?
+        if let seen = result.process {
+            evidence.append(LoadEvidence(
+                kind: "process",
+                passed: seen.status == .confirmed,
+                detail: "\(seen.status.rawValue): \(seen.detail)",
+            ))
+            if seen.status != .unavailable {
+                process = LoadTargetProcess(
+                    runningAtStart: seen.runningAtStart,
+                    startedDuring: seen.startedDuring,
+                    watchedSeconds: seen.watchedSeconds,
+                )
+            }
+        }
         if let failure = result.triggerFailure {
             evidence.append(LoadEvidence(kind: "trigger", passed: false, detail: failure))
         }
-        return ApelinProtocol.ConfirmLoadedResponse(loaded: result.isLoaded, evidence: evidence)
+        return ApelinProtocol.ConfirmLoadedResponse(loaded: result.isLoaded, evidence: evidence, process: process)
     }
 
     /// The host's closed respring first; icli's FrontBoard relaunch only
@@ -168,7 +196,9 @@ extension DiagnosticsService {
         var bundleIdentifier: String?
     }
 
-    /// An executable name, or a bundle id resolved through the running apps.
+    /// An executable name, or a bundle id: the running app's executable,
+    /// else the installed app's, since a check may wait for the app to be
+    /// opened.
     func resolveTarget(_ targetID: String) async throws -> Target {
         guard !targetID.isEmpty, targetID.utf8.count <= Self.maximumTargetIDBytes, !targetID.contains("/"),
               !targetID.contains("\0")
@@ -183,14 +213,46 @@ extension DiagnosticsService {
         }
         guard targetID.contains(".") else { return Target(executable: targetID, bundleIdentifier: nil) }
         let apps = await (try? blocking { try diagnostics.runningApps() }) ?? []
-        guard let app = apps.first(where: { $0.bundleIdentifier == targetID }) else {
-            throw ApelinError(.notFound, "\(targetID) is not running; open it and confirm again")
+        if let app = apps.first(where: { $0.bundleIdentifier == targetID }) {
+            let executable = app.executable.isEmpty ? app.name : (app.executable as NSString).lastPathComponent
+            return Target(executable: executable, bundleIdentifier: targetID)
         }
-        let executable = app.executable.isEmpty ? app.name : (app.executable as NSString).lastPathComponent
+        let installed = try? await blocking { try diagnostics.installedAppExecutable(bundleIdentifier: targetID) }
+        guard let executable = installed else {
+            throw ApelinError(
+                .notFound,
+                "No app with the bundle ID \(targetID) is running or installed. For a process that is not an app, give its executable name.",
+            )
+        }
         return Target(executable: executable, bundleIdentifier: targetID)
     }
 }
 
 private final class OutcomeBox: @unchecked Sendable {
     @objc dynamic var error: Error?
+}
+
+/// The load checks this worker runs, by task, so the host's cancel reaches
+/// the one it names. One for the worker's life, beside the log pump; a
+/// cancel for a task it does not run (a log stream's, one already ended)
+/// does nothing here.
+public final class LoadCheckRegistry: @unchecked Sendable {
+    private let lock = PthreadLock()
+    private var running: [TaskID: LoadCheckStop] = [:]
+
+    public init() {}
+
+    func begin(_ taskID: TaskID) -> LoadCheckStop {
+        let stop = LoadCheckStop()
+        lock.withLock { running[taskID] = stop }
+        return stop
+    }
+
+    func end(_ taskID: TaskID) {
+        lock.withLock { _ = running.removeValue(forKey: taskID) }
+    }
+
+    public func cancel(_ taskID: TaskID) {
+        lock.withLock { running[taskID] }?.stop()
+    }
 }

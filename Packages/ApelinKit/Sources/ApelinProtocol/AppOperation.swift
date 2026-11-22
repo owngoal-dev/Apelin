@@ -56,6 +56,7 @@ public enum AppOperation: String, Codable, CaseIterable, Sendable {
 
     case confirmLoaded
     case confirmLoadedAttach
+    case confirmLoadedCancel
     case captureScreen
     case readUITree
     case uiAction
@@ -140,7 +141,7 @@ public enum AppOperation: String, Codable, CaseIterable, Sendable {
         case .fileRead, .protectedEditOpen, .protectedEditCommit: .files
         case .ptyOpen, .ptyAttach, .ptyResize, .ptyClose: .terminal
         case .logStream, .crashList, .crashOpen, .crashSymbolicate: .logs
-        case .confirmLoaded, .confirmLoadedAttach, .captureScreen, .readUITree, .uiAction,
+        case .confirmLoaded, .confirmLoadedAttach, .confirmLoadedCancel, .captureScreen, .readUITree, .uiAction,
              .devicePasscodeState, .devicePasscodeSave, .devicePasscodeRemove:
             .diagnostics
         case .agentOpen, .agentPrompt, .agentSteer, .agentAbort, .agentCompact, .agentApprove, .agentAttach, .agentList,
@@ -204,6 +205,7 @@ public enum AppOperation: String, Codable, CaseIterable, Sendable {
         case .crashSymbolicate: CrashSymbolicateRequest.self
         case .confirmLoaded: ConfirmLoadedRequest.self
         case .confirmLoadedAttach: ConfirmLoadedAttachRequest.self
+        case .confirmLoadedCancel: ConfirmLoadedCancelRequest.self
         case .captureScreen: CaptureScreenRequest.self
         case .readUITree: ReadUITreeRequest.self
         case .uiAction: UIActionRequest.self
