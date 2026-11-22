@@ -170,6 +170,34 @@ struct ConversationToolTests {
         #expect(await relaxed.backend.calls == [.conversationElsewhere(tool: "apelin_conversation_create", project: Self.far.id, evidence: .relaxed)])
     }
 
+    /// Issue #79: a conversation opened to import a repository into a new
+    /// workspace left project out and landed in the caller's tweak, and
+    /// nothing in its answer said so.
+    @Test(.timeLimit(.minutes(1)))
+    func `the answer names the project the conversation opened in, and says when it is this one`() async throws {
+        let harness = try DigestApprovalTests.Harness(mode: .relaxed)
+        defer { harness.home.remove() }
+        await harness.backend.addProject(Self.far)
+        func answer(_ arguments: JSONValue) async throws -> [String: Any] {
+            let (result, _) = try await harness.run(.conversationCreate, arguments)
+            let text = result.content.compactMap {
+                if case let .text(text) = $0 {
+                    text.text
+                } else {
+                    nil
+                }
+            }.joined()
+            return try #require(JSONSerialization.jsonObject(with: Data(text.utf8)) as? [String: Any])
+        }
+        let own = try await answer(["prompt": "Import https://example.com/repo.git"])
+        #expect(own["project"] as? String == "Hello" && own["isThisProject"] as? Bool == true)
+        #expect(own["projectLink"] as? String == "apelin://project/project-own")
+        #expect((own["note"] as? String)?.contains("pass project (its folder name or projectID)") == true)
+        let far = try await answer(["prompt": "Import https://example.com/repo.git", "project": "Far"])
+        #expect(far["project"] as? String == "Far" && far["projectID"] as? String == Self.far.id)
+        #expect(far["isThisProject"] as? Bool == false && far["note"] == nil)
+    }
+
     @Test(.timeLimit(.minutes(1)))
     func `General Chat names the project, and hands the new project its first conversation`() async throws {
         let home = try TemporaryHome()

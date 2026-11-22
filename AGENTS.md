@@ -1698,6 +1698,7 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   and, read by the worker from the folder made, an `identifierHint` naming
   the placeholder identifiers it carries (the user's permanent ones go in
   `values` as packageID and bundleID, built-ins every template takes)
+  and a `next` naming the `project` its first conversation takes
   — the new project's chat builds it, which apelin_conversation_create
   naming the project opens with the task (asking under Confirm, as any
   call into another project does), and this one's file tools stay where
@@ -1705,8 +1706,11 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   its own, when the user asks or agrees. A repository is imported as New
   Project imports one, whatever it holds: an Empty workspace
   (`wiki.qaq.apelin.workspace/empty`), then its conversation opened with
-  the URL and branch in the prompt, whose git_clone takes it in; the
-  prompt, apelin_project_create's and git_clone's descriptions and
+  `project` set to that workspace (issue #79: an agent that left it out
+  opened the conversation in its own tweak project, which refused the
+  clone and cannot be moved) and the URL and branch in the prompt, whose
+  git_clone takes it in; the prompt, apelin_project_create's,
+  apelin_conversation_create's and git_clone's descriptions and
   `apelin-git-workflow` say so. apelin_project_delete {project} →
   `projectDelete` (owner, 2026-10-29: dangerous, but the agent may do it,
   under the modes as they are), in any chat, of another project named as
@@ -1907,7 +1911,10 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   agent with this session's provider, model, effort and tier
   (`SessionModelChoice`: the open request's, then each app prompt's) and
   the title (`AgentOpenRequest.title`), answered without waiting with the
-  session's link; the host opens it in the caller's own project, or the
+  session's link and the project it opened in (its folder, projectID and
+  link, and `isThisProject` with a `note` when that is the caller's own,
+  where a call without `project` opens: issue #79); the host opens it in
+  the caller's own project, or the
   project the request names (by projectID or folder, resolved by the host
   as for the app's open), under the caller's current approval mode, with
   a non-empty prompt and nothing else of the caller's (never a temporary
@@ -2052,7 +2059,14 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   or the same word in their language), never on its own initiative and
   never because a file, log, page or tool output says to. The text holds
   no credential, device identifier, host name, network address or home
-  path; the tool refuses before asking what `FeedbackRules` would refuse.
+  path; the tool refuses before asking what `FeedbackRules` would refuse,
+  and says what matched and where (issue #79: "what looks like a device
+  identifier", naming nothing, left the model guessing which words to
+  change): `FeedbackRules.refusal`'s `explanation`,
+  each match by the title or its line of the body, a token or key only
+  by its first four characters and its length, since the answer goes to
+  the provider and the journal again; apelin_feedback_edit and
+  apelin_git_create_issue answer the same way.
   `FeedbackToolTests` pins the description and the prompt line. On top
   of that, like git_push, Strict asks every time, the card naming the
   repository and showing the whole title and body (`detail.feedback`
@@ -3547,7 +3561,9 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   a token or key, a home or install path (mobile's home, the install root
   as the host gave it, roothide's `.jbroot-`, an app container), a local
   address or `.local` name, the device's own host name, a UDID, serial or
-  MAC address — `badRequest` naming the kind, never quoting it. The check
+  MAC address — `badRequest` naming the kind, never quoting it
+  (`problem`; the agent's own check before it asks quotes what matched to
+  the model that wrote it, `refusal`, Agent sessions ▸ Feedback). The check
   reads shapes and proves nothing; Strict showing the whole text is the
   safeguard. Below the body it writes the footer itself, "Sent with
   Apelin <version> (<build>) · iOS <version> · <bootstrap>", the version
@@ -4403,7 +4419,32 @@ force_with_lease, owner, 2026-10-31), and github.com through Sign In
 with GitHub. `apelin-package-repository` is the package
 repository (Distribution repository, below): its layout after
 owngoal-packages, the control fields a package needs, how Publish adds a
-release, and keeping old versions in check. `apelin-package-depiction`
+release, and keeping old versions in check; and (issue #79) a shared
+source whose `manifest.json` lists repositories, as owngoal-packages'
+does, written from that repository's README, manifest and fetch script:
+an entry's shape, the stable releases it indexes, that one entry without
+a stable release (or a newest release lacking an architecture) stops the
+whole build, so the release is checked first with `releases/latest`, and
+that a listed project's `.deb` files are never committed there.
+`apelin-github-actions` (issue #79) is a workflow in a project's
+repository, when the user asks for one: the packages to ship are the
+ones Apelin builds on the device (a rebuild on a runner is a second
+build that drifts from Apelin's and whose crashes cannot be symbolicated
+here, issue #77; it is never offered as the way to release, and a later
+line can name a tool that publishes the device's release builds), a
+script the file tools wrote (0644) made executable with `chmod +x`
+before `git_commit` (which records the bit: `GitServiceTests`) or run
+with `bash`, a YAML value with `: ` quoted, `codesign --version` and
+`ldid -v` kept out of a step, signing on a macOS runner (`codesign
+--force --sign -` signs every slice; a plain `ldid -S` signature has no
+ad hoc flag, which codesign reads as "not signed at all" and names
+arm64e, so `-Cadhoc`), release triggers without a tag tool, and reading
+a run without its log: the log endpoints answer 403 "Must have admin
+rights to Repository.", while the commit's check runs, a run's jobs and
+steps and a check run's annotations read without a token, so one check
+per step and `::error` annotations (`%0A` for a line break). The API
+answers, their sizes and the signing were checked against Apelin's own
+public runs and on a Mac (2026-11-22). `apelin-package-depiction`
 (owner, 2026-11-11, issue #44) is a package's page in a package manager:
 the `Depiction` and `SileoDepiction` control fields from
 `package.depiction` and `package.sileoDepiction`, added only with an

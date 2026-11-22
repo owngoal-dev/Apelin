@@ -47,8 +47,8 @@ enum FeedbackEdit {
         let body = arguments.argString("body")
         let newTitle = title == issue.title ? nil : title
         let newBody = body == issue.body ? nil : body
-        if let problem = FeedbackRules.editProblem(title: newTitle, body: newBody) {
-            throw ToolArgumentError("Nothing was changed: \(problem).")
+        if let refusal = FeedbackRules.editRefusal(title: newTitle, body: newBody) {
+            throw ToolArgumentError("Nothing was changed: \(refusal.explanation).")
         }
         return FeedbackEditApproval(
             repository: issue.repository,
