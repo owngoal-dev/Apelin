@@ -267,6 +267,9 @@ struct SkillAndPromptTests {
         for kept in [
             "The packages to ship are the ones Apelin builds on this device",
             "Never offer one as the way to release an Apelin package",
+            // A GitHub Release of the device's builds is the tool's (#77).
+            "is `apelin_package_release` (apelin-packaging-and-install): the device's builds as they were built",
+            "Never write a workflow that builds the package again to release it",
             "`chmod +x Scripts/release.sh` with `shell_run`, then `git_commit`, which records the executable bit",
             "`run: bash Scripts/release.sh`",
             "`name: Audit: control`",
@@ -289,6 +292,7 @@ struct SkillAndPromptTests {
             "One entry that fails stops the whole build",
             "`https://api.github.com/repos/<owner>/<repo>/releases/latest`",
             "Never commit a listed project's `.deb` files there", "apelin-github-actions",
+            "The release an entry needs is `apelin_package_release`",
         ] {
             #expect(repository.contains(kept), "the apelin-package-repository skill no longer says \(kept)")
         }

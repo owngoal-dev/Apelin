@@ -84,6 +84,11 @@ extension BuiltInSkills {
           "architectures": ["iphoneos-arm64e", "iphoneos-arm64"]}`, each
           repository once, with the architectures its releases carry; add
           `"allPackages": true` when one release holds several packages.
+        - The release an entry needs is `apelin_package_release`
+          (apelin-packaging-and-install): the device's release builds as
+          they were built, tagged at the pushed commit, with the
+          `SHA256SUMS` the workflow checks; never a workflow that builds the
+          package again (apelin-github-actions).
         - The workflow indexes each repository's three newest stable
           releases and the newest of the minor version before them: not a
           draft or a prerelease, and no `alpha`, `beta`, `rc`, `pre`,

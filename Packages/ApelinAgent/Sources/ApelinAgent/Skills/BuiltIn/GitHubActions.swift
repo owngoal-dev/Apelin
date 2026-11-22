@@ -21,8 +21,13 @@ extension BuiltInSkills {
         `apelin_project_build` with `configuration: release` for each
         bootstrap, then Distribute… or `apelin_package_publish` (the
         apelin-packaging-and-install and apelin-package-repository skills).
-        No tool here makes a GitHub Release of them: the user makes one on
-        GitHub with the files Distribute… shares.
+        - A release of a project's own packages for a source that indexes
+          GitHub Releases (owngoal-dev/owngoal-packages) is
+          `apelin_package_release` (apelin-packaging-and-install): the
+          device's builds as they were built, tagged at the pushed commit,
+          with `SHA256SUMS`. Never write a workflow that builds the package
+          again to release it: that is a second build that drifts from
+          Apelin's and keeps no dSYM.
 
         A workflow that compiles and packages an Apelin project again on a
         runner is a second build beside Apelin's: it drifts from what this
@@ -74,7 +79,8 @@ extension BuiltInSkills {
           `ldid -e`, or sign with codesign as above.
 
         ## Releasing without a tag tool
-        No Apelin tool pushes a git tag: `git_push` pushes one branch. A
+        `git_push` pushes one branch and no tag, and only
+        `apelin_package_release` makes one, for the release it publishes. A
         release workflow can do without one:
         - On a push to `main`, read the version in `apelin-project.json`;
           when there is no tag `v<version>` yet, release that commit under
