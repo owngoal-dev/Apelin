@@ -1555,8 +1555,13 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   `compaction` block is null, which Anthropic documents for a tool called
   in place of the summary — falls back to kwwk's own summary, where kwwk
   alone failed the compaction and, with the context full, the run ("context
-  is too large and compaction failed: …"); a status, a transport failure, a
-  refusal and anything kwwk retries stay errors. Task events: `prompt`, `title` {text},
+  is too large and compaction failed: …"). From kwwk 0.1.127 kwwk itself
+  goes on to its summary after a native compaction that failed in any
+  other way (a status, a transport failure, a refusal, past its retries),
+  and only a refused sign-in or a cancellation fails the compaction there;
+  a spent allowance is marked not to be asked again on the native step
+  too (`SpentAllowance`), so it gives up at once and the summary, asked of
+  the same account, ends on its first answer. Task events: `prompt`, `title` {text},
   `projectNameSuggested` {name} (only a concrete project intent),
   `steer`, `queued` {id, text, attachments} (a message sent while a run
   goes, handed to the run as a steer and recorded as its `prompt` of the
@@ -4544,7 +4549,11 @@ nothing at most), and on every message while the project still has its
 generated name; compaction, automatic at 75 % of the window (the user's,
 when they set one), `agentCompact` or the agent's
 apelin_conversation_compact, which writes the prefix anew as any
-compaction does; nothing at reopen, where the transcript is read back (the
+compaction does (from kwwk 0.1.127 kwwk's own summary request asks for no
+cache write, since nothing reads its prompt again, and the tool results in
+it older than the newest 60,000 tokens, 1,000 characters or more each, go
+in as one line naming the call, `ToolResultPruner`; a native compaction is
+sent as the conversation is); nothing at reopen, where the transcript is read back (the
 tool-name migration is idempotent) and the next request finds the prefix the
 last one cached. Known in kwwk, not worked around:
 `ProviderImageBudget.clamp` drops the oldest image one at a time past a
