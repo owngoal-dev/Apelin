@@ -3883,3 +3883,42 @@ products on iOS 15, the reporter's `dtremotedisplayd` and iOS 17.3.1
 devices, a setup of 27.0's own release again, the rest of the From GitHub
 cases (Select All, replace, SKILL.md and slash-branch links, a private
 repository, Cancel, the rate limit) and the rootless package.
+
+## 0.4.11 round (2026-11-27, kwwk 0.1.138 & #73)
+
+On the Mac and CI (PR #89, run 45975667238, Xcode 27.1): `make check`,
+the full `make harness` (ApelinAgent 489 tests, session host 1556/1556,
+apelind and workers typechecks), `make old-runtime`, `make deb-all`
+(both roothide and rootless packages and all extensions), `check-catalog-keys.py`,
+and `audit-objc-selectors.sh` (2 accepted, nothing new).
+
+CI's roothide package (`wiki.qaq.apelin_0.4.11_iphoneos-arm64e.deb`,
+build 198, `sha256` `4d42d58ef470`) installed over 0.4.9 on both jp-01
+iPhone guests and jp-02's iOS 26.4 iPad, and over 0.4.8 on jp-02's
+iOS 27.0.1 iPad:
+
+- `jp-01` `ios264` (iOS 26.4, roothide, Irisin 5.1.7): `suite smoke`
+  7 pass; `suite accounts` 2 pass (`accounts` reached Google's
+  `accounts.google.com/o/oauth2/v2/auth` with dynamic loopback redirect
+  `http://localhost:49219/oauth-callback` and all 7 `agy` scopes, then
+  cancelled; `a3-endpoint-beside` passed); `agentCredentialImport`
+  accepted `agy.json`, `agentAccountList` reported Antigravity signed in
+  with 27 bundled `AgyModels` (`claude-opus-5-5-high`, …), and
+  `agentSignOut` removed only `agy` leaving `openai-compatible`; 0 crash
+  reports.
+- `jp-01` `ios27` (iOS 27.0.1, roothide, Irisin 5.1.7): `suite smoke`
+  7 pass; `suite accounts` 2 pass; `agy.json` imported and signed out
+  cleanly; installed `Apelin.app/Licenses.json` verified `kwwk` version
+  `0.1.138` (`https://github.com/yellowplushq/kwwk`); 0 crash reports.
+- `jp-02` `ipad264` (iOS 26.4, roothide, Irisin 5.1.6): `suite smoke`
+  6 pass, 1 skip (`files`, no toolchain); `suite accounts` 2 pass; 0 new
+  crash reports.
+- `jp-02` `ipad27` (iOS 27.0.1, roothide, Irisin 5.1.4): `suite smoke`
+  6 pass, 1 skip (`files`, no toolchain); `suite accounts` 2 pass; 0
+  crash reports.
+- Both `jp-01` and `jp-02` VMs stopped cleanly afterwards (`vphone-slot
+  stop`, slots free) and the temporary transfer drop removed.
+
+Not run: live OpenCode Go / AirRelay chat with a real key or relay
+endpoint on device, the full `regression` suite, and the rootless
+package on a rootless device.
