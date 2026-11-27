@@ -259,7 +259,7 @@ public enum AgentWorker {
         case .openAICompatible:
             guard let model else { throw ApelinError(.badRequest, "name the model for \(provider.rawValue)") }
             return .openAICompatible(model: model)
-        case .openAICodex, .cursor, .devin, .kiro, .antigravity, .qoder, .qoderCN, .workBuddy, .workBuddyAI,
+        case .openAICodex, .cursor, .devin, .kiro, .qoder, .qoderCN, .workBuddy, .workBuddyAI,
              .trae, .traeIntl, .raccoon,
              .kimiCoding, .kimiCodingGlobal, .xai, .zai, .zaiCodingCN, .openRouter, .openAI, .google, .deepSeek,
              .openCodeGo, .openCodeZen:

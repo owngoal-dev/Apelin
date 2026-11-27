@@ -198,6 +198,25 @@ console now goes on after a restart only past a successful respring.
 
 ## Still to run on the owner's devices
 
+- [ ] An Antigravity sign-in left by 0.4.11 (`agy`) or earlier
+      (`antigravity`), after the upgrade to 0.4.12 (2026-11-27, issue #88,
+      kwwk 0.1.139, AGENTS.md ▸ Agent sign-in; none has run on a device).
+      On 0.4.11, with another account signed in: save a placeholder under
+      store id `agy` (and optionally `antigravity` from an earlier build)
+      through the credentials inbox, enable one of its models in Settings
+      ▸ Model Providers ▸ Antigravity, and pick it in a chat. Start
+      `device.py logs --process apelin-agent --seconds 300`, install
+      0.4.12 and open a chat. The capture logs "removed the saved sign-in
+      of agy, a provider Apelin no longer offers" (and likewise for
+      `antigravity` if present) once, with nothing of the placeholder;
+      `device.py call agentCredentialImport` refuses both `antigravity`
+      and `agy` and lists neither in `available`. The chat switches to
+      another signed-in account's enabled model (or Select Model when none
+      is enabled) and answers a sent message. Model Providers has no
+      Antigravity row, its footer ends "Currently using kwwk 0.1.139.",
+      and `wiki.qaq.apelin.plist` holds no `antigravity` keys once the app
+      backgrounds.
+
 - [ ] The lessons of a GitHub Actions release (2026-11-22, issue #79;
       the Mac harness holds the wording, the tools' answers and the
       committed file mode; on the iOS 26.4 iPhone vphone the created
@@ -1431,20 +1450,12 @@ console now goes on after a restart only past a successful respring.
       key fails verification without the key in what the app shows. Kimi
       For Coding Global signs in with its code on kimi.ai, a chat answers,
       and a sign-in again keeps the device id the first one recorded.
-- [ ] Antigravity's Google sign-in (2026-11-04, kwwk 0.1.111; offered
-      again in 0.4.9 on kwwk 0.1.127 with Antigravity restored, AGENTS.md
-      ▸ Agent sign-in). An account's renewal and a chat have run on a
-      device, from a sign-in another client made (the 0.4.9 record below);
-      no Google account has signed in through Apelin's own page. With a
-      Google account, Settings ▸ Model Providers ▸ Antigravity opens
-      Google's page in Safari, which comes back to
-      `localhost:51121/oauth-callback` (or the address pasted from
-      Safari's address bar where it cannot), and Antigravity is listed
-      signed in. A chat on `gemini-4-argon` and one on `claude-sonnet-5-5`
-      read a file with file_read and answer, Compact… compacts one, and the
-      chat still answers after the hour Google's token lasts. A free
-      account and a Google AI Pro one say which of the listed models each
-      serves; one it does not serve fails in Google's words.
+- [x] Antigravity's Google sign-in (2026-11-04, kwwk 0.1.111; offered
+      again in 0.4.9–0.4.11): no longer applicable. kwwk 0.1.139 removed
+      the relay-only `agy` provider from the shared SDK, and 0.4.12
+      retires Antigravity from Apelin (#88, AGENTS.md ▸ Agent sign-in);
+      upgrade cleanup of both legacy store ids (`antigravity`, `agy`) is
+      tracked in the 0.4.12 entry above.
 - [ ] Custom instructions (2026-11-22, issue #74, AGENTS.md ▸ Custom
       instructions; the store, the prompt section, its ranking and the
       prompt staying the same bytes ran on the Mac; the editor, a chat

@@ -238,7 +238,7 @@ the same executable in session mode; the workers are its children.
   checkout that no longer states exactly one where the rule says fails the
   build). The app shows a linked package's version only from this list
   (`LinkedPackage`): Model Providers' footer ends "Currently using kwwk
-  0.1.138." (owner, 2026-11-14), which is the kwwk the workers of the same
+  0.1.139." (owner, 2026-11-14), which is the kwwk the workers of the same
   build link, with no number kept by hand.
 - **No absolute build path in a shipped binary.** `#file` is concise
   (`SWIFT_UPCOMING_FEATURE_CONCISE_MAGIC_FILE`, prefix maps in `Base.xcconfig`);
@@ -2534,9 +2534,8 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   GitHub Copilot, Kimi For Coding (kimi.com and, from kwwk 0.1.108, Kimi
   For Coding Global on kimi.ai, each with its own device id) and Grok;
   Safari with kwwk's loopback
-  listener for Claude Pro or Max, ChatGPT Codex, Devin, OpenRouter,
-  from kwwk 0.1.110, Antigravity and, from kwwk 0.1.118, Trae CN, Trae
-  and Raccoon; a
+  listener for Claude Pro or Max, ChatGPT Codex, Devin, OpenRouter
+  and, from kwwk 0.1.118, Trae CN, Trae and Raccoon; a
   page kwwk polls for Cursor, Qoder, Qoder CN, WorkBuddy, WorkBuddy AI, Z.ai
   and BigModel; Kiro's own listener — and every API-key entry of KWWKCli's
   `loginProviders` (Anthropic, OpenAI, Google AI Studio, OpenRouter,
@@ -2561,26 +2560,18 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   only the cases, the key forms and model discovery at the plan's
   `<root>/v1/models`, which, like kwwk's routes, never reads a `baseUrl`
   an imported credential carries.
-  Antigravity (owner, 2026-11-04; originally kwwk 0.1.110's direct Code
-  Assist provider, removed in 0.1.122, temporarily restored via
-  `yellowplushq/kwwk#296` in 0.4.9–0.4.10) now follows upstream
-  `yellowplushq/kwwk` `v0.1.138` (`AgyOAuth`, `AgyModels`, `#302`, `#310`,
-  `#317`, `#73`): kwwk closed `#296` unmerged and ships Antigravity CLI
-  (`agy`), a Google OAuth2 + PKCE sign-in on a dynamic loopback port (`0`,
-  `/oauth-callback`) that caches `email` and `projectId`, renews at Google
-  (`upkeep: .refreshed`, in `KimiIdentity.refreshers()` with the rest),
-  lists kwwk's bundled `agy` catalog (effort encoded in each slug), and
-  routes Anthropic Messages inference through an AirRelay endpoint when
-  `baseUrl` or `relayUrl` is present in `extras`. Apelin keeps
-  `AgentProvider.antigravity` on the wire mapped to store id `agy`, keeps
-  the provider after Cursor with its mark, preserves any saved AirRelay
-  `baseUrl`/`relayUrl` across Google re-sign-in and displays its host as
-  the account label, and surfaces an explicit AirRelay endpoint error when
-  a session resolves without one instead of claiming no sign-in. Nothing in
-  Apelin deletes the sign-in of a provider it offers: only Sign Out does,
-  and it removes the keychain item alone, revoking nothing at the provider,
-  so an Antigravity sign-in made from a token another client holds leaves
-  that client signed in.
+  Antigravity, Google's, was offered from 0.3.7 to 0.4.11 (`antigravity`
+  in 0.3.7–0.4.10; `agy` via AirRelay in 0.4.11) and retired in 0.4.12
+  after `yellowplushq/kwwk` `v0.1.139` removed the relay-only `agy`
+  provider in favour of host-side runtime registration (#88): its wire
+  name and both legacy store ids (`antigravity`, `agy`) stay in
+  `AgentProvider.retired`, apelin-agent deletes any keychain item a
+  previous sign-in left the first time accounts are listed
+  (`AccountDesk.forgetRetiredSignIns`, logging the store id alone), and
+  the app clears the models, limits and composer choice kept for it at
+  each launch (`EnabledModels.forgetRetiredProviders`); a choice still
+  naming it reads as none, so the composer takes another account's model
+  or asks for one.
   Trae and Raccoon (owner, 2026-11-11; JanXiao's providers of PR #40,
   moved into kwwk as OpenCode Go was: kwwk 0.1.118, `TraeOAuth`,
   `TraeProvider`, `RaccoonOAuth`, `RaccoonProvider`) are signed in to as
@@ -2609,8 +2600,9 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   Display order is Apelin's `AgentProvider.signInOrder`, independent of
   kwwk's registration order;
   `AccountDeskTests` fails when kwwk gains a subscription or a stored
-  provider (`providerDirectory`) the table lacks, or when a provider here is
-  one neither kwwk nor Apelin can register for a session.
+  provider (`providerDirectory`) the table lacks, when a provider here is
+  one neither kwwk nor Apelin can register for a session, or when kwwk
+  signs in to a retired one again.
   Several OpenAI-compatible endpoints (#60: there was one, and adding
   another replaced it): the first is `openAICompatible` as before, and
   each further one is a provider of its own, `openAICompatibleEndpoint(n)`,
@@ -2673,10 +2665,9 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   refresh token or authorization code is exposed; the device code is the one
   thing the flow shows. A loopback redirect is the URI kwwk registered for
   that provider (Claude's `http://localhost:53692/callback`, Codex's port
-  1455, Devin's `127.0.0.1:59653`, OpenRouter's port 53693, Antigravity's
-  `http://localhost:51121/oauth-callback`), or, for Trae and Raccoon, whose
-  pages take any, whichever port is free (`127.0.0.1:<port>/authorize` and
-  `/auth/callback`): kwwk's NIO listener in
+  1455, Devin's `127.0.0.1:59653`, OpenRouter's port 53693), or, for
+  Trae and Raccoon, whose pages take any, whichever port is free
+  (`127.0.0.1:<port>/authorize` and `/auth/callback`): kwwk's NIO listener in
   the worker, through kwwk's `loopback` seam (`PasteableLoopback`), answers
   a browser on the same device, and is raced against the redirect address
   handed back as `callbackURL` for a browser that cannot reach it. The
@@ -2702,12 +2693,12 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   other device can finish it. Proven on the Mac by `AccountDeskTests` (fake flows and
   listener, an in-memory store, no secret in any event: a device code that
   is typed and one that is only checked, Kimi's device id, a loopback with
-  a paste, Antigravity's own kwwk login up to its Google page, a polled
-  page, every key form, OpenRouter both ways, kwwk's lists covered); on a
-  device by `Documents/Console/scripts/accounts.json` (start, read, refuse
-  and cancel a device code, four loopbacks, OpenRouter's, Antigravity's,
-  Trae CN's and Raccoon's, a polled page and two key forms; signs nothing
-  in) and, by name,
+  a paste, a polled page, every key form, OpenRouter both ways, a retired
+  provider's sign-in deleted, kwwk's lists covered); on a device by
+  `Documents/Console/scripts/accounts.json` (start, read, refuse and
+  cancel a device code, three loopbacks, OpenRouter's, Trae CN's and
+  Raccoon's, a polled page and two key forms; signs nothing in) and, by
+  name,
   `a2-api-key-sign-in.json` (a placeholder key in and out again, which
   replaces the device's openai-compatible sign-in); the real sign-ins by
   hand.

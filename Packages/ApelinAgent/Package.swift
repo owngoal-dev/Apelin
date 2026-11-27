@@ -20,14 +20,13 @@ let package = Package(
         .library(name: "ApelinAgentWorker", targets: ["ApelinAgentWorker"]),
     ],
     dependencies: [
-        // yellowplushq/kwwk v0.1.138 (ad07015e): OpenCode Go custom-endpoint
-        // gateway headers, Anthropic /v1 URL deduplication and Responses WS
-        // fallback (#322), plus Antigravity CLI (`agy`) OAuth and AirRelay
-        // (#302, #310, #317). Pinned to the exact release tag (and its commit
-        // in Package.resolved); bump deliberately (#73).
+        // yellowplushq/kwwk v0.1.139 (69e6e0bf): removes AirRelay/Antigravity
+        // CLI (`agy`) from the shared SDK and introduces runtime provider
+        // registration hooks. Pinned to the exact release tag (and its commit
+        // in Package.resolved); bump deliberately (#73, #88).
         .package(
             url: "https://github.com/yellowplushq/kwwk.git",
-            exact: "0.1.138",
+            exact: "0.1.139",
         ),
         // kwwk's swift-nio, held below 2.104.0. That release made
         // ByteToMessageHandler's decoder `~Copyable`, and an iOS runtime
