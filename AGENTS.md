@@ -231,15 +231,15 @@ the same executable in session mode; the workers are its children.
   GPL-family text fails the build. Vendored code keeps its upstream `LICENSE`
   beside it and its header on each file; MIT / BSD / Apache only. `make check`
   requires the phase, the packager requires the file. Read the generated list
-  after adding a dependency. A package pinned by revision has no version in
-  its pin, so one whose checkout states its own is read there
-  (`statedVersions` in `Licenses/review.json`: kwwk's, from
-  `Sources/KWWKCli/Theme.swift`; a checkout that no longer states exactly
-  one where the rule says fails the build). The app shows a linked
-  package's version only from this list (`LinkedPackage`): Model
-  Providers' footer ends "Currently using kwwk 0.1.127." (owner,
-  2026-11-14), which is the kwwk the workers of the same build link, with
-  no number kept by hand.
+  after adding a dependency. A package pinned to a release takes its
+  `Package.resolved` `version`; one pinned by revision with no version in
+  its pin reads what its checkout states for itself (`statedVersions` in
+  `Licenses/review.json`: kwwk's, from `Sources/KWWKCli/Theme.swift`; a
+  checkout that no longer states exactly one where the rule says fails the
+  build). The app shows a linked package's version only from this list
+  (`LinkedPackage`): Model Providers' footer ends "Currently using kwwk
+  0.1.138." (owner, 2026-11-14), which is the kwwk the workers of the same
+  build link, with no number kept by hand.
 - **No absolute build path in a shipped binary.** `#file` is concise
   (`SWIFT_UPCOMING_FEATURE_CONCISE_MAGIC_FILE`, prefix maps in `Base.xcconfig`);
   the packager greps every binary for the repository root and fails on a hit.
@@ -2553,39 +2553,34 @@ What `CHECKLIST.md` asked to be written down, and where the answer lives.
   (`oc_sk_…`) for Go, the subscription, under `opencode-go`, or Zen,
   pay-as-you-go, under `opencode`, each wire at its own path under the
   plan's root and every request naming its conversation in
-  `x-opencode-session`, which Go refuses a request without. Apelin adds
+  `x-opencode-session`, which Go refuses a request without (from kwwk
+  0.1.138, `yellowplushq/kwwk#322`, every `opencode.ai` request carries
+  `x-opencode-session` and a default `User-Agent`, Anthropic `/v1` base
+  URLs are deduplicated and Responses falls back from WebSocket 404 to
+  HTTP SSE). Apelin adds
   only the cases, the key forms and model discovery at the plan's
   `<root>/v1/models`, which, like kwwk's routes, never reads a `baseUrl`
   an imported credential carries.
-  Antigravity (owner, 2026-11-04; kwwk 0.1.110 and 0.1.111,
-  `AntigravityOAuth`, `registerAntigravity`) is Google's: a Google sign-in
-  with Antigravity's own client, PKCE and its registered loopback, after
-  which kwwk finds the account's Code Assist project, onboarding a new
-  account and polling until Google has set it up, and keeps the project,
-  the tier and, when Google names it, the email as extras; it renews at Google (`upkeep: .refreshed`, in
-  `KimiIdentity.refreshers()` with the rest) and answers through Code
-  Assist's `streamGenerateContent`. A free Google account signs in too;
-  which models a plan serves is Google's. Apelin adds the case, after
-  Cursor in the order, and its mark (its official logo on a white plate):
-  the models are kwwk's bundled list for it (`antigravity`, from 0.1.111
-  Gemini 4 Argon, Gemini 3.8 Flash, Claude Opus 5.5 and Sonnet 5.5 among
-  them), enabled with no check like any subscription's, and a model the
-  account is not served fails its chat in Google's words. kwwk waits out
-  a 429 that says it is back within a minute and fails one that says the
-  quota is spent (its `ProviderFailures.md`); its quota reader
-  (`OAuthUsage`) is shown nowhere, as for every subscription.
-  Offered from 0.3.7, it went in 0.4.8, kwwk having removed it in
-  0.1.122, and 0.4.8, once installed, deleted the sign-in it had saved,
-  the models enabled for it and a composer choice of one. It is offered
-  again from 0.4.9 with kwwk 0.1.127 and its Antigravity restore (owner,
-  2026-11-22: an account Google bans is Google's matter and the user's
-  risk, and it serves those who use it): yellowplushq/kwwk#296, which
-  reverts the removal and is not released yet, pinned by its head commit
-  until a kwwk release carries it (#73 tracks the move). Whoever used it
-  before 0.4.8 signs in again. Nothing in Apelin deletes the sign-in of a provider it
-  offers: only Sign Out does, and it removes the keychain item alone,
-  revoking nothing at the provider, so an Antigravity sign-in made from a
-  token another client holds leaves that client signed in.
+  Antigravity (owner, 2026-11-04; originally kwwk 0.1.110's direct Code
+  Assist provider, removed in 0.1.122, temporarily restored via
+  `yellowplushq/kwwk#296` in 0.4.9–0.4.10) now follows upstream
+  `yellowplushq/kwwk` `v0.1.138` (`AgyOAuth`, `AgyModels`, `#302`, `#310`,
+  `#317`, `#73`): kwwk closed `#296` unmerged and ships Antigravity CLI
+  (`agy`), a Google OAuth2 + PKCE sign-in on a dynamic loopback port (`0`,
+  `/oauth-callback`) that caches `email` and `projectId`, renews at Google
+  (`upkeep: .refreshed`, in `KimiIdentity.refreshers()` with the rest),
+  lists kwwk's bundled `agy` catalog (effort encoded in each slug), and
+  routes Anthropic Messages inference through an AirRelay endpoint when
+  `baseUrl` or `relayUrl` is present in `extras`. Apelin keeps
+  `AgentProvider.antigravity` on the wire mapped to store id `agy`, keeps
+  the provider after Cursor with its mark, preserves any saved AirRelay
+  `baseUrl`/`relayUrl` across Google re-sign-in and displays its host as
+  the account label, and surfaces an explicit AirRelay endpoint error when
+  a session resolves without one instead of claiming no sign-in. Nothing in
+  Apelin deletes the sign-in of a provider it offers: only Sign Out does,
+  and it removes the keychain item alone, revoking nothing at the provider,
+  so an Antigravity sign-in made from a token another client holds leaves
+  that client signed in.
   Trae and Raccoon (owner, 2026-11-11; JanXiao's providers of PR #40,
   moved into kwwk as OpenCode Go was: kwwk 0.1.118, `TraeOAuth`,
   `TraeProvider`, `RaccoonOAuth`, `RaccoonProvider`) are signed in to as

@@ -214,10 +214,10 @@ struct AccountDeskTests {
         #expect(!recorder.transcript.contains("c1&"))
     }
 
-    /// Antigravity's own login, kwwk's and not a stand-in: Google's PKCE
-    /// page with the loopback Antigravity registered, which a pasted
-    /// redirect can stand in for. Cancelled before the code would go to
-    /// Google, so nothing here reaches the network.
+    /// Antigravity's own login, kwwk's (`agy`) and not a stand-in: Google's
+    /// PKCE page with a dynamic loopback port, which a pasted redirect can
+    /// stand in for. Cancelled before the code would go to Google, so nothing
+    /// here reaches the network.
     @Test
     func `Antigravity signs in with Google through a loopback a pasted address can stand in for`() async throws {
         let opened = SignInRecorder()
@@ -230,16 +230,43 @@ struct AccountDeskTests {
         #expect(AgentProvider.antigravity.signInMethods == [.browser])
         try await desk.start(AgentSignInRequest(provider: .antigravity), taskID: TaskID("g1"), reporter: recorder.reporter)
         try await recorder.waitFor { !$0.events.isEmpty }
-        #expect(opened.events.map(\.kind) == ["localhost:51121/oauth-callback"])
+        #expect(opened.events.map(\.kind) == ["localhost:0/oauth-callback"])
         #expect(recorder.events.map(\.kind) == ["authorize"])
         #expect(recorder.events[0].payload?["acceptsCallbackURL"] == .bool(true))
         let page = try #require(recorder.events[0].payload?["url"]?.stringValue.flatMap(URLComponents.init(string:)))
         #expect(page.host == "accounts.google.com")
-        #expect(page.queryItems?.first { $0.name == "redirect_uri" }?.value == "http://localhost:51121/oauth-callback")
+        #expect(page.path == "/o/oauth2/v2/auth")
+        #expect(page.queryItems?.first { $0.name == "redirect_uri" }?.value == "http://localhost:0/oauth-callback")
         #expect(page.queryItems?.first { $0.name == "code_challenge_method" }?.value == "S256")
         #expect(await desk.cancel(TaskID("g1")))
         try await recorder.waitFor { $0.state != nil }
         #expect(recorder.state == .cancelled)
+    }
+
+    @Test
+    func `Antigravity re-sign-in preserves an existing AirRelay endpoint and displays its host`() async throws {
+        let previous = OAuthCredentials(
+            access: "old-SECRET",
+            refresh: "old-refresh-SECRET",
+            expires: 1,
+            extras: ["baseUrl": .string("https://relay.example.invalid/v1")],
+        )
+        let store = DeliveredCredentialSource([AgyOAuth.providerId: previous])
+        let login: SignInLogin = { provider, _, _ in
+            #expect(provider == .antigravity)
+            return Self.issued
+        }
+        let desk = AccountDesk(store: store, login: login, listener: Self.silent, verifyKey: { _, _, _ in })
+        let recorder = SignInRecorder()
+        try await desk.start(AgentSignInRequest(provider: .antigravity), taskID: TaskID("g2"), reporter: recorder.reporter)
+        try await recorder.waitFor { $0.state != nil }
+        #expect(recorder.state == .succeeded)
+        let stored = try #require(try await store.credentials(for: AgyOAuth.providerId))
+        #expect(stored.access == Self.issued.access)
+        #expect(stored.extras["baseUrl"] == .string("https://relay.example.invalid/v1"))
+        let account = try #require(await desk.list().accounts.first { $0.provider == .antigravity })
+        #expect(account.signedIn)
+        #expect(account.account == "relay.example.invalid")
     }
 
     /// Trae's and Raccoon's own logins, kwwk's: each page takes any

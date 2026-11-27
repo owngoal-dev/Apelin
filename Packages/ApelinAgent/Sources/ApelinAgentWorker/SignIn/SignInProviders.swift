@@ -33,7 +33,7 @@ public extension AgentProvider {
         case .cursor: "cursor"
         case .devin: "devin"
         case .kiro: "kiro"
-        case .antigravity: "antigravity"
+        case .antigravity: AgyOAuth.providerId
         case .qoder: QoderSite.global.id
         case .qoderCN: QoderSite.cn.id
         case .workBuddy: WorkBuddySite.china.id
