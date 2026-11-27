@@ -53,6 +53,22 @@ struct ComposerModelSelection: Codable, Equatable {
         }
     }
 
+    /// A choice of a retired provider's model (`AgentProvider.retired`) is
+    /// removed, after adopting any legacy effort/tier picks it still held.
+    /// It no longer decodes, so the composer already reads it as no choice and
+    /// takes another signed-in account's model, or asks for one.
+    static func forgetRetiredProvider(in defaults: UserDefaults = .standard) {
+        struct Named: Decodable {
+            var provider: String
+        }
+        guard let data = defaults.data(forKey: key),
+              let named = try? JSONDecoder().decode(Named.self, from: data),
+              AgentProvider.retired.contains(where: { $0.name == named.provider })
+        else { return }
+        ComposerModelPreferences.adoptLegacyPicks(in: defaults)
+        defaults.removeObject(forKey: key)
+    }
+
     fileprivate static let key = "composer.modelSelection"
 }
 
@@ -99,15 +115,18 @@ enum ComposerModelPreferences {
     }
 
     private static var legacy: Legacy? {
-        UserDefaults.standard.data(forKey: ComposerModelSelection.key)
+        legacy(in: .standard)
+    }
+
+    private static func legacy(in defaults: UserDefaults) -> Legacy? {
+        defaults.data(forKey: ComposerModelSelection.key)
             .flatMap { try? JSONDecoder().decode(Legacy.self, from: $0) }
     }
 
     /// Before a new selection replaces one that still holds the picks.
-    fileprivate static func adoptLegacyPicks() {
-        let defaults = UserDefaults.standard
+    fileprivate static func adoptLegacyPicks(in defaults: UserDefaults = .standard) {
         guard defaults.object(forKey: effortKey) == nil || defaults.object(forKey: tierKey) == nil,
-              let legacy
+              let legacy = legacy(in: defaults)
         else { return }
         if defaults.object(forKey: effortKey) == nil, let effort = legacy.effort {
             defaults.set(effort.rawValue, forKey: effortKey)

@@ -51,8 +51,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/yellowplushq/kwwk.git",
       "state" : {
-        "revision" : "ad07015ef8c267c014c71019864943a90b70d5c2",
-        "version" : "0.1.138"
+        "revision" : "69e6e0bfac850366bb31e5706262421c9e3e74bb",
+        "version" : "0.1.139"
       }
     },
     {

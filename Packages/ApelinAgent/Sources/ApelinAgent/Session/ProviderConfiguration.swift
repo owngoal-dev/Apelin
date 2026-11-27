@@ -110,8 +110,6 @@ enum ProviderResolver {
                 message: "The model provider did not answer in time.",
                 reason: network.isSatisfied() ? .timeout : .offline,
             )
-        } catch let error as ProviderResolutionError {
-            throw error
         } catch is CancellationError {
             throw CancellationError()
         } catch {

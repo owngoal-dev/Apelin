@@ -146,8 +146,6 @@ public enum AgentProvider: Hashable, Sendable {
     case devin
     /// Kiro, through AWS Builder ID, Google or GitHub (`kiro`).
     case kiro
-    /// Antigravity, Google's, through a Google sign-in (`agy`).
-    case antigravity
     /// Qoder, qoder.com (`qoder`).
     case qoder
     /// Qoder CN, qoder.cn (`qoder-cn`).
@@ -215,7 +213,6 @@ extension AgentProvider: RawRepresentable, Codable {
         case .cursor: "cursor"
         case .devin: "devin"
         case .kiro: "kiro"
-        case .antigravity: "antigravity"
         case .qoder: "qoder"
         case .qoderCN: "qoderCN"
         case .workBuddy: "workBuddy"
@@ -281,7 +278,6 @@ extension AgentProvider: CaseIterable {
         .cursor,
         .devin,
         .kiro,
-        .antigravity,
         .qoder,
         .qoderCN,
         .workBuddy,
@@ -303,7 +299,32 @@ extension AgentProvider: CaseIterable {
     ]
 }
 
+/// A provider Apelin offered and no longer does, because kwwk no longer
+/// signs in to it: the name it had on the wire, which a choice the app
+/// saved may still hold, and the kwwk store id its sign-in was kept under.
+/// No case of `AgentProvider` has either any more: the name no longer
+/// decodes as a provider, and nothing signs in under the store id.
+public struct RetiredAgentProvider: Sendable, Equatable {
+    public var name: String
+    public var storeID: String
+
+    public init(name: String, storeID: String) {
+        self.name = name
+        self.storeID = storeID
+    }
+}
+
 public extension AgentProvider {
+    /// Providers taken away, whose leftovers are cleared: apelin-agent
+    /// deletes the sign-in (`AccountDesk`), the app the models enabled for
+    /// it and a composer choice of one of them. Antigravity was offered from
+    /// 0.3.7 to 0.4.11 (`antigravity` in 0.3.7–0.4.10, `agy` in 0.4.11);
+    /// kwwk 0.1.139 removed AirRelay/`agy` from the shared SDK.
+    static let retired: [RetiredAgentProvider] = [
+        RetiredAgentProvider(name: "antigravity", storeID: "antigravity"),
+        RetiredAgentProvider(name: "antigravity", storeID: "agy"),
+    ]
+
     /// The provider whose sign-in form, transport and name this one has:
     /// itself, and `openAICompatible` for a further endpoint.
     var kind: AgentProvider {

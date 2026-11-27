@@ -104,6 +104,34 @@ final class SilentListener: OAuthLoopbackListener, @unchecked Sendable {
     }
 }
 
+/// A store whose first deletion fails, as a keychain that refuses one can.
+actor RemovalRefusedOnce: CredentialSource {
+    private var entries: [String: OAuthCredentials]
+    private(set) var removals = 0
+
+    init(_ entries: [String: OAuthCredentials]) {
+        self.entries = entries
+    }
+
+    func providerIds() -> [String] {
+        entries.keys.sorted()
+    }
+
+    func credentials(for providerId: String) -> OAuthCredentials? {
+        entries[providerId]
+    }
+
+    func store(_ credentials: OAuthCredentials, for providerID: String) {
+        entries[providerID] = credentials
+    }
+
+    func remove(_ providerID: String) throws {
+        removals += 1
+        guard removals > 1 else { throw POSIXError(.EIO) }
+        entries.removeValue(forKey: providerID)
+    }
+}
+
 @Suite("Sign-in: kwwk's flows in apelin-agent, nothing secret on the wire", .timeLimit(.minutes(1)))
 struct AccountDeskTests {
     static let silent: OAuthLoopbackFactory = { SilentListener(host: $0, port: $1, path: $2) }
@@ -212,61 +240,6 @@ struct AccountDeskTests {
         #expect(try await store.credentials(for: "anthropic") == Self.issued)
         #expect(!recorder.transcript.contains("SECRET"))
         #expect(!recorder.transcript.contains("c1&"))
-    }
-
-    /// Antigravity's own login, kwwk's (`agy`) and not a stand-in: Google's
-    /// PKCE page with a dynamic loopback port, which a pasted redirect can
-    /// stand in for. Cancelled before the code would go to Google, so nothing
-    /// here reaches the network.
-    @Test
-    func `Antigravity signs in with Google through a loopback a pasted address can stand in for`() async throws {
-        let opened = SignInRecorder()
-        let listener: OAuthLoopbackFactory = { host, port, path in
-            opened.reporter.emit(TaskID("listener"), "\(host):\(port)\(path)", nil)
-            return SilentListener(host: host, port: port, path: path)
-        }
-        let desk = AccountDesk(store: DeliveredCredentialSource(), login: KWWKSignIn.login, listener: listener, verifyKey: { _, _, _ in })
-        let recorder = SignInRecorder()
-        #expect(AgentProvider.antigravity.signInMethods == [.browser])
-        try await desk.start(AgentSignInRequest(provider: .antigravity), taskID: TaskID("g1"), reporter: recorder.reporter)
-        try await recorder.waitFor { !$0.events.isEmpty }
-        #expect(opened.events.map(\.kind) == ["localhost:0/oauth-callback"])
-        #expect(recorder.events.map(\.kind) == ["authorize"])
-        #expect(recorder.events[0].payload?["acceptsCallbackURL"] == .bool(true))
-        let page = try #require(recorder.events[0].payload?["url"]?.stringValue.flatMap(URLComponents.init(string:)))
-        #expect(page.host == "accounts.google.com")
-        #expect(page.path == "/o/oauth2/v2/auth")
-        #expect(page.queryItems?.first { $0.name == "redirect_uri" }?.value == "http://localhost:0/oauth-callback")
-        #expect(page.queryItems?.first { $0.name == "code_challenge_method" }?.value == "S256")
-        #expect(await desk.cancel(TaskID("g1")))
-        try await recorder.waitFor { $0.state != nil }
-        #expect(recorder.state == .cancelled)
-    }
-
-    @Test
-    func `Antigravity re-sign-in preserves an existing AirRelay endpoint and displays its host`() async throws {
-        let previous = OAuthCredentials(
-            access: "old-SECRET",
-            refresh: "old-refresh-SECRET",
-            expires: 1,
-            extras: ["baseUrl": .string("https://relay.example.invalid/v1")],
-        )
-        let store = DeliveredCredentialSource([AgyOAuth.providerId: previous])
-        let login: SignInLogin = { provider, _, _ in
-            #expect(provider == .antigravity)
-            return Self.issued
-        }
-        let desk = AccountDesk(store: store, login: login, listener: Self.silent, verifyKey: { _, _, _ in })
-        let recorder = SignInRecorder()
-        try await desk.start(AgentSignInRequest(provider: .antigravity), taskID: TaskID("g2"), reporter: recorder.reporter)
-        try await recorder.waitFor { $0.state != nil }
-        #expect(recorder.state == .succeeded)
-        let stored = try #require(try await store.credentials(for: AgyOAuth.providerId))
-        #expect(stored.access == Self.issued.access)
-        #expect(stored.extras["baseUrl"] == .string("https://relay.example.invalid/v1"))
-        let account = try #require(await desk.list().accounts.first { $0.provider == .antigravity })
-        #expect(account.signedIn)
-        #expect(account.account == "relay.example.invalid")
     }
 
     /// Trae's and Raccoon's own logins, kwwk's: each page takes any
@@ -732,6 +705,53 @@ struct AccountDeskTests {
         #expect(try await one.authResolver?(one.model, nil)?.token == "sk-one")
         // An endpoint nobody signed in to resolves to nothing.
         #expect(try await ProviderRegistration.resolve(storeID: "openai-compatible.3", manager: manager) == nil)
+    }
+
+    /// What Antigravity's sign-in left (`antigravity` in 0.3.7–0.4.10 and
+    /// `agy` in 0.4.11) goes at the first list, and only it: nothing could
+    /// list it or sign out of it any more.
+    @Test
+    func `the first list deletes a retired provider's sign-in and keeps every other`() async throws {
+        let retired = OAuthCredentials(access: "retired-SECRET", refresh: "retired-refresh-SECRET", expires: 4_102_444_800_000)
+        let store = DeliveredCredentialSource([
+            "antigravity": retired,
+            "agy": retired,
+            "github-copilot": Self.issued,
+        ])
+        let desk = AccountDesk(store: store, login: Self.neverCalled, listener: Self.silent, verifyKey: { _, _, _ in })
+        let listed = await desk.list().accounts
+        #expect(await store.providerIds() == ["github-copilot"])
+        #expect(listed.map(\.provider) == AgentProvider.signInOrder)
+        #expect(listed.filter(\.signedIn).map(\.provider) == [.githubCopilot])
+        // Nothing left to do, and nothing else goes.
+        _ = await desk.list()
+        #expect(try await store.credentials(for: "github-copilot") == Self.issued)
+    }
+
+    @Test
+    func `a retired sign-in the store would not delete is tried again by the next list`() async {
+        let store = RemovalRefusedOnce(["antigravity": Self.issued, "agy": Self.issued])
+        let desk = AccountDesk(store: store, login: Self.neverCalled, listener: Self.silent, verifyKey: { _, _, _ in })
+        _ = await desk.list()
+        #expect(await store.providerIds() == ["antigravity"])
+        _ = await desk.list()
+        #expect(await store.providerIds().isEmpty)
+        _ = await desk.list()
+        #expect(await store.removals == 3)
+    }
+
+    /// A retired provider's store id is no current provider's, so its
+    /// deletion takes no sign-in still in use, and kwwk no longer has it.
+    @Test
+    func `a retired store id belongs to no current provider and to nothing kwwk signs in to`() {
+        let current = Set(AgentProvider.allCases.map(\.storeID))
+        let kwwk = Set(providerDirectory.map(\.storeId)).union(OAuthSubscriptions.providers.map(\.id))
+        for retired in AgentProvider.retired {
+            #expect(!current.contains(retired.storeID))
+            #expect(CredentialProviderID.endpointNumber(retired.storeID) == nil)
+            #expect(!kwwk.contains(retired.storeID), "kwwk signs in to \(retired.storeID) again")
+            #expect(!CredentialInbox.isKnown(retired.storeID))
+        }
     }
 
     @Test

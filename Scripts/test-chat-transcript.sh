@@ -11,8 +11,9 @@
 # Delete and when it asks first, which replies leave a conversation
 # unread, what a forced push's and a squash's approval cards show, how
 # a sign-in page says it is finished from another device, which typed
-# text the Web capture takes for an address, and which version of a linked
-# package the app shows, against the harness modules.
+# text the Web capture takes for an address, which version of a linked
+# package the app shows, and how retired providers' saved preferences are
+# cleared at launch, against the harness modules.
 # Usage: test-chat-transcript.sh <ApelinKit modules directory>
 set -euo pipefail
 
@@ -46,6 +47,9 @@ sources=(
     "$root/Apelin/Interface/Feedback/CompletedBuilds.swift"
     "$root/Apelin/Interface/Feedback/StarPromptState.swift"
     "$root/Apelin/Interface/Settings/Accounts/SignInProgress.swift"
+    "$root/Apelin/Interface/Settings/Accounts/ModelLimitsStore.swift"
+    "$root/Apelin/Interface/Settings/Accounts/EnabledModels.swift"
+    "$root/Apelin/Interface/Chats/Composer/ComposerModelSelection.swift"
     "$root/Apelin/Interface/Chats/Composer/WebAddress.swift"
     "$root/Apelin/Interface/Settings/LinkedPackage.swift"
     "$root/Tests/ChatTranscript/TranscriptFold.swift"
@@ -67,6 +71,7 @@ sources=(
     "$root/Tests/ChatTranscript/SignInElsewhereCheck.swift"
     "$root/Tests/ChatTranscript/WebAddressCheck.swift"
     "$root/Tests/ChatTranscript/LinkedPackageCheck.swift"
+    "$root/Tests/ChatTranscript/RetiredProviderCleanupCheck.swift"
     "$root/Tests/ChatTranscript/main.swift"
 )
 

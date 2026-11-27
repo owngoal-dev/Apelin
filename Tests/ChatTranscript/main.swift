@@ -1275,3 +1275,5 @@ checkSignInElsewhere()
 checkWebAddress()
 
 checkLinkedPackage()
+
+checkRetiredProviderCleanup()
