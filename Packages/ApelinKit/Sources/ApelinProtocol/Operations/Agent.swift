@@ -146,7 +146,7 @@ public enum AgentProvider: Hashable, Sendable {
     case devin
     /// Kiro, through AWS Builder ID, Google or GitHub (`kiro`).
     case kiro
-    /// Antigravity, Google's, through a Google sign-in (`antigravity`).
+    /// Antigravity, Google's, through a Google sign-in (`agy`).
     case antigravity
     /// Qoder, qoder.com (`qoder`).
     case qoder

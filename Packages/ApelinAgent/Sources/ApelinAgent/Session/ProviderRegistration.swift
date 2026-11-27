@@ -36,7 +36,15 @@ public enum ProviderRegistration {
         } else {
             try await registerStored(storeId: storeID, manager: manager, modelOverride: modelOverride)
         }
-        guard let resolved = registered else { return nil }
+        guard let resolved = registered else {
+            if storeID == AgyOAuth.providerId {
+                throw ProviderResolutionError.unresolved(
+                    message: "Antigravity needs an AirRelay endpoint to send chats. Configure an AirRelay endpoint for Antigravity, or choose another model provider.",
+                    reason: nil,
+                )
+            }
+            return nil
+        }
         guard CredentialProviderID.isOpenAICompatible(storeID) else {
             return resolved
         }

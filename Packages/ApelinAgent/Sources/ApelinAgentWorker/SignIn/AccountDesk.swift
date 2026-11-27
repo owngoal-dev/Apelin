@@ -159,8 +159,12 @@ public actor AccountDesk {
     /// subscription carries no account name kwwk keeps, and a key a browser
     /// sign-in minted (OpenRouter's, Z.ai's) names no endpoint.
     static func accountLabel(_ provider: AgentProvider, _ credentials: OAuthCredentials) -> String? {
-        if case let .string(base)? = credentials.extras[AgentSignInField.baseURL.rawValue] {
-            return URLComponents(string: base)?.host
+        for key in [AgentSignInField.baseURL.rawValue, "relayUrl"] {
+            if case let .string(base)? = credentials.extras[key],
+               let host = URLComponents(string: base)?.host
+            {
+                return host
+            }
         }
         guard provider.signInMethod == .apiKey,
               let base = provider.keyFields.first(where: { $0.field == .baseURL })?.defaultValue
@@ -430,6 +434,16 @@ public actor AccountDesk {
             }
             if run.provider == .openRouter, run.method == .apiKey {
                 signedIn.extras[ProviderModels.signInMethodExtra] = .string(run.method.rawValue)
+            }
+            if run.provider == .antigravity,
+               let previous = try? await store.credentials(for: run.provider.storeID)
+            {
+                // Keep an AirRelay endpoint already configured on the account across Google re-sign-in.
+                for key in [AgentSignInField.baseURL.rawValue, "relayUrl"] where signedIn.extras[key] == nil {
+                    if let value = previous.extras[key] {
+                        signedIn.extras[key] = value
+                    }
+                }
             }
             try Task.checkCancellation()
             do {

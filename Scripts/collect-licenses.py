@@ -144,7 +144,7 @@ def package_entries(pins, checkouts, excluded, stated):
         checkout = os.path.join(checkouts, package)
         if not os.path.isdir(checkout):
             fail(f"{package} is pinned in Package.resolved but has no checkout under {checkouts}")
-        if pin["identity"] in stated:
+        if not pin.get("state", {}).get("version") and pin["identity"] in stated:
             version = stated_version(package, checkout, stated[pin["identity"]])
         found = []
         skipped = excluded.get(pin["identity"], [])

@@ -48,7 +48,7 @@
     {"op": "expect", "request": {"step": "antigravity-page", "path": "response.events.0.payload.url", "exists": true}},
     {"op": "expect", "request": {"step": "antigravity-page", "path": "response.events.0.payload.acceptsCallbackURL", "equals": true}},
     {"op": "agentSignInRespond", "label": "antigravity-no-code", "allowError": true,
-     "request": {"taskID": "${antigravity.response.taskID}", "values": {"callbackURL": "http://localhost:51121/oauth-callback?nothing=here"}}},
+     "request": {"taskID": "${antigravity.response.taskID}", "values": {"callbackURL": "http://localhost:1/oauth-callback?nothing=here"}}},
     {"op": "expect", "request": {"step": "antigravity-no-code", "errorCode": "badRequest"}},
     {"op": "agentSignInCancel", "request": {"taskID": "${antigravity.response.taskID}"}},
     {"op": "agentAttach", "label": "antigravity-ended", "follow": false,

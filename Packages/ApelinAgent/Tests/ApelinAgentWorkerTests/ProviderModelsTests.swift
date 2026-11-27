@@ -21,20 +21,44 @@ struct ProviderModelsTests {
         #expect(try AgentWorker.provider(.init(provider: provider)) == .stored(storeID: plan.id, model: nil))
     }
 
-    /// Antigravity's models are kwwk's list for it, as every subscription's
-    /// are: nothing to discover, and its session is kwwk's stored provider.
+    /// Antigravity's models are kwwk's `agy` catalog, where effort is encoded
+    /// in each slug; sessions resolve through kwwk's AirRelay registration when
+    /// a relay URL is stored, and explain its absence clearly otherwise.
     @Test
-    func `Antigravity lists kwwk's catalog for it and is kwwk's stored provider`() throws {
-        let subscription = OAuthCredentials(access: "token", refresh: "refresh", expires: 1)
+    func `Antigravity lists kwwk's catalog for it and is kwwk's stored provider`() async throws {
+        let subscription = OAuthCredentials(access: "token", refresh: "refresh", expires: 4_102_444_800_000)
         let models = ProviderModels.list(.antigravity, credentials: subscription)
-        #expect(models.contains("gemini-4-argon"))
-        #expect(models.contains("claude-opus-5-5"))
-        #expect(ProviderModels.reasoningEfforts(.antigravity, credentials: subscription)["gemini-4-argon"]?.isEmpty == false)
+        #expect(models.contains(AgyModels.defaultModelId))
+        #expect(models.contains("claude-opus-5-5-high"))
+        #expect(ProviderModels.reasoningEfforts(.antigravity, credentials: subscription)[AgyModels.defaultModelId] == [])
         #expect(!ProviderModels.usesAPIKey(.antigravity, credentials: subscription))
         #expect(ProviderModels.modelRequest(.antigravity, credentials: subscription) == nil)
-        #expect(try AgentWorker.provider(.init(provider: .antigravity)) == .stored(storeID: "antigravity", model: nil))
-        #expect(try AgentWorker.provider(.init(provider: .antigravity, model: "gemini-4-argon"))
-            == .stored(storeID: "antigravity", model: "gemini-4-argon"))
+        #expect(try AgentWorker.provider(.init(provider: .antigravity)) == .stored(storeID: AgyOAuth.providerId, model: nil))
+        #expect(try AgentWorker.provider(.init(provider: .antigravity, model: AgyModels.defaultModelId))
+            == .stored(storeID: AgyOAuth.providerId, model: AgyModels.defaultModelId))
+
+        // Without an AirRelay baseUrl, resolution explains why it cannot route rather than claiming no sign-in.
+        let withoutRelay = OAuthManager(source: DeliveredCredentialSource([AgyOAuth.providerId: subscription]))
+        await #expect(throws: ProviderResolutionError.unresolved(
+            message: "Antigravity needs an AirRelay endpoint to send chats. Configure an AirRelay endpoint for Antigravity, or choose another model provider.",
+            reason: nil,
+        )) {
+            _ = try await ProviderRegistration.resolve(storeID: AgyOAuth.providerId, manager: withoutRelay)
+        }
+
+        // With an AirRelay baseUrl, kwwk registers the Anthropic Messages AirRelay transport.
+        var relayed = subscription
+        relayed.extras["baseUrl"] = .string("https://relay.example.invalid/v1")
+        let withRelay = OAuthManager(source: DeliveredCredentialSource([AgyOAuth.providerId: relayed]))
+        let resolved = try #require(try await ProviderRegistration.resolve(
+            storeID: AgyOAuth.providerId,
+            manager: withRelay,
+            modelOverride: "claude-opus-5-5-high",
+        ))
+        #expect(resolved.model.provider == AgyOAuth.providerId)
+        #expect(resolved.model.api == "anthropic-messages")
+        #expect(resolved.model.id == "claude-opus-5-5-high")
+        #expect(resolved.model.baseURL == "https://relay.example.invalid")
     }
 
     /// What Settings shows beside an empty limit field (#68): each model as
