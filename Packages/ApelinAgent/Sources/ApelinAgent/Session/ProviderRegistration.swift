@@ -39,7 +39,7 @@ public enum ProviderRegistration {
         guard let resolved = registered else {
             if storeID == AgyOAuth.providerId {
                 throw ProviderResolutionError.unresolved(
-                    message: "Antigravity requires an AirRelay endpoint URL (baseUrl) on its saved sign-in.",
+                    message: "Antigravity needs an AirRelay endpoint to send chats. Configure an AirRelay endpoint for Antigravity, or choose another model provider.",
                     reason: nil,
                 )
             }

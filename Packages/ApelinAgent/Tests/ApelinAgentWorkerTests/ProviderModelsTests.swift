@@ -40,7 +40,7 @@ struct ProviderModelsTests {
         // Without an AirRelay baseUrl, resolution explains why it cannot route rather than claiming no sign-in.
         let withoutRelay = OAuthManager(source: DeliveredCredentialSource([AgyOAuth.providerId: subscription]))
         await #expect(throws: ProviderResolutionError.unresolved(
-            message: "Antigravity requires an AirRelay endpoint URL (baseUrl) on its saved sign-in.",
+            message: "Antigravity needs an AirRelay endpoint to send chats. Configure an AirRelay endpoint for Antigravity, or choose another model provider.",
             reason: nil,
         )) {
             _ = try await ProviderRegistration.resolve(storeID: AgyOAuth.providerId, manager: withoutRelay)
